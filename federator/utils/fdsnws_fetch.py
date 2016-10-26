@@ -8,9 +8,9 @@
 #                                                                             #
 # modified by Fabian Euchner, ETHZ                                            #
 #                                                                             #
-# original file from                                                          #
-# https://raw.githubusercontent.com/andres-h/obspy/master/obspy/clients/\     #
-#    eida/fetch.py                                                            #
+# original file from (2016-10-26)                                             #
+# https://github.com/SeisComP3/seiscomp3/blob/master/src/trunk/apps/fdsnws/\  #
+#    fdsnws_fetch.py                                                          #
 ###############################################################################
 
 """
