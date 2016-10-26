@@ -119,6 +119,16 @@ STATIONXML_RESOURCE_METADATA_ELEMENTS = (
     '{http://www.fdsn.org/xml/station/1}Module', 
     '{http://www.fdsn.org/xml/station/1}ModuleURI')
 
+STATIONXML_NETWORK_ELEMENT = '{http://www.fdsn.org/xml/station/1}Network'
+STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'
+STATIONXML_LATITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Latitude'
+STATIONXML_LONGITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Longitude'
+
+
+FDSNWS_GEOMETRY_PARAMS_LONG = (
+    'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
+
+FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
 
 class Error(Exception):
     pass
@@ -213,8 +223,10 @@ class RoutingURL(object):
 
 
 class XMLCombiner(object):
-    def __init__(self):
+    def __init__(self, qp):
         self.__et = None
+        self.__qp = qp
+        self.__geometry_par_type = get_geometry_par_type(qp)
 
     def __combine_element(self, one, other):
         mapping = {}
@@ -233,6 +245,13 @@ class XMLCombiner(object):
             # subsequent trees
             if el.tag in STATIONXML_RESOURCE_METADATA_ELEMENTS:
                 continue
+            
+            # station coords: check lat-lon box, remove stations outside
+            if self.__geometry_par_type is not None and \
+                el.tag == STATIONXML_NETWORK_ELEMENT:
+
+                remove_stations_outside_box(
+                    el, self.__qp, self.__geometry_par_type)
             
             try:
                 eid = (el.tag, el.attrib['code'], el.attrib['start'])
@@ -275,6 +294,15 @@ class XMLCombiner(object):
                 el = root.find(tag)
                 if el is not None:
                     root.remove(el)
+                    
+            # station coords: check lat-lon box, remove stations outside
+            if self.__geometry_par_type is not None:
+                
+                networks = root.findall(STATIONXML_NETWORK_ELEMENT)
+                for net in networks:
+                    remove_stations_outside_box(
+                        net, self.__qp, self.__geometry_par_type)
+           
 
     def dump(self, fd):
         if self.__et:
@@ -461,7 +489,62 @@ def msg(s, verbose=True):
             sys.stderr.write(s + '\n')
             sys.stderr.flush()
 
+def get_geometry_par_type(qp):
 
+    par_short_count = 0
+    par_long_count = 0
+    
+    for (p, v) in qp.iteritems():
+        
+        if p in FDSNWS_GEOMETRY_PARAMS_SHORT:
+            try:
+                _ = float(v)
+                par_short_count += 1
+            except Exception:
+                continue
+            
+        elif p in FDSNWS_GEOMETRY_PARAMS_LONG:
+            try:
+                _ = float(v)
+                par_long_count += 1
+            except Exception:
+                continue
+            
+    if par_long_count == len(FDSNWS_GEOMETRY_PARAMS_LONG):
+        par_type = 'long'
+    elif par_short_count == len(FDSNWS_GEOMETRY_PARAMS_SHORT):
+        par_type = 'short'
+    else:
+        par_type = None
+    
+    return par_type
+
+def is_within_box(lat, lon, qp, geometry_par_type):
+
+    if geometry_par_type == 'long':
+        return (lat >= float(qp['minlatitude']) and 
+            lat <= float(qp['maxlatitude']) and 
+            lon >= float(qp['minlongitude']) and 
+            lon <= float(qp['maxlongitude']))
+    
+    elif geometry_par_type == 'short':
+        return (lat >= float(qp['minlat']) and lat <= float(qp['maxlat']) and
+            lon >= float(qp['minlon']) and lon <= float(qp['maxlon']))
+    
+    else:
+        return False
+
+def remove_stations_outside_box(net, qp, geometry_par_type):
+                    
+    stations = net.findall(STATIONXML_STATION_ELEMENT)
+                    
+    for st in stations:
+        lat = float(st.find(STATIONXML_LATITUDE_ELEMENT).text)
+        lon = float(st.find(STATIONXML_LONGITUDE_ELEMENT).text)
+                        
+        if not is_within_box(lat, lon, qp, geometry_par_type):
+            net.remove(st)
+                            
 def retry(urlopen, url, data, timeout, count, wait, verbose):
     n = 0
 
@@ -606,6 +689,8 @@ def fetch(url, cred, authdata, postlines, xc, dest, timeout, retry_count,
                                 for (p, v) in url.post_params()) +
                         ''.join(postlines[i:i+n]))
 
+            # msg("postdata:\n%s" % postdata, verbose)
+            
             if not isinstance(postdata, bytes):
                 postdata = postdata.encode('utf-8')
 
@@ -704,13 +789,13 @@ def fetch(url, cred, authdata, postlines, xc, dest, timeout, retry_count,
         finished.put(threading.current_thread())
 
 
-def route(url, cred, authdata, postdata, dest, timeout, retry_count,
+def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
           retry_wait, maxthreads, verbose):
     threads = []
     running = 0
     finished = Queue.Queue()
     lock = threading.Lock()
-    xc = XMLCombiner()
+    xc = XMLCombiner(qp)
 
     if postdata:
         query_url = url.post()
@@ -970,7 +1055,7 @@ def main(args):
         url = RoutingURL(urlparse.urlparse(options.url), qp)
         dest = open(options.output_file, 'wb')
 
-        route(url, cred, authdata, postdata, dest, options.timeout,
+        route(url, qp, cred, authdata, postdata, dest, options.timeout,
               options.retries, options.retry_wait, options.threads,
               options.verbose)
 
