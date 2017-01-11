@@ -14,11 +14,9 @@ from flask import current_app
 from flask_restful import abort, reqparse, request, Resource
 
 from federator import settings
-from federator.server import httperrors
+from federator.server import httperrors, parameters
 from federator.utils import fdsnws_fetch, misc
 
-SERVER_NAME = 'EIDAFederator'
-VERSION = 0.1
 
 DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
 STATION_MIMETYPE = 'application/xml'
@@ -31,47 +29,36 @@ FDSNWSFETCH_ROUTING_PARAM = '-u'
 FDSNWSFETCH_QUERY_PARAM = '-q'
 FDSNWSFETCH_POSTFILE_PARAM = '-p'
 
-MAP_QUERY_TO_FDSNWSFETCH = {
-    'starttime': '-s',
-    'endtime': '-e',
-    'network': '-N',
-    'station': '-S',
-    'location': '-L',
-    'channel': '-C',
-    'format': '',
-    'nodata': '',
-    'quality': '',
-    'minimumlength': '',
-    'longestonly': '',
-    'minlatitude': '',
-    'maxlatitude': '',
-    'minlongitude': '',
-    'maxlongitude': '',
-    'latitude': '',
-    'longitude': '',
-    'minradius': '',
-    'maxradius': '',
-    'level': '',
-    'includerestricted': '',
-    'includeavailability': '',
-    'updatedafter': '',
-    'matchtimeseries': ''
-    }
+# TODO(fab): retire
+#MAP_QUERY_TO_FDSNWSFETCH = {
+    #'starttime': '-s',
+    #'endtime': '-e',
+    #'network': '-N',
+    #'station': '-S',
+    #'location': '-L',
+    #'channel': '-C',
+    #'format': '',
+    #'nodata': '',
+    #'quality': '',
+    #'minimumlength': '',
+    #'longestonly': '',
+    #'minlatitude': '',
+    #'maxlatitude': '',
+    #'minlongitude': '',
+    #'maxlongitude': '',
+    #'latitude': '',
+    #'longitude': '',
+    #'minradius': '',
+    #'maxradius': '',
+    #'level': '',
+    #'includerestricted': '',
+    #'includeavailability': '',
+    #'updatedafter': '',
+    #'matchtimeseries': ''
+#}
 
 
-# general query string parameters
-general_reqparser = reqparse.RequestParser()
 
-general_reqparser.add_argument('starttime', type=str)
-general_reqparser.add_argument('endtime', type=str)
-
-general_reqparser.add_argument('network', type=str)
-general_reqparser.add_argument('station', type=str)
-general_reqparser.add_argument('location', type=str)
-general_reqparser.add_argument('channel', type=str)
-
-general_reqparser.add_argument('format', type=str)
-general_reqparser.add_argument('nodata', type=int)
 
 
 class GeneralResource(Resource):
@@ -121,7 +108,9 @@ class GeneralResource(Resource):
         # check that POST request is not empty
         if len(cleaned_post) == 0:
             print "empty POST request"
-            raise httperrors.BadRequestError()
+            raise httperrors.BadRequestError(
+                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                datetime.datetime.utcnow())
 
         with open(temp_postfile, 'w') as fout:
             fout.write(cleaned_post)
@@ -169,12 +158,23 @@ class GeneralRequestTranslator(object):
         self.out_params[FDSNWSFETCH_ROUTING_PARAM] = get_routing_url(
             current_app.config['ROUTING'])
         
-        # add params that have a direct mapping to fdsnws_fetch params
+        # find params that have a direct mapping to fdsnws_fetch params
         for param, value in query_args.iteritems():
             if value is not None:
-                if param in MAP_QUERY_TO_FDSNWSFETCH:
-                    if MAP_QUERY_TO_FDSNWSFETCH[param]:
-                        self.add(MAP_QUERY_TO_FDSNWSFETCH[param], value)
+                
+                # NOTE: param is the FDSN service parameter name from the HTTP 
+                # web service query (could be long or short version)
+                par_group_idx, par_name = parameters.parameter_description(
+                    param)
+                
+                # check if valid web service parameter
+                if par_group_idx is not None:
+                    
+                    fdsnfetch_par = parameters.ALL_QUERY_PARAMS[par_group_idx]\
+                        [par_name]['fdsn_fetch_par']
+                    
+                    if fdsnfetch_par:
+                        self.add(fdsnfetch_par, value)
                     
                     else:
                         # add as a query param
@@ -183,8 +183,9 @@ class GeneralRequestTranslator(object):
                 
                 else:
                     
-                    # TODO(fab): alternative parameter names
-                    raise httperrors.BadRequestError()
+                    raise httperrors.BadRequestError(
+                        settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                        datetime.datetime.utcnow())
     
     
     def add(self, param, value):
@@ -220,13 +221,23 @@ class GeneralRequestTranslator(object):
     
     def serialize(self):
         return ' '.join(self.getlist())
-
-
     
-            
 
+def get_request_parser(request_params, request_parser=None):
+    """Create request parser and add query parameters."""
     
+    if request_parser is None:
+        the_parser = reqparse.RequestParser()
+    else:
+        the_parser = request_parser.copy()
+        
+    for _, req_par_data in request_params.iteritems():
+        for param_alias in req_par_data['aliases']:
+            the_parser.add_argument(param_alias, type=req_par_data['type'])
             
+    return the_parser
+
+
 def process_request(args):
     """Call fdsnws_fetch with args, return path of result file."""
     
@@ -235,7 +246,7 @@ def process_request(args):
         return None
     
     # TODO(fab): capture log output
-    
+
     print args.serialize()
     
     try:
@@ -261,4 +272,7 @@ def get_routing_url(routing_service):
             ['services']['eida']['routing']['server']
         
     return "%s%s" % (server, settings.EIDA_ROUTING_PATH)
-    
+
+
+# general query string parameters
+general_reqparser = get_request_parser(parameters.GENERAL_PARAMS)

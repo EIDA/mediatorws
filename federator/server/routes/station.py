@@ -4,30 +4,17 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+import datetime
 import os
 
 import flask
 from flask_restful import abort, reqparse, request, Resource
 
 from federator import settings
-from federator.server import general_request, httperrors
+from federator.server import general_request, httperrors, parameters
 from federator.utils import misc                                      
 
-station_reqparser = general_request.general_reqparser.copy()
-station_reqparser.add_argument('minlatitude', type=float)
-station_reqparser.add_argument('maxlatitude', type=float)
-station_reqparser.add_argument('minlongitude', type=float)
-station_reqparser.add_argument('maxlongitude', type=float)
-station_reqparser.add_argument('latitude', type=float)
-station_reqparser.add_argument('longitude', type=float)
-station_reqparser.add_argument('minradius', type=float)
-station_reqparser.add_argument('maxradius', type=float)
 
-station_reqparser.add_argument('level', type=str)
-station_reqparser.add_argument('includerestricted', type=bool)
-station_reqparser.add_argument('includeavailability', type=bool)
-station_reqparser.add_argument('updatedafter', type=str)
-station_reqparser.add_argument('matchtimeseries', type=bool)
 
 
 class StationRequestTranslator(general_request.GeneralRequestTranslator):
@@ -52,7 +39,9 @@ class StationResource(general_request.GeneralResource):
                 arg_count += 1 
         
         if arg_count == 0:
-            raise httperrors.BadRequestError()
+            raise httperrors.BadRequestError(
+                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                datetime.datetime.utcnow())
             
         fetch_args = StationRequestTranslator(args)
         
@@ -76,5 +65,9 @@ class StationResource(general_request.GeneralResource):
             fetch_args, general_request.STATION_MIMETYPE, 
             postfile=temp_postfile)
         
-        
+
+station_reqparser = general_request.get_request_parser(
+    parameters.STATION_PARAMS, general_request.general_reqparser)
+
+
     

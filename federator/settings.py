@@ -204,3 +204,9 @@ FDSN_QUERY_METHOD_TOKEN = 'query'
 
 FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
 
+FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
+
+
+SERVER_NAME = 'EIDA Federator (alpha)'
+VERSION = '0.9.1'
+

@@ -4,20 +4,16 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+import datetime
 import os
 
 import flask
 from flask_restful import abort, reqparse, request, Resource
 
 from federator import settings
-from federator.server import general_request, httperrors
+from federator.server import general_request, httperrors, parameters
 from federator.utils import misc
 
-
-dataselect_reqparser = general_request.general_reqparser.copy()
-dataselect_reqparser.add_argument('quality', type=str)
-dataselect_reqparser.add_argument('minimumlength', type=float)
-dataselect_reqparser.add_argument('longestonly', type=bool)
 
 class DataselectRequestTranslator(general_request.GeneralRequestTranslator):
     """Translate query params to commandline params."""
@@ -34,7 +30,9 @@ class DataselectRequestTranslator(general_request.GeneralRequestTranslator):
             self.getpar('-C') is None and self.getpar('-L') is None and (
                 self.getpar('-L') is None or self.getpar('-L') in ('*', '??')):
                 
-                raise httperrors.BadRequestError()
+                raise httperrors.BadRequestError(
+                    settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                    datetime.datetime.utcnow())
         
 
 class DataselectResource(general_request.GeneralResource):
@@ -66,5 +64,9 @@ class DataselectResource(general_request.GeneralResource):
             fetch_args, general_request.DATASELECT_MIMETYPE, 
             postfile=temp_postfile)
         
-        
+
+dataselect_reqparser = general_request.get_request_parser(
+    parameters.DATASELECT_PARAMS, general_request.general_reqparser)
+
+
     
