@@ -19,7 +19,8 @@ from federator.utils import fdsnws_fetch, misc
 
 
 DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
-STATION_MIMETYPE = 'application/xml'
+STATION_MIMETYPE_XML = 'application/xml'
+STATION_MIMETYPE_TEXT = 'text/plain'
 
 FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
 
@@ -28,37 +29,6 @@ FDSNWSFETCH_SERVICE_PARAM = '-y'
 FDSNWSFETCH_ROUTING_PARAM = '-u'
 FDSNWSFETCH_QUERY_PARAM = '-q'
 FDSNWSFETCH_POSTFILE_PARAM = '-p'
-
-# TODO(fab): retire
-#MAP_QUERY_TO_FDSNWSFETCH = {
-    #'starttime': '-s',
-    #'endtime': '-e',
-    #'network': '-N',
-    #'station': '-S',
-    #'location': '-L',
-    #'channel': '-C',
-    #'format': '',
-    #'nodata': '',
-    #'quality': '',
-    #'minimumlength': '',
-    #'longestonly': '',
-    #'minlatitude': '',
-    #'maxlatitude': '',
-    #'minlongitude': '',
-    #'maxlongitude': '',
-    #'latitude': '',
-    #'longitude': '',
-    #'minradius': '',
-    #'maxradius': '',
-    #'level': '',
-    #'includerestricted': '',
-    #'includeavailability': '',
-    #'updatedafter': '',
-    #'matchtimeseries': ''
-#}
-
-
-
 
 
 class GeneralResource(Resource):
@@ -198,11 +168,22 @@ class GeneralRequestTranslator(object):
             # Note: overwrites existing params
             self.out_params[param] = value
             
-
-   
+ 
     def getpar(self, param):
+        """Get value of a given fdsnws_fetch command line parameter."""
         return self.out_params.get(param, None)
     
+    
+    def getquerypar(self, param):
+        """Get value of a given param within list of fdsnws_fetch -q params."""
+        
+        for pairs in self.getpar(FDSNWSFETCH_QUERY_PARAM):
+            check_param = pairs.split(FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
+            if check_param[0] == param:
+                return check_param[1]
+            
+        return None
+
     
     def getlist(self):
         out = []

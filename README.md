@@ -22,9 +22,7 @@ Missing features and limitations
 --------------------------------
 
 * only /query method is implemented (dataselect /queryauth is not implemented)
-* error message texts are not according to specification
-* in GET requests, only the long version of the parameter names is supported
-* some queries return incorrect results
+* error message texts are JSON, not plain text
 
 
 Federator server

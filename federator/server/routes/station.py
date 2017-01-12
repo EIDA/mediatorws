@@ -16,7 +16,6 @@ from federator.utils import misc
 
 
 
-
 class StationRequestTranslator(general_request.GeneralRequestTranslator):
     """Translate query params to commandline params."""
 
@@ -48,7 +47,7 @@ class StationResource(general_request.GeneralResource):
         # print fetch_args.serialize()
         
         return self._process_request(
-            fetch_args, general_request.STATION_MIMETYPE)
+            fetch_args, self._get_result_mimetype(fetch_args))
 
 
     def post(self):
@@ -62,8 +61,17 @@ class StationResource(general_request.GeneralResource):
         temp_postfile, fetch_args = self._process_post_args(fetch_args)
 
         return self._process_request(
-            fetch_args, general_request.STATION_MIMETYPE, 
+            fetch_args, self._get_result_mimetype(fetch_args), 
             postfile=temp_postfile)
+    
+    
+    def _get_result_mimetype(self, fetch_args):
+        """Return result mimetype (either XML or plain text."""
+        
+        if fetch_args.getquerypar('format') == 'text':
+            return general_request.STATION_MIMETYPE_TEXT
+        else:
+            return general_request.STATION_MIMETYPE_XML
         
 
 station_reqparser = general_request.get_request_parser(

@@ -124,11 +124,14 @@ STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'
 STATIONXML_LATITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Latitude'
 STATIONXML_LONGITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Longitude'
 
+STATION_RESPONSE_TEXT_HEADER = \
+    '#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime'
 
 FDSNWS_GEOMETRY_PARAMS_LONG = (
     'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
 
 FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
+
 
 class Error(Exception):
     pass
@@ -222,6 +225,21 @@ class RoutingURL(object):
         return [(p, v) for (p, v) in self.__qp.items() if p not in GET_PARAMS]
 
 
+class TextCombiner(object):
+    def __init__(self):
+        self.__text = ''
+
+    def combine(self, text):
+        if self.__text:
+            self.__text = ''.join((self.__text, text))
+        else:
+            self.__text = '\n'.join((STATION_RESPONSE_TEXT_HEADER, text))
+
+    def dump(self, fd):
+        if self.__text:
+            fd.write(self.__text)
+            
+            
 class XMLCombiner(object):
     def __init__(self, qp):
         self.__et = None
@@ -582,7 +600,7 @@ def retry(urlopen, url, data, timeout, count, wait, verbose):
             time.sleep(wait)
 
 
-def fetch(url, cred, authdata, postlines, xc, dest, timeout, retry_count,
+def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
           retry_wait, finished, lock, verbose):
     try:
         url_handlers = []
@@ -727,16 +745,25 @@ def fetch(url, cred, authdata, postlines, xc, dest, timeout, retry_count,
                                 size += len(buf)
 
                         elif content_type == "text/plain":
+                            
+                            # this is the station service in text format
+                            output = ''
                             while True:
                                 buf = fd.readline()
-
+                                
                                 if not buf:
                                     break
-
-                                with lock:
-                                    dest.write(buf)
-
+                                
+                                # skip header lines that start with '#'
+                                # Note: first header line is inserted in
+                                # TextConverter class
+                                if buf.startswith('#'):
+                                    continue
+                                    
+                                output = ''.join((output, buf))
                                 size += len(buf)
+                                
+                            tc.combine(output)
 
                         elif content_type == "application/xml":
                             fdread = fd.read
@@ -796,6 +823,7 @@ def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
     finished = Queue.Queue()
     lock = threading.Lock()
     xc = XMLCombiner(qp)
+    tc = TextCombiner()
 
     if postdata:
         query_url = url.post()
@@ -846,6 +874,7 @@ def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
                                                                   authdata,
                                                                   postlines,
                                                                   xc,
+                                                                  tc,
                                                                   dest,
                                                                   timeout,
                                                                   retry_count,
@@ -884,6 +913,7 @@ def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
         running -= 1
 
     xc.dump(dest)
+    tc.dump(dest)
 
 
 def main(args):
