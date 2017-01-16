@@ -756,7 +756,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                 
                                 # skip header lines that start with '#'
                                 # Note: first header line is inserted in
-                                # TextConverter class
+                                # TextCombiner class
                                 if buf.startswith('#'):
                                     continue
                                     

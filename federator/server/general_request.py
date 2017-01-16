@@ -45,8 +45,8 @@ class GeneralResource(Resource):
         
         # print request.data
 
-        # remove name=value pars from original POST request and make
-        # them fetch parameters
+        # remove name=value pairs from original POST request and convert them
+        # to fdsnws_fetch parameters
         cleaned_post = ''
         req_lines = request.data.split('\n')
             
