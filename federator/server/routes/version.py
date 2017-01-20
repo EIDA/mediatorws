@@ -9,7 +9,7 @@ from flask_restful import Resource
 
 from federator import settings                                
 
-        
+     
 class DataselectVersionResource(Resource):
     """Service version for dataselect."""
     
