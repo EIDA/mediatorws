@@ -39,15 +39,10 @@
 
 						<!-- additional, non standard options -->
 						<option value="fdsnxml"/>
-						<option value="stationxml"/>
 						<option value="sc3ml"/>
-					</param>
-
-					<!-- additional, non standard parameters -->
-					<param name="formatted" style="query" type="xsd:boolean" default="false">
-						<doc>
-							Controls formatted (pretty print) output.
-						</doc>
+						
+						<!-- value 'stationxml' seems to be unsupported in many 
+						     FDSNWS endpoints -->
 					</param>
 
 					<!-- not implemented -->
