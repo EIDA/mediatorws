@@ -16,9 +16,10 @@ from flask_restful import Api
 from federator import settings
 
 from federator.server.routes.dataselect import DataselectResource
+from federator.server.routes.misc import \
+    DataselectVersionResource, StationVersionResource, DataselectWadlResource,\
+    StationWadlResource
 from federator.server.routes.station import StationResource
-from federator.server.routes.version import DataselectVersionResource
-from federator.server.routes.version import StationVersionResource
 
 
     
@@ -54,6 +55,9 @@ def main(
             settings.FDSN_VERSION_METHOD_TOKEN))
         
     # application.wadl method
+    api.add_resource(
+        StationWadlResource, "%s%s" % (settings.FDSN_STATION_PATH, 
+            settings.FDSN_WADL_METHOD_TOKEN))
 
     ## dataselect service endpoint
     
@@ -70,7 +74,10 @@ def main(
             settings.FDSN_VERSION_METHOD_TOKEN))
     
     # application.wadl method
-
+    api.add_resource(
+        DataselectWadlResource, "%s%s" % (settings.FDSN_DATASELECT_PATH, 
+            settings.FDSN_WADL_METHOD_TOKEN))
+        
     api.init_app(app)
     
     app.config.update(

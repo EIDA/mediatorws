@@ -4,6 +4,9 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+import os
+
+
 EIDA_NODES = {
     'gfz': {
         'name': '',
@@ -194,6 +197,11 @@ EIDA_NODES = {
 
 DEFAULT_ROUTING_SERVICE = 'gfz'
 
+SERVER_NAME = 'EIDA Federator (alpha)'
+VERSION = '0.9.1'
+SHARE_DIR = 'share'
+
+
 FDSN_STATION_PATH = '/fdsnws/station/1/'
 FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
 FDSN_EVENT_PATH = '/fdsnws/event/1/'
@@ -208,12 +216,21 @@ FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
 
+FDSN_WADL_DIR = SHARE_DIR
+FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
+FDSN_STATION_WADL_FILENAME = 'station.wadl'
+
+DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
+STATION_MIMETYPE_XML = 'application/xml'
+STATION_MIMETYPE_TEXT = 'text/plain'
+VERSION_MIMETYPE = 'text/plain'
+WADL_MIMETYPE = 'application/xml'
+
 
 FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
 
 FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
 
 
-SERVER_NAME = 'EIDA Federator (alpha)'
-VERSION = '0.9.1'
-
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+APP_SHARE = os.path.join(APP_ROOT, SHARE_DIR)

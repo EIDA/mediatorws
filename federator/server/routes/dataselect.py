@@ -46,8 +46,7 @@ class DataselectResource(general_request.GeneralResource):
         args = dataselect_reqparser.parse_args()
         fetch_args = DataselectRequestTranslator(args)
 
-        return self._process_request(
-            fetch_args, general_request.DATASELECT_MIMETYPE)
+        return self._process_request(fetch_args, settings.DATASELECT_MIMETYPE)
 
         
     def post(self):
@@ -61,8 +60,7 @@ class DataselectResource(general_request.GeneralResource):
         temp_postfile, fetch_args = self._process_post_args(fetch_args)
         
         return self._process_request(
-            fetch_args, general_request.DATASELECT_MIMETYPE, 
-            postfile=temp_postfile)
+            fetch_args, settings.DATASELECT_MIMETYPE, postfile=temp_postfile)
         
 
 dataselect_reqparser = general_request.get_request_parser(

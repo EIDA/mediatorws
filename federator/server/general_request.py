@@ -18,10 +18,6 @@ from federator.server import httperrors, parameters
 from federator.utils import fdsnws_fetch, misc
 
 
-DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
-STATION_MIMETYPE_XML = 'application/xml'
-STATION_MIMETYPE_TEXT = 'text/plain'
-
 FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
 
 FDSNWSFETCH_OUTFILE_PARAM = '-o'

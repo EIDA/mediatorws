@@ -69,9 +69,9 @@ class StationResource(general_request.GeneralResource):
         """Return result mimetype (either XML or plain text."""
         
         if fetch_args.getquerypar('format') == 'text':
-            return general_request.STATION_MIMETYPE_TEXT
+            return settings.STATION_MIMETYPE_TEXT
         else:
-            return general_request.STATION_MIMETYPE_XML
+            return settings.STATION_MIMETYPE_XML
         
 
 station_reqparser = general_request.get_request_parser(
