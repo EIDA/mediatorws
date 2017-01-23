@@ -5,17 +5,6 @@
 			<method href="#queryGET"/>
 			<method href="#queryPOST"/>
 		</resource>
-		<resource path="queryauth">
-			<method href="#queryGET"/>
-			<method href="#queryPOST"/>
-		</resource>
-		<resource path="auth">
-			<method name="POST">
-				<response>
-					<representation mediaType="text/plain"/>
-				</response>
-			</method>
-		</resource>
 		<resource path="version">
 			<method name="GET">
 				<response>
