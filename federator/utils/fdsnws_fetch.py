@@ -76,6 +76,7 @@ import threading
 import socket
 import csv
 import re
+import struct
 
 try:
     # Python 3.2 and earlier
@@ -131,6 +132,27 @@ FDSNWS_GEOMETRY_PARAMS_LONG = (
     'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
 
 FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
+
+FIXED_DATA_HEADER_SIZE = 48
+DATA_ONLY_BLOCKETTE_SIZE = 8
+
+DATA_ONLY_BLOCKETTE_NUMBER = 1000
+
+BLOCKETTE_SIZES = {
+    100: 12,
+    200: 52,
+    201: 60,
+    300: 60,
+    310: 60,
+    320: 64,
+    390: 28,
+    395: 16,
+    400: 16,
+    405: 6,
+    500: 200,
+    1000: 8,
+    1001: 8
+}
 
 
 class Error(Exception):
@@ -733,16 +755,101 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                         content_type = content_type.split(';')[0]
 
                         if content_type == "application/vnd.fdsn.mseed":
+                            
+                            record_idx = 1
+                            
+                            # NOTE: cannot use fixed chunk size, because
+                            # response from single node mixes mseed record
+                            # sizes. E.g., a 4096 byte chunk could contain 7
+                            # 512 byte records and the first 512 bytes of a 
+                            # 4096 byte record, which would not be completed
+                            # in the same write operation
                             while True:
-                                buf = fd.read(4096)
-
+                                
+                                # read fixed header
+                                buf = fd.read(FIXED_DATA_HEADER_SIZE)
                                 if not buf:
                                     break
-
+                                
+                                record = buf
+                                curr_size = len(buf)
+                                
+                                # get offset of data (value before last, 
+                                # 2 bytes, unsigned short)
+                                data_offset_idx = FIXED_DATA_HEADER_SIZE - 4
+                                data_offset, = struct.unpack(
+                                    '!H', 
+                                    buf[data_offset_idx:data_offset_idx+2])
+                                
+                                remaining_header_size = data_offset - \
+                                    FIXED_DATA_HEADER_SIZE
+                                
+                                buf = fd.read(remaining_header_size)
+                                if not buf:
+                                    msg("remaining header corrupt in record "\
+                                        "%s" % record_idx)
+                                    break
+                                
+                                record += buf
+                                curr_size += len(buf)
+                                
+                                # scan variable header for blockette 1000 
+                                # (2 bytes, unsigned short)
+                                blockette_start = 0
+                                b1000_found = False
+                                
+                                while (blockette_start < remaining_header_size):
+                                    
+                                    blockette_id, = struct.unpack(
+                                        '!H', 
+                                        buf[blockette_start:blockette_start+2])
+                                    
+                                    if blockette_id == \
+                                        DATA_ONLY_BLOCKETTE_NUMBER:
+                                        
+                                        b1000_found = True
+                                        break
+                                    
+                                    elif blockette_id in BLOCKETTE_SIZES.keys():
+                                        
+                                        blockette_start += \
+                                            BLOCKETTE_SIZES[blockette_id]
+                                        
+                                    else:
+                                        msg("record %s: found blockette %s, "\
+                                            "size not known" % (
+                                                record_idx, blockette_id))
+                                        break
+                                
+                                # blockette 1000 not found, or unknown-size
+                                # blockette encountered
+                                if not b1000_found:
+                                    msg("blockette 1000 not found, stop reading")
+                                    break
+                                    
+                                # get record size (1 byte, unsigned char)
+                                record_size_exponent_idx = blockette_start + 6
+                                record_size_exponent, = struct.unpack(
+                                    '!B', 
+                                    buf[record_size_exponent_idx:\
+                                    record_size_exponent_idx+1])
+                                
+                                remaining_record_size = \
+                                    2**record_size_exponent - curr_size
+                                
+                                # read remainder of record (data section)
+                                buf = fd.read(remaining_record_size)
+                                if not buf:
+                                    msg("cannot read data section of record "\
+                                        "%s" % record_idx)
+                                    break
+                                
+                                record += buf
                                 with lock:
-                                    dest.write(buf)
+                                    dest.write(record)
 
-                                size += len(buf)
+                                size += len(record)
+                                record_idx += 1
 
                         elif content_type == "text/plain":
                             
