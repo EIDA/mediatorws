@@ -26,9 +26,11 @@ class DataselectRequestTranslator(general_request.GeneralRequestTranslator):
         
         # sanity check - for GET, need at least one of SNCL and network can't be
         # just wildcards
+        # this is to prevent people from typing the blank query URL into the
+        # browser and thus making a huge request
         if request.method == 'GET' and self.getpar('-S') is None and \
             self.getpar('-C') is None and self.getpar('-L') is None and (
-                self.getpar('-L') is None or self.getpar('-L') in ('*', '??')):
+                self.getpar('-N') is None or self.getpar('-N') in ('*', '?', '??')):
                 
                 raise httperrors.BadRequestError(
                     settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
