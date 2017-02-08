@@ -137,6 +137,7 @@ FIXED_DATA_HEADER_SIZE = 48
 DATA_ONLY_BLOCKETTE_SIZE = 8
 
 DATA_ONLY_BLOCKETTE_NUMBER = 1000
+MINIMUM_RECORD_LENGTH = 256
 
 BLOCKETTE_SIZES = {
     100: 12,
@@ -781,9 +782,31 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                     '!H', 
                                     buf[data_offset_idx:data_offset_idx+2])
                                 
-                                remaining_header_size = data_offset - \
-                                    FIXED_DATA_HEADER_SIZE
+                                if data_offset >= FIXED_DATA_HEADER_SIZE:
+                                    remaining_header_size = data_offset - \
+                                        FIXED_DATA_HEADER_SIZE
                                 
+                                elif data_offset == 0 :
+                                    #msg("record %s: zero data offset" % (
+                                        #record_idx))
+                                    
+                                    # This means that blockettes can follow,
+                                    # but no data samples. Use minimum record 
+                                    # size to read following blockettes. This
+                                    # can still fail if blockette 1000 is after
+                                    # position 256
+                                    remaining_header_size = \
+                                        MINIMUM_RECORD_LENGTH - \
+                                            FIXED_DATA_HEADER_SIZE
+                                
+                                else:
+                                    # Full header size cannot be smaller than 
+                                    # fixed header size. This is an error.
+                                    msg("record %s: data offset smaller than "\
+                                        "fixed header length: %s, bailing "\
+                                        "out" % (record_idx, data_offset))
+                                    break
+                                    
                                 buf = fd.read(remaining_header_size)
                                 if not buf:
                                     msg("remaining header corrupt in record "\
@@ -794,15 +817,21 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                 curr_size += len(buf)
                                 
                                 # scan variable header for blockette 1000 
-                                # (2 bytes, unsigned short)
                                 blockette_start = 0
                                 b1000_found = False
                                 
                                 while (blockette_start < remaining_header_size):
                                     
+                                    # 2 bytes, unsigned short
                                     blockette_id, = struct.unpack(
                                         '!H', 
                                         buf[blockette_start:blockette_start+2])
+                                    
+                                    # get start of next blockette (second 
+                                    # value, 2 bytes, unsigned short)
+                                    next_blockette_start, = struct.unpack(
+                                        '!H', 
+                                        buf[blockette_start+2:blockette_start+4])
                                     
                                     if blockette_id == \
                                         DATA_ONLY_BLOCKETTE_NUMBER:
@@ -810,21 +839,21 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                         b1000_found = True
                                         break
                                     
-                                    elif blockette_id in BLOCKETTE_SIZES.keys():
-                                        
-                                        blockette_start += \
-                                            BLOCKETTE_SIZES[blockette_id]
-                                        
-                                    else:
-                                        msg("record %s: found blockette %s, "\
-                                            "size not known" % (
-                                                record_idx, blockette_id))
+                                    elif next_blockette_start == 0:
+                                        # no blockettes follow
+                                        msg("record %s: no blockettes follow "\
+                                            "after blockette %s at pos %s" % (
+                                            record_idx, blockette_id, 
+                                            blockette_start))
                                         break
+                                    
+                                    else:
+                                        blockette_start = next_blockette_start
                                 
-                                # blockette 1000 not found, or unknown-size
-                                # blockette encountered
+                                # blockette 1000 not found
                                 if not b1000_found:
-                                    msg("blockette 1000 not found, stop reading")
+                                    msg("record %s: blockette 1000 not found,"\
+                                        " stop reading" % record_idx)
                                     break
                                     
                                 # get record size (1 byte, unsigned char)
@@ -833,7 +862,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                     '!B', 
                                     buf[record_size_exponent_idx:\
                                     record_size_exponent_idx+1])
-                                
+
                                 remaining_record_size = \
                                     2**record_size_exponent - curr_size
                                 
