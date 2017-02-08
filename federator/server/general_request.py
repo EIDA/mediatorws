@@ -136,6 +136,8 @@ class GeneralRequestTranslator(object):
                 # check if valid web service parameter
                 if par_group_idx is not None:
                     
+                    value = parameters.fix_param_value(param, value)
+                    
                     fdsnfetch_par = parameters.ALL_QUERY_PARAMS[par_group_idx]\
                         [par_name]['fdsn_fetch_par']
                     

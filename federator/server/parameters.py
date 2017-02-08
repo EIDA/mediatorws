@@ -6,6 +6,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+import re
 
 GENERAL_PARAMS = {
     'starttime': {
@@ -117,6 +118,8 @@ STATION_PARAMS = {
 
 ALL_QUERY_PARAMS = (GENERAL_PARAMS, DATASELECT_PARAMS, STATION_PARAMS)
 
+TIMESTAMP_PARAMS = ('starttime', 'start', 'endtime', 'end')
+RE_TIMESTAMP_WITHOUT_TIME = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 def parameter_description(query_param):
     """Check if a given query parameter has a definition and return it. If not 
@@ -130,3 +133,19 @@ def parameter_description(query_param):
                 return (group_idx, k)
     
     return (None, None)
+  
+  
+def fix_param_value(param, value):
+    """Check format of parameter values and fix, if necessary."""
+    
+    # add zero time part to date-only timestamp (required for routing service)
+    if param.lower() in TIMESTAMP_PARAMS and is_timestamp_without_time(value):
+        value += "T00:00:00"
+        
+    return value
+
+
+def is_timestamp_without_time(value):
+    """Return True if value is of YYYY-MM-DD format."""
+    
+    return bool(RE_TIMESTAMP_WITHOUT_TIME.search(value))
