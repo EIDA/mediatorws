@@ -104,6 +104,10 @@ class SNCLEpochs(object):
     """
     
     def __init__(self, sncle=None):
+        """
+        TODO(fab): init w/ list of sncle
+        
+        """
         
         self.sncle = {}
         
@@ -121,11 +125,11 @@ class SNCLEpochs(object):
     def add(self, s):
         """Add SNCLE to object."""
         
-        key = s['sncl']
+        key = s.sncle['sncl']
         if key in self.sncle.keys():
             
             # merge epoch interval trees (union)
-            self.sncle[key] |= s['epochs']
+            self.sncle[key] |= s.sncle['epochs']
             if self.sncle['epochs']:
                 self.sncle['epochs'] = merge_intervals_in_tree(
                     self.sncle['epochs'])
@@ -133,7 +137,7 @@ class SNCLEpochs(object):
         else:
             
             # add new SNCL
-            self.sncle.update({key: s['epochs']})
+            self.sncle.update({key: s.sncle['epochs']})
 
 
 def in_interval(value, start, end):
