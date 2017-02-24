@@ -103,41 +103,49 @@ class SNCLEpochs(object):
     
     """
     
-    def __init__(self, sncle=None):
+    def __init__(self, sncle=[]):
         """
-        TODO(fab): init w/ list of sncle
+        Init w/ list of sncle
         
         """
         
         self.sncle = {}
         
-        if sncle:
-            self.sncle = self.add(sncle)
+        for s in sncle:
+            self.add(s.sncle)
     
     
     def merge(self, other):
         """Merge other SNCLEpochs to object."""
         
-        for k, v in other.iteritems():
+        for k, v in other.sncle.iteritems():
             self.add({'sncl': k, 'epochs': v})
 
 
     def add(self, s):
-        """Add SNCLE to object."""
+        """Add SNCLE dict to object."""
         
-        key = s.sncle['sncl']
+        key = s['sncl']
         if key in self.sncle.keys():
             
             # merge epoch interval trees (union)
-            self.sncle[key] |= s.sncle['epochs']
-            if self.sncle['epochs']:
-                self.sncle['epochs'] = merge_intervals_in_tree(
-                    self.sncle['epochs'])
+            self.sncle[key] |= s['epochs']
         
         else:
             
             # add new SNCL
-            self.sncle.update({key: s.sncle['epochs']})
+            self.sncle.update({key: s['epochs']})
+            
+        if self.sncle[key]:
+            self.sncle[key] = merge_intervals_in_tree(self.sncle[key])
+
+
+    def __str__(self):
+        out_str = ''
+        for k, v in self.sncle.iteritems():
+            out_str += "%s: %s\n" % (str(k), str(v))
+        
+        return out_str
 
 
 def in_interval(value, start, end):
