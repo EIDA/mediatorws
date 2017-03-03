@@ -16,6 +16,9 @@ from flask_restful import Resource
 
 from intervaltree import Interval, IntervalTree
 
+import obspy
+import requests
+
 from mediator import settings                                
 
 
@@ -58,7 +61,8 @@ class SNCLE(object):
     
     def __init__(self, sncl, epochs=[]):
         """
-        epochs is a list of (t1, t2) tuples. It can contain overlaps.
+        epochs is a list of (t1, t2) tuples, with t1 and t2 of type
+        datetime.datetime. It can contain overlaps.
         The intervals are merged in the constructor.
         
         """
@@ -193,5 +197,92 @@ def merge_intervals(interval_list):
 
 def process_dq(args):
     """Process direct query."""
-    pass
+    
+    # event service: GET only
+    # SC3 implementation: no catalogs parameter, contributors parameter are
+    #  mapped to agencyIDs, they must be defined in
+    #  @DATADIR@/share/fdsn/contributors.xml
+    #  eventid (optional) is implemented, is a publicID
+    
+    # event query
+    payload = {
+        'start': '2009-01-01', 'end': '2010-01-01', 'minlat': '46', 
+        'maxlat': '49', 'minlon': '8', 'maxlon':'11', 'minmag': '3.5', 
+        'format': 'xml', 'includearrivals': 'true', 'formatted': 'true'}
+    
+    event_query_url = 'http://arclink.ethz.ch/fdsnws/event/1/query'
+    
+    # consume event service
+    r = requests.get(event_query_url, params=payload)
+    
+    # print r.text
+    
+    cat = obspy.read_events(str(r.text))
 
+    # browse through all waveform stream IDs in catalog
+    snclepochs = get_sncl_epochs_from_catalog(cat)
+
+    
+    # TODO: check for wild cards in SNCLs
+    # based on that list: consume dataselect/station
+    
+    return str(snclepochs)
+
+
+def get_sncl_epochs_from_catalog(catalog):
+    """Get SNCL epochs from an ObsPy catalog."""
+    
+    origin_pick_ids = []
+    pick_ids = []
+    
+    #print "%s events" % len(catalog.events)
+    
+    for ev in catalog.events:
+        
+        #print "%s origins" % len(ev.origins)
+        
+        for ori in ev.origins:
+            
+            ori_time = ori.time
+            
+            for arr in ori.arrivals:
+                origin_pick_ids.append((arr.pick_id, ori.time))
+        
+        #print "%s picks" % len(ev.picks)
+        
+        # (pick, stationmagnitude, amplitude, ...)
+        for pick in ev.picks:
+            
+            # get reference to origin, origin time (through arrival)
+            if pick.waveform_id.location_code:
+                loc = pick.waveform_id.location_code
+            else:
+                loc = ''
+            
+            #  pick.time not needed
+            pick_tuple = (pick.resource_id.id, pick.waveform_id.network_code, 
+                pick.waveform_id.station_code, pick.waveform_id.channel_code, 
+                loc)
+            
+            pick_ids.append(pick_tuple)
+    
+    # add SNCLE for all picks that are in origins
+    sn = []
+    for o_pick in origin_pick_ids:
+        for pick in pick_ids:
+            
+            if o_pick[0] == pick[0]:
+                
+                # create SNCLEs w/ standard start/endtime
+                # seconds
+                starttime = o_pick[1] - 60 * 10
+                endtime = o_pick[1] + 60 * 20
+                
+                s = SNCL(pick[1], pick[2], pick[4], pick[3])
+                iv = [(starttime.datetime, endtime.datetime),]
+                sncle = SNCLE(s, iv)
+                sn.append(sncle)
+                
+    return SNCLEpochs(sn)
+    
+    

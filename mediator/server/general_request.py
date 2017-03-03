@@ -27,26 +27,28 @@ class GeneralResource(Resource):
     def _process_request(self, fetch_args, mimetype, postfile=''):
         """Process request and send resulting file to client."""
         
-        resource_path = process_request(fetch_args)
+        resource_out = process_request(fetch_args)
         
         # remove POST temp file
-        if postfile and os.path.isfile(postfile):
-            os.unlink(postfile)
+        #if postfile and os.path.isfile(postfile):
+            #os.unlink(postfile)
 
-        if resource_path is None or os.path.getsize(resource_path) == 0:
+        #if resource_path is None or os.path.getsize(resource_path) == 0:
             
-            # TODO(fab): get user-supplied error code
-            raise httperrors.NoDataError()
+            ## TODO(fab): get user-supplied error code
+            #raise httperrors.NoDataError()
             
-        else:
+        #else:
             
-            # return contents of temp file
-            try:
-                return flask.send_file(resource_path, mimetype=mimetype)
-            except Exception:
-                # cannot send error code since response is already started
-                # TODO(fab): how to let user know of error?
-                pass
+            ## return contents of temp file
+            #try:
+                #return flask.send_file(resource_path, mimetype=mimetype)
+            #except Exception:
+                ## cannot send error code since response is already started
+                ## TODO(fab): how to let user know of error?
+                #pass
+                
+        return resource_out
 
 
 class GeneralRequestParser(object):
@@ -55,46 +57,7 @@ class GeneralRequestParser(object):
     def __init__(self, query_args):
         
         self.out_params = {}
-        self.out_params[FDSNWSFETCH_QUERY_PARAM] = []
         
-        # temp. output file
-        self.out_params[FDSNWSFETCH_OUTFILE_PARAM] = misc.get_temp_filepath()
-        
-        # routing URL
-        self.out_params[FDSNWSFETCH_ROUTING_PARAM] = get_routing_url(
-            current_app.config['ROUTING'])
-        
-        # find params that have a direct mapping to fdsnws_fetch params
-        for param, value in query_args.iteritems():
-            if value is not None:
-                
-                # NOTE: param is the FDSN service parameter name from the HTTP 
-                # web service query (could be long or short version)
-                par_group_idx, par_name = parameters.parameter_description(
-                    param)
-                
-                # check if valid web service parameter
-                if par_group_idx is not None:
-                    
-                    value = parameters.fix_param_value(param, value)
-                    
-                    fdsnfetch_par = parameters.ALL_QUERY_PARAMS[par_group_idx]\
-                        [par_name]['fdsn_fetch_par']
-                    
-                    if fdsnfetch_par:
-                        self.add(fdsnfetch_par, value)
-                    
-                    else:
-                        # add as a query param
-                        self.add(
-                            FDSNWSFETCH_QUERY_PARAM, "%s=%s" % (param, value))
-                
-                else:
-                    
-                    raise httperrors.BadRequestError(
-                        settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
-                        datetime.datetime.utcnow())
-    
     
     def add(self, param, value):
         
@@ -161,25 +124,26 @@ def process_request(args):
     """Write result of mediated query to file."""
     
     #tempfile_path = args.getpar(FDSNWSFETCH_OUTFILE_PARAM)
-    if tempfile_path is None:
-        return None
+    #if tempfile_path is None:
+        #return None
     
-    tempfile_path = 'foo.tmp'
+    #tempfile_path = 'foo.tmp'
     # TODO(fab): capture log output
 
     #print args.serialize()
     
     try:
         #fdsnws_fetch.main(args.getlist())
-        misc.process_dq(args.getlist())
+        out = misc.process_dq(args.getlist())
     except Exception:
         return None
     
+    return out
     # get contents of temp file
-    if os.path.isfile(tempfile_path):
-        return tempfile_path
-    else:
-        return None
+    #if os.path.isfile(tempfile_path):
+        #return tempfile_path
+    #else:
+        #return None
 
 
 def get_routing_url(routing_service):

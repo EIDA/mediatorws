@@ -23,7 +23,7 @@ class DQRequestParser(general_request.GeneralRequestParser):
     """Translate query params to commandline params."""
 
     def __init__(self, query_args):
-        super(GeneralRequestParser, self).__init__(query_args)
+        super(DQRequestParser, self).__init__(query_args)
 
 
 class DQResource(general_request.GeneralResource):
@@ -34,7 +34,8 @@ class DQResource(general_request.GeneralResource):
         args = dq_reqparser.parse_args()
         new_args = DQRequestParser(args)
 
-        return self._process_request(new_args)
+        return self._process_request(
+            new_args, mimetype=settings.STATION_MIMETYPE_TEXT)
 
         
     def post(self):
