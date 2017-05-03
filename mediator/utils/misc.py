@@ -9,6 +9,8 @@ This file is part of the EIDA mediator/federator webservices.
 
 import copy
 import os
+import tempfile
+
 
 import flask
 from flask import make_response
@@ -19,7 +21,8 @@ from intervaltree import Interval, IntervalTree
 import obspy
 import requests
 
-from mediator import settings                                
+from mediator import settings
+from mediator.server import httperrors, parameters
 
 
 class SNCL(object):
@@ -130,7 +133,7 @@ class SNCLEpochs(object):
         """Add SNCLE dict to object."""
         
         key = s['sncl']
-        if key in self.sncle.keys():
+        if key in self.sncle:
             
             # merge epoch interval trees (union)
             self.sncle[key] |= s['epochs']
@@ -144,6 +147,34 @@ class SNCLEpochs(object):
             self.sncle[key] = merge_intervals_in_tree(self.sncle[key])
 
 
+    def tofdsnpost(self):
+        """
+        Write SNCLEpochs to FDSN web service POST lines.
+        Date/time info is UTC YYYY-MM-DDThh:mm:ss.s
+        (leave out time zone indicator).
+        
+        """
+        
+        out_str = ''
+        for sncl, ivtree in self.sncle.iteritems():
+
+            (net, sta, loc, cha) = str(sncl).split('.')
+            if not loc:
+                loc = '--'
+                
+            for iv in ivtree:
+                out_str += "%s %s %s %s %s %s\n" % (
+                    net, sta, loc, cha, iv.begin.isoformat(), 
+                    iv.end.isoformat())
+                
+        return out_str
+    
+    
+    @property
+    def empty(self):
+        return bool(self.sncle)
+    
+    
     def __str__(self):
         out_str = ''
         for k, v in self.sncle.iteritems():
@@ -195,43 +226,27 @@ def merge_intervals(interval_list):
     return merged_list
 
 
-def process_dq(args):
-    """Process direct query."""
+def get_sncl_epochs_from_catalog(catalog, query_par=None):
+    """
+    Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
+    constraints (in station namespace) to catalog (filter catalog).
     
-    # event service: GET only
-    # SC3 implementation: no catalogs parameter, contributors parameter are
-    #  mapped to agencyIDs, they must be defined in
-    #  @DATADIR@/share/fdsn/contributors.xml
-    #  eventid (optional) is implemented, is a publicID
+    Station geometry constraints are not supported (requires station
+    service call).
     
-    # event query
-    payload = {
-        'start': '2009-01-01', 'end': '2010-01-01', 'minlat': '46', 
-        'maxlat': '49', 'minlon': '8', 'maxlon':'11', 'minmag': '3.5', 
-        'format': 'xml', 'includearrivals': 'true', 'formatted': 'true'}
+    Return SNCLs and filtered catalog.
     
-    event_query_url = 'http://arclink.ethz.ch/fdsnws/event/1/query'
+    """
     
-    # consume event service
-    r = requests.get(event_query_url, params=payload)
-    
-    # print r.text
-    
-    cat = obspy.read_events(str(r.text))
-
-    # browse through all waveform stream IDs in catalog
-    snclepochs = get_sncl_epochs_from_catalog(cat)
-
-    
-    # TODO: check for wild cards in SNCLs
-    # based on that list: consume dataselect/station
-    
-    return str(snclepochs)
-
-
-def get_sncl_epochs_from_catalog(catalog):
-    """Get SNCL epochs from an ObsPy catalog."""
-    
+    if query_par is not None:
+        pre_length, post_length, mode = get_pre_post_length(query_par)
+        sncl_constraint = get_sncl_constraint(query_par, service='station')
+    else:
+        # TODO(fab): get defaults
+        pre_length = 120
+        post_length = 1200
+        sncl_constraint = get_sncl_constraint()
+        
     origin_pick_ids = []
     pick_ids = []
     
@@ -242,9 +257,6 @@ def get_sncl_epochs_from_catalog(catalog):
         #print "%s origins" % len(ev.origins)
         
         for ori in ev.origins:
-            
-            ori_time = ori.time
-            
             for arr in ori.arrivals:
                 origin_pick_ids.append((arr.pick_id, ori.time))
         
@@ -260,29 +272,174 @@ def get_sncl_epochs_from_catalog(catalog):
                 loc = ''
             
             #  pick.time not needed
-            pick_tuple = (pick.resource_id.id, pick.waveform_id.network_code, 
-                pick.waveform_id.station_code, pick.waveform_id.channel_code, 
-                loc)
+            pick_dict = dict(
+                id=pick.resource_id.id, net=pick.waveform_id.network_code, 
+                sta=pick.waveform_id.station_code, 
+                cha=pick.waveform_id.channel_code, loc=loc)
             
-            pick_ids.append(pick_tuple)
+            # check SNCL constraints
+            if sncl_constraint.match(pick_dict):
+                pick_ids.append(pick_dict)
+                #print "matched %s and %s" % (pick_dict, sncl_constraint)
     
     # add SNCLE for all picks that are in origins
     sn = []
     for o_pick in origin_pick_ids:
         for pick in pick_ids:
             
-            if o_pick[0] == pick[0]:
+            # compare pick IDs
+            if o_pick[0] == pick['id']:
                 
                 # create SNCLEs w/ standard start/endtime
                 # seconds
-                starttime = o_pick[1] - 60 * 10
-                endtime = o_pick[1] + 60 * 20
+                starttime = o_pick[1] - pre_length
+                endtime = o_pick[1] + post_length
                 
-                s = SNCL(pick[1], pick[2], pick[4], pick[3])
+                s = SNCL(pick['net'], pick['sta'], pick['loc'], pick['cha'])
                 iv = [(starttime.datetime, endtime.datetime),]
                 sncle = SNCLE(s, iv)
                 sn.append(sncle)
                 
-    return SNCLEpochs(sn)
+    return SNCLEpochs(sn), catalog
+
+
+def get_pre_post_length(query_par):
+    """Return pre/post event/pick lengths (in seconds)."""
     
+    pre_ev_length = query_par.getpar('pre_event_length')
+    post_ev_length = query_par.getpar('post_event_length')
+    pre_pick_length = query_par.getpar('pre_pick_length')
+    post_pick_length = query_par.getpar('post_pick_length')
     
+    # pre/post times, check pick (default is event)
+    if pre_pick_length is None and post_pick_length is None:
+        
+        # event
+        mode = 'event'
+        if pre_ev_length is not None:
+            pre_length = pre_ev_length
+        else:
+            # TODO(fab): default
+            pre_length = 120
+            
+        if post_ev_length is not None:
+            post_length = post_ev_length
+        else:
+            # TODO(fab): default
+            post_length = 1200
+            
+    else:
+        # pick
+        mode = 'pick'
+        if pre_pick_length is not None:
+            pre_length = pre_pick_length
+        else:
+            # TODO(fab): default
+            pre_length = 120
+                
+        if post_pick_length is not None:
+            post_length = post_pick_length
+        else:
+            # TODO(fab): default
+            post_length = 1200
+            
+    return pre_length, post_length, mode
+                
+
+def get_sncl_constraint(query_par=None, service=''):
+    """Return SNCL constraint object."""
+    
+    # get SNCL params
+    if query_par is not None:
+        
+        if not service:
+            service = query_par.getpar('service')
+            
+        net, sta, loc, cha = parameters.get_sncl_par(
+            query_par, service=service)
+        
+    else:
+        net, sta, loc, cha = [''] * 4
+    
+    sncl_constraint = parameters.SNCLConstraint(net, sta, loc, cha)
+    return sncl_constraint
+
+
+def get_federator_endpoint(fdsn_service='dataselect'):
+    """
+    Get URL of EIDA federator endpoint depending on requested FDSN service
+    (dataselect or station).
+    
+    """
+    
+    if not fdsn_service in settings.EIDA_FEDERATOR_SERVICES:
+        raise NotImplementedError, "service %s not implemented" % fdsn_service
+        
+    
+    return "%s:%s/fdsnws/%s/1/" % (
+        settings.EIDA_FEDERATOR_BASE_URL, settings.EIDA_FEDERATOR_PORT, 
+        fdsn_service)
+
+
+def get_federator_query_endpoint(fdsn_service='dataselect'):
+    """
+    Get URL of EIDA federator query endpoint depending on requested FDSN 
+    service (dataselect or station).
+    
+    """
+    
+    endpoint = get_federator_endpoint(fdsn_service)
+    return "%s%s" % (endpoint, settings.FDSN_QUERY_METHOD_TOKEN)
+
+
+def get_event_query_endpoint(event_service):
+    """
+    Get URL of EIDA federator query endpoint depending on requested FDSN 
+    service (dataselect or station).
+    
+    """
+    
+    endpoint = get_event_url(event_service)
+    return "%s%s" % (endpoint, settings.FDSN_QUERY_METHOD_TOKEN)
+
+
+def get_routing_url(routing_service):
+    """Get routing URL for routing service abbreviation."""
+    
+    try:
+        server = settings.EIDA_NODES[routing_service]['services']['eida']\
+            ['routing']['server']
+    except KeyError:
+        server = settings.EIDA_NODES[settings.DEFAULT_ROUTING_SERVICE]\
+            ['services']['eida']['routing']['server']
+        
+    return "%s%s" % (server, settings.EIDA_ROUTING_PATH)
+
+
+def get_event_url(event_service):
+    """Get event URL for event service abbreviation."""
+    
+    try:
+        server = settings.FDSN_EVENT_SERVICES[event_service]['server']
+    except KeyError:
+        server = settings.FDSN_EVENT_SERVICES[settings.DEFAULT_EVENT_SERVICE]\
+            ['server']
+        
+    return "%s%s" % (server, settings.FDSN_EVENT_PATH)
+
+
+def map_service(service):
+    """
+    Map service parameter of mediator to service path of FDSN/EIDA web service.
+    
+    """
+    
+    return parameters.MEDIATOR_SERVICE_PARAMS[service]['map']
+
+
+def get_temp_filepath():
+    """Return path of temporary file."""
+    
+    return os.path.join(
+        tempfile.gettempdir(), next(tempfile._get_candidate_names()))
+

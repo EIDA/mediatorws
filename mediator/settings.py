@@ -198,7 +198,28 @@ EIDA_NODES = {
         },
     }
 
+
+FDSN_EVENT_SERVICES = {
+    'eth': {
+        'server': 'http://arclink.ethz.ch'},
+    'ingv': {
+        'server': 'http://webservices.rm.ingv.it'},
+    'niep': {
+        'server': 'http://eida-sc3.infp.ro'},
+    'iris': {
+        'server': 'http://service.iris.edu'},
+    'usgs': {
+        'server': 'http://earthquake.usgs.gov'},
+    'ncedc': {
+        'server': 'http://service.ncedc.org'},
+    'scedc': {
+        'server': 'http://service.scedc.caltech.edu'},
+    'isc': {
+        'server': 'http://www.isc.ac.uk'}
+}
+
 DEFAULT_ROUTING_SERVICE = 'gfz'
+DEFAULT_EVENT_SERVICE = 'usgs'
 
 SERVER_NAME = 'EIDA Mediator (alpha)'
 VERSION = '0.9.1'
@@ -219,6 +240,11 @@ EIDA_MEDIATOR_AQ_PATH = '/eidaws/mediator/aq/'
 
 MEDIATOR_QUERY_METHOD_TOKEN = 'query'
 MEDIATOR_VERSION_METHOD_TOKEN = 'version'
+
+EIDA_FEDERATOR_BASE_URL = 'http://mediator-devel.ethz.ch'
+EIDA_FEDERATOR_PORT = 80
+
+EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
 
 # -----------
 
