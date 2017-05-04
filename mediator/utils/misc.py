@@ -172,7 +172,10 @@ class SNCLEpochs(object):
     
     @property
     def empty(self):
-        return bool(self.sncle)
+        if len(self.sncle) == 0:
+            return True
+        else:
+            return False
     
     
     def __str__(self):
@@ -245,6 +248,7 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
         # TODO(fab): get defaults
         pre_length = 120
         post_length = 1200
+        mode = 'event'
         sncl_constraint = get_sncl_constraint()
         
     origin_pick_ids = []
@@ -271,11 +275,10 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
             else:
                 loc = ''
             
-            #  pick.time not needed
             pick_dict = dict(
                 id=pick.resource_id.id, net=pick.waveform_id.network_code, 
                 sta=pick.waveform_id.station_code, 
-                cha=pick.waveform_id.channel_code, loc=loc)
+                cha=pick.waveform_id.channel_code, loc=loc, time=pick.time)
             
             # check SNCL constraints
             if sncl_constraint.match(pick_dict):
@@ -292,9 +295,13 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
                 
                 # create SNCLEs w/ standard start/endtime
                 # seconds
-                starttime = o_pick[1] - pre_length
-                endtime = o_pick[1] + post_length
-                
+                if mode == 'pick':
+                    starttime = pick['time'] - pre_length
+                    endtime = pick['time'] + post_length
+                else:
+                    starttime = o_pick[1] - pre_length
+                    endtime = o_pick[1] + post_length
+                    
                 s = SNCL(pick['net'], pick['sta'], pick['loc'], pick['cha'])
                 iv = [(starttime.datetime, endtime.datetime),]
                 sncle = SNCLE(s, iv)

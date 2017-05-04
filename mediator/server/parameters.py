@@ -214,10 +214,17 @@ MEDIATOR_EVENT_PARAMS = {
     'e.includearrivals': {
         'aliases': ('e.includearrivals',),
         'type': bool,
-        'default': False}
+        'default': False},
+    'e.format': {
+        'aliases': ('e.format',),
+        'type': str,
+        'default': 'xml'},
+    'e.nodata': {
+        'aliases': ('e.nodata',),
+        'type': int,
+        'default': 204}
 }
-    
-    
+  
 
 MEDIATOR_STATION_PARAMS = {
     's.starttime': {
@@ -240,31 +247,69 @@ MEDIATOR_STATION_PARAMS = {
         'type': str},
     's.minlatitude': {
         'aliases': ('s.minlatitude', 's.minlat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.maxlatitude': {
         'aliases': ('s.maxlatitude', 's.maxlat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.minlongitude': {
         'aliases': ('s.minlongitude', 's.minlon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.maxlongitude': {
         'aliases': ('s.maxlongitude', 's.maxlon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.latitude': {
         'aliases': ('s.latitude', 's.lat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.longitude': {
         'aliases': ('s.longitude', 's.lon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.minradius': {
         'aliases': ('s.minradius',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.maxradius': {
         'aliases': ('s.maxradius',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     's.level': {
         'aliases': ('s.level',),
-        'type': str}
+        'type': str,
+        'nonsnclepoch': True},
+    's.includerestricted': {
+        'aliases': ('s.includerestricted',),
+        'type': bool,
+        'default': True,
+        'nonsnclepoch': True},
+    's.includeavailability': {
+        'aliases': ('s.includeavailability',),
+        'type': bool,
+        'default': False,
+        'nonsnclepoch': True},
+    's.updatedafter': {
+        'aliases': ('s.updatedafter',),
+        'type': str,
+        'nonsnclepoch': True},
+    's.matchtimeseries': {
+        'aliases': ('s.matchtimeseries',),
+        'type': bool,
+        'default': False,
+        'nonsnclepoch': True},
+    's.format': {
+        'aliases': ('s.format',),
+        'type': str,
+        'default': 'xml',
+        'nonsnclepoch': True},
+    's.nodata': {
+        'aliases': ('s.nodata',),
+        'type': int,
+        'default': 204,
+        'nonsnclepoch': True}
 }
 
 MEDIATOR_DATASELECT_PARAMS = {
@@ -285,7 +330,32 @@ MEDIATOR_DATASELECT_PARAMS = {
         'type': str},
     'w.channel': {
         'aliases': ('w.channel', 'w.cha'),
-        'type': str}
+        'type': str},
+    'w.quality': {
+        'aliases': ('w.quality',),
+        'type': str,
+        'default': 'B',
+        'nonsnclepoch': True},
+    'w.minimumlength': {
+        'aliases': ('w.minimumlength',),
+        'type': float,
+        'default': 0.0,
+        'nonsnclepoch': True},
+    'w.longestonly': {
+        'aliases': ('w.longestonly',),
+        'type': bool,
+        'default': False,
+        'nonsnclepoch': True},
+    'w.format': {
+        'aliases': ('w.format',),
+        'type': str,
+        'default': 'miniseed',
+        'nonsnclepoch': True},
+    'w.nodata': {
+        'aliases': ('w.nodata',),
+        'type': int,
+        'default': 204,
+        'nonsnclepoch': True}
 }
     
 # TODO(fab)
@@ -511,11 +581,22 @@ def get_sncl_par(query_par, service=''):
 def get_non_sncl_postlines(query_par):
     """Get parameter=value lines for federator POST query."""
     
-    # TODO(fab)
     out_lines = ''
+    
+    service = query_par.getpar('service')
+    
+    for group_idx, parameter_group in enumerate(ALL_MEDIATOR_QUERY_PARAMS):
+        for k, v in parameter_group.iteritems():
+            
+            par_value = query_par.getpar(k)
+            if par_value is not None and 'nonsnclepoch' in v and \
+                v['nonsnclepoch']:
+                
+                fdsn_par = strip_param_prefix(k, service)
+                out_lines += "%s=%s\n" % (fdsn_par, par_value) 
+  
     return out_lines
-    
-    
+
     
 def parameter_description(query_param):
     """

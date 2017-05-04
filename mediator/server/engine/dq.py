@@ -55,6 +55,7 @@ def process_dq(query_par, outfile):
     # TODO
     
     service = query_par.getpar('service')
+    snclepochs = misc.SNCLEpochs()
     
     if query_par.service_enabled('event'):
         
@@ -136,15 +137,18 @@ def process_dq(query_par, outfile):
         # get SNCL constraints w/o catalog
         net, sta, loc, cha = parameters.get_sncl_par(query_par, service)
 
+    print str(snclepochs)
+    print len(snclepochs.sncle)
+    print snclepochs.empty
     
     if snclepochs.empty:
+        print "snclepochs empty"
         raise httperrors.NoDataError()
     
     # TODO: check for wild cards in SNCLs
     # based on that list: consume dataselect/station
 
     # create POST data for federator service
-    # TODO(fab): non-sncl parameter lines
     postdata = parameters.get_non_sncl_postlines(query_par)
     postdata += snclepochs.tofdsnpost()
     
@@ -157,12 +161,9 @@ def process_dq(query_par, outfile):
     print federator_url
     print postdata
     
-    #return None
-
     with open(outfile, 'wb') as fh:
         
         print "issueing POST to federator"
-        
         response = requests.post(federator_url, data=postdata, stream=True)
 
         if not response.ok:
