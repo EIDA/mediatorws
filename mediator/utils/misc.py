@@ -245,9 +245,10 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
         pre_length, post_length, mode = get_pre_post_length(query_par)
         sncl_constraint = get_sncl_constraint(query_par, service='station')
     else:
-        # TODO(fab): get defaults
-        pre_length = 120
-        post_length = 1200
+        pre_length = \
+            parameters.MEDIATOR_GENERAL_PARAMS['pre_event_length']['default']
+        post_length = \
+            parameters.MEDIATOR_GENERAL_PARAMS['post_event_length']['default']
         mode = 'event'
         sncl_constraint = get_sncl_constraint()
         
@@ -326,14 +327,14 @@ def get_pre_post_length(query_par):
         if pre_ev_length is not None:
             pre_length = pre_ev_length
         else:
-            # TODO(fab): default
-            pre_length = 120
+            pre_length = parameters.MEDIATOR_GENERAL_PARAMS\
+                ['pre_event_length']['default']
             
         if post_ev_length is not None:
             post_length = post_ev_length
         else:
-            # TODO(fab): default
-            post_length = 1200
+            post_length = parameters.MEDIATOR_GENERAL_PARAMS\
+                ['post_event_length']['default']
             
     else:
         # pick
@@ -341,14 +342,14 @@ def get_pre_post_length(query_par):
         if pre_pick_length is not None:
             pre_length = pre_pick_length
         else:
-            # TODO(fab): default
-            pre_length = 120
+            pre_length = parameters.MEDIATOR_GENERAL_PARAMS['pre_pick_length']\
+                ['default']
                 
         if post_pick_length is not None:
             post_length = post_pick_length
         else:
-            # TODO(fab): default
-            post_length = 1200
+            post_length = parameters.MEDIATOR_GENERAL_PARAMS\
+                ['post_pick_length']['default']
             
     return pre_length, post_length, mode
                 
