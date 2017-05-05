@@ -8,6 +8,8 @@ This file is part of the EIDA mediator/federator webservices.
 
 import re
 
+from obspy import UTCDateTime
+
 PARAMETER_PREFIX_SEPARATOR = '.'
 
 GENERAL_PARAMS = {
@@ -163,66 +165,85 @@ MEDIATOR_GENERAL_PARAMS = {
 MEDIATOR_EVENT_PARAMS = {
     'e.starttime': {
         'aliases': ('e.starttime', 'e.start'),
-        'type': str},
+        'type': str,
+        'nonsnclepoch': True},
     'e.endtime': {
         'aliases': ('e.endtime', 'e.end'),
-        'type': str},
+        'type': str,
+        'nonsnclepoch': True},
     'e.minlatitude': {
         'aliases': ('e.minlatitude', 'e.minlat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.maxlatitude': {
         'aliases': ('e.maxlatitude', 'e.maxlat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.minlongitude': {
         'aliases': ('e.minlongitude', 'e.minlon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.maxlongitude': {
         'aliases': ('e.maxlongitude', 'e.maxlon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.latitude': {
         'aliases': ('e.latitude', 'e.lat'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.longitude': {
         'aliases': ('e.longitude', 'e.lon'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.minradius': {
         'aliases': ('e.minradius',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.maxradius': {
         'aliases': ('e.maxradius',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.mindepth': {
         'aliases': ('e.mindepth',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.maxdepth': {
         'aliases': ('e.maxdepth',),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.minmagnitude': {
         'aliases': ('e.minmagnitude', 'e.minmag'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.maxmagnitude': {
         'aliases': ('e.maxmagnitude', 'e.maxmag'),
-        'type': float},
+        'type': float,
+        'nonsnclepoch': True},
     'e.includeallorigins': {
         'aliases': ('e.includeallorigins',),
         'type': bool,
-        'default': False},
+        'default': False,
+        'nonsnclepoch': True},
     'e.includeallmagnitudes': {
         'aliases': ('e.includeallmagnitudes',),
         'type': bool,
-        'default': False},
+        'default': False,
+        'nonsnclepoch': True},
     'e.includearrivals': {
         'aliases': ('e.includearrivals',),
         'type': bool,
-        'default': False},
+        'default': False,
+        'nonsnclepoch': True},
     'e.format': {
         'aliases': ('e.format',),
         'type': str,
-        'default': 'xml'},
+        'default': 'xml',
+        'nonsnclepoch': True},
     'e.nodata': {
         'aliases': ('e.nodata',),
         'type': int,
-        'default': 204}
+        'default': 204,
+        'nonsnclepoch': True}
 }
   
 
@@ -507,7 +528,7 @@ class SNCLConstraint(object):
         return out_str
     
 
-def get_start_end_time_par(query_par, service=''):
+def get_start_end_time_par(query_par, service='', todatetime=False):
     """Get start/end times from query parameters, depending on service."""
     
     starttime = None
@@ -533,11 +554,17 @@ def get_start_end_time_par(query_par, service=''):
     elif service == 'event':
         starttime = query_par.getpar('e.starttime')
         endtime = query_par.getpar('e.endtime')
+        
+    if starttime is not None and todatetime:
+        starttime = UTCDateTime(starttime).datetime
+        
+    if endtime is not None and todatetime:
+        endtime = UTCDateTime(endtime).datetime
 
     return starttime, endtime
     
 
-def get_sncl_par(query_par, service=''):
+def get_sncl_par(query_par, service='', wildcards=False):
     """Get SNCL parameters from query parameters, depending on service."""
     
     net = None
@@ -575,6 +602,16 @@ def get_sncl_par(query_par, service=''):
         loc = query_par.getpar('s.location')
         cha = query_par.getpar('s.channel')
 
+    if wildcards:
+        if net is None:
+            net = '*'
+        if sta is None:
+            sta = '*'
+        if loc is None:
+            loc = '*'
+        if cha is None:
+            cha = '*'
+            
     return net, sta, loc, cha
 
 

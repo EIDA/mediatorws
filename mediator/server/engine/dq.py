@@ -89,9 +89,8 @@ def process_dq(query_par, outfile):
                 return outfile
         
         # replace all publicIDs, pickIDs, filterIDs with sanitized ones
-        # replace_list is a list of dicts:
-        # [{'orig': 'foo', 'repl': 'bar', 'start': 5, 'end': 10}, ...]
-        cat_xml, replace_list = misc.sanitize_catalog_public_ids(cat_xml)
+        # replace_map is a dict: {'replacement': 'original', ...}
+        cat_xml, replace_map = misc.sanitize_catalog_public_ids(cat_xml)
         #print cat_xml
 
         try:
@@ -100,21 +99,20 @@ def process_dq(query_par, outfile):
             err_msg = "catalog read failed: %s" % e
             raise RuntimeError, err_msg
     
-        print len(cat)
+        print "read event catalog, %s events" % (len(cat))
         
-
-        # browse through all waveform stream IDs in catalog
         try:
             # apply S SNCL constraint:
             # snclepochs: remove SNCLEs (OK)
-            # TODO(fab): catalog: remove whole events
-            snclepochs, cat = misc.get_sncl_epochs_from_catalog(cat, query_par)
+            # catalog: remove whole events
+            snclepochs, cat = misc.get_sncl_epochs_from_catalog(
+                cat, replace_map, query_par)
         except Exception, e:
             err_msg = "SNCL epoch creation failed: %s" % e
             raise RuntimeError, err_msg
         
-        print len(cat)
-        print str(snclepochs)
+        #print len(cat)
+        #print str(snclepochs)
         
         # TODO(fab): apply S geometry constraints (remove whole events)
         # requires to consume service S in order to get station coords
@@ -135,7 +133,7 @@ def process_dq(query_par, outfile):
                     
                 # replace sanitized publicIDs with original ones
                 restored_cat_xml = misc.restore_catalog_public_ids(
-                    outstream, replace_list)
+                    outstream, replace_map)
                 
                 outstream.close()
                 
@@ -147,10 +145,17 @@ def process_dq(query_par, outfile):
     else:
         # get sncl epochs w/o catalog
         start_time, end_time = parameters.get_start_end_time_par(
-            query_par, service)
+            query_par, service, todatetime=True)
         
         # get SNCL constraints w/o catalog
-        net, sta, loc, cha = parameters.get_sncl_par(query_par, service)
+        net, sta, loc, cha = parameters.get_sncl_par(
+            query_par, service, wildcards=True)
+        
+        s = misc.SNCL(net, sta, loc, cha)
+        iv = [(start_time, end_time),]
+        sncle = misc.SNCLE(s, iv)
+        sn = [sncle,]
+        snclepochs = misc.SNCLEpochs(sn)
 
     #print str(snclepochs)
     #print len(snclepochs.sncle)

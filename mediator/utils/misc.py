@@ -244,13 +244,18 @@ def merge_intervals(interval_list):
     return merged_list
 
 
-def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
+def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
     """
     Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
     constraints (in station namespace) to catalog (filter catalog).
     
+    When a catalog is filtered, only whole events are removed (all origins are
+    kept, even if their associated picks do not match the SNCL constraint).
+    
     Station geometry constraints are not supported (requires station
     service call).
+    
+    replace_map is the mapping of original to sanitized catalog object IDs.
     
     If copy is True, return a copy of the catalog (may be useful if the catalog
     is modified).
@@ -277,20 +282,24 @@ def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
         
     origin_pick_ids = []
     pick_ids = []
-    no_match_pick_ids = []
+    
+    event_match_count = [0] * len(catalog.events)
     
     #print "%s events" % len(catalog.events)
-    
-    for ev in catalog.events:
+    for ev_idx, ev in enumerate(catalog.events):
         
         ori_count = 0
         
         #print "%s origins" % len(ev.origins)
         for ori in ev.origins:
             for arr in ori.arrivals:
+                
+                # original pick ID for matching
+                pick_id = replace_map[arr.pick_id.id]
+                
                 origin_pick_ids.append(
-                    dict(pick_id=arr.pick_id, ori_time=ori.time, 
-                         ori_id=ori.resource_id.id, ev_id=ev.resource_id.id))
+                    dict(pick_id=pick_id, ori_time=ori.time, 
+                        ev_idx=ev_idx))
         
         #print "%s picks" % len(ev.picks)
         
@@ -303,18 +312,19 @@ def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
             else:
                 loc = ''
             
+            # original pick publicID for matching
+            pick_publicid = replace_map[pick.resource_id.id]
+                
             pick_dict = dict(
-                id=pick.resource_id.id, net=pick.waveform_id.network_code, 
+                id=pick_publicid, net=pick.waveform_id.network_code, 
                 sta=pick.waveform_id.station_code, 
                 cha=pick.waveform_id.channel_code, loc=loc, time=pick.time)
             
             # check SNCL constraints
             if sncl_constraint.match(pick_dict):
-                pick_ids.append(pick_dict)
                 #print "matched %s and %s" % (pick_dict, sncl_constraint)
-            
-            else:
-                no_match_pick_ids.append(pick_dict)
+                pick_ids.append(pick_dict)
+                
     
     # add SNCLE for all picks that are in origins
     sn = []
@@ -323,6 +333,11 @@ def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
             
             # compare pick IDs
             if o_pick['pick_id'] == pick['id']:
+                
+                # add to matching pick count for event
+                event_match_count[o_pick['ev_idx']] += 1
+                #print "add pick to event idx %s, now: %s" % (
+                    #o_pick['ev_idx'], event_match_count[o_pick['ev_idx']])
                 
                 # create SNCLEs w/ standard start/endtime
                 # seconds
@@ -337,19 +352,25 @@ def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
                 iv = [(starttime.datetime, endtime.datetime),]
                 sncle = SNCLE(s, iv)
                 sn.append(sncle)
-                
+    
+    # remove events that have no origins that match SNCL constraint
+    for ev_idx in reversed(xrange(len(catalog.events))):
+        if event_match_count[ev_idx] == 0:
+            del catalog.events[ev_idx]
+    
     return SNCLEpochs(sn), catalog
 
 
 def sanitize_catalog_public_ids(cat_xml):
     """
     Replace all public IDs in a QuakeML instance with well-behaved
-    place holders. Return string with replacements, and list of original
+    place holders. Return string with replacements, and dict of original
     and replaced matches.
     
     """
     
     replace_list = []
+    replace_map = {}
     
     # find public IDs in QuakeML instance and get random replacement
     for pattern in RE_EVENT_XML_PUBLIC_ID:
@@ -361,6 +382,8 @@ def sanitize_catalog_public_ids(cat_xml):
             replace_list.append(
                 dict(orig=public_id, repl=replacement, start=m.start(1), 
                     end=m.end(1)))
+                
+            replace_map[replacement] = public_id
     
     # sort replace list by start index, descending
     replace_list = sorted(replace_list, key=itemgetter('start'), reverse=True)
@@ -371,17 +394,17 @@ def sanitize_catalog_public_ids(cat_xml):
         cat_xml = \
             cat_xml[:match['start']] + match['repl'] + cat_xml[match['end']:]
        
-    return cat_xml, replace_list
+    return cat_xml, replace_map
 
 
-def restore_catalog_public_ids(stream, replace_list):
-    """Replace items from replace-list in io stream."""
+def restore_catalog_public_ids(stream, replace_map):
+    """Replace items from replace map in io stream."""
     
     text = stream.getvalue()
     
     # replacement strings are unique, so simple replace method can be used
-    for match in replace_list:
-        text = text.replace(match['repl'], match['orig'])
+    for repl, orig in replace_map.iteritems():
+        text = text.replace(repl, orig)
     
     return text
 
