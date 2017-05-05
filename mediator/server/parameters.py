@@ -629,8 +629,10 @@ def get_non_sncl_postlines(query_par):
             if par_value is not None and 'nonsnclepoch' in v and \
                 v['nonsnclepoch']:
                 
+                # only add parameters in the namespace of requested service
                 fdsn_par = strip_param_prefix(k, service)
-                out_lines += "%s=%s\n" % (fdsn_par, par_value) 
+                if k != fdsn_par:
+                    out_lines += "%s=%s\n" % (fdsn_par, par_value) 
   
     return out_lines
 
