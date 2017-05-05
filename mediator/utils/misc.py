@@ -9,8 +9,11 @@ This file is part of the EIDA mediator/federator webservices.
 
 import copy
 import os
+import re
 import tempfile
+import uuid
 
+from operator import itemgetter
 
 import flask
 from flask import make_response
@@ -23,6 +26,18 @@ import requests
 
 from mediator import settings
 from mediator.server import httperrors, parameters
+
+
+# IDs from SC3 that do not validate against QuakeML 1.2_
+# - arrival publicIDs from ETHZ (replace all publicIDs)
+# - filterID
+# - pickID (OK from ETHZ but may be invalid elsewhere)
+RE_EVENT_XML_PUBLIC_ID = (
+    re.compile(r'publicID="(.+?)"'), re.compile(r'publicID=\'(.+?)\''),
+    re.compile(r'<filterID>(.+?)<\/filterID>'), 
+    re.compile(r'<pickID>(.+?)<\/pickID>'))
+
+PUBLIC_ID_LOCAL_PREFIX = 'smi:local/'
 
 
 class SNCL(object):
@@ -229,7 +244,7 @@ def merge_intervals(interval_list):
     return merged_list
 
 
-def get_sncl_epochs_from_catalog(catalog, query_par=None):
+def get_sncl_epochs_from_catalog(cat, query_par=None, copy=False):
     """
     Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
     constraints (in station namespace) to catalog (filter catalog).
@@ -237,10 +252,18 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
     Station geometry constraints are not supported (requires station
     service call).
     
+    If copy is True, return a copy of the catalog (may be useful if the catalog
+    is modified).
+    
     Return SNCLs and filtered catalog.
     
     """
     
+    if copy is True:
+        catalog = copy.deepcopy(cat)
+    else:
+        catalog = cat
+        
     if query_par is not None:
         pre_length, post_length, mode = get_pre_post_length(query_par)
         sncl_constraint = get_sncl_constraint(query_par, service='station')
@@ -254,16 +277,20 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
         
     origin_pick_ids = []
     pick_ids = []
+    no_match_pick_ids = []
     
     #print "%s events" % len(catalog.events)
     
     for ev in catalog.events:
         
-        #print "%s origins" % len(ev.origins)
+        ori_count = 0
         
+        #print "%s origins" % len(ev.origins)
         for ori in ev.origins:
             for arr in ori.arrivals:
-                origin_pick_ids.append((arr.pick_id, ori.time))
+                origin_pick_ids.append(
+                    dict(pick_id=arr.pick_id, ori_time=ori.time, 
+                         ori_id=ori.resource_id.id, ev_id=ev.resource_id.id))
         
         #print "%s picks" % len(ev.picks)
         
@@ -285,6 +312,9 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
             if sncl_constraint.match(pick_dict):
                 pick_ids.append(pick_dict)
                 #print "matched %s and %s" % (pick_dict, sncl_constraint)
+            
+            else:
+                no_match_pick_ids.append(pick_dict)
     
     # add SNCLE for all picks that are in origins
     sn = []
@@ -292,7 +322,7 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
         for pick in pick_ids:
             
             # compare pick IDs
-            if o_pick[0] == pick['id']:
+            if o_pick['pick_id'] == pick['id']:
                 
                 # create SNCLEs w/ standard start/endtime
                 # seconds
@@ -300,8 +330,8 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
                     starttime = pick['time'] - pre_length
                     endtime = pick['time'] + post_length
                 else:
-                    starttime = o_pick[1] - pre_length
-                    endtime = o_pick[1] + post_length
+                    starttime = o_pick['ori_time'] - pre_length
+                    endtime = o_pick['ori_time'] + post_length
                     
                 s = SNCL(pick['net'], pick['sta'], pick['loc'], pick['cha'])
                 iv = [(starttime.datetime, endtime.datetime),]
@@ -309,6 +339,51 @@ def get_sncl_epochs_from_catalog(catalog, query_par=None):
                 sn.append(sncle)
                 
     return SNCLEpochs(sn), catalog
+
+
+def sanitize_catalog_public_ids(cat_xml):
+    """
+    Replace all public IDs in a QuakeML instance with well-behaved
+    place holders. Return string with replacements, and list of original
+    and replaced matches.
+    
+    """
+    
+    replace_list = []
+    
+    # find public IDs in QuakeML instance and get random replacement
+    for pattern in RE_EVENT_XML_PUBLIC_ID:
+        for m in re.finditer(pattern, cat_xml):
+            public_id = m.group(1)
+            replacement = "%s%s" % (PUBLIC_ID_LOCAL_PREFIX, str(uuid.uuid4()))
+            
+            #print "replace %s with %s" % (public_id, replacement)
+            replace_list.append(
+                dict(orig=public_id, repl=replacement, start=m.start(1), 
+                    end=m.end(1)))
+    
+    # sort replace list by start index, descending
+    replace_list = sorted(replace_list, key=itemgetter('start'), reverse=True)
+    
+    # replace public IDs by position (start at end of text so that indices are
+    # not compromised)
+    for match in replace_list:
+        cat_xml = \
+            cat_xml[:match['start']] + match['repl'] + cat_xml[match['end']:]
+       
+    return cat_xml, replace_list
+
+
+def restore_catalog_public_ids(stream, replace_list):
+    """Replace items from replace-list in io stream."""
+    
+    text = stream.getvalue()
+    
+    # replacement strings are unique, so simple replace method can be used
+    for match in replace_list:
+        text = text.replace(match['repl'], match['orig'])
+    
+    return text
 
 
 def get_pre_post_length(query_par):

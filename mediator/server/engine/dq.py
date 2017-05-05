@@ -8,6 +8,7 @@ This file is part of the EIDA mediator/federator webservices.
 """
 
 import copy
+import io
 import os
 import sys
 import tempfile
@@ -51,8 +52,7 @@ def process_dq(query_par, outfile):
     # with SNCL constraint
     # s.network=CH&s.channel=HHZ
     
-    # with SNCL/geometry constraint (no E geometry constraint)
-    # TODO
+    # TODO(fab): with SNCL/geometry constraint (no E geometry constraint)
     
     service = query_par.getpar('service')
     snclepochs = misc.SNCLEpochs()
@@ -87,7 +87,13 @@ def process_dq(query_par, outfile):
                     fh.write(cat_xml)
                     
                 return outfile
-            
+        
+        # replace all publicIDs, pickIDs, filterIDs with sanitized ones
+        # replace_list is a list of dicts:
+        # [{'orig': 'foo', 'repl': 'bar', 'start': 5, 'end': 10}, ...]
+        cat_xml, replace_list = misc.sanitize_catalog_public_ids(cat_xml)
+        #print cat_xml
+
         try:
             cat = obspy.read_events(cat_xml)
         except Exception, e:
@@ -95,12 +101,13 @@ def process_dq(query_par, outfile):
             raise RuntimeError, err_msg
     
         print len(cat)
+        
 
         # browse through all waveform stream IDs in catalog
         try:
             # apply S SNCL constraint:
             # snclepochs: remove SNCLEs (OK)
-            # catalog: remove whole events (TODO)
+            # TODO(fab): catalog: remove whole events
             snclepochs, cat = misc.get_sncl_epochs_from_catalog(cat, query_par)
         except Exception, e:
             err_msg = "SNCL epoch creation failed: %s" % e
@@ -113,19 +120,27 @@ def process_dq(query_par, outfile):
         # requires to consume service S in order to get station coords
 
         # re-serialize filtered catalog w/ ObsPy
-        # TODO(fab): ObsPy stops on illegal ResourceIdentifiers
-        # possible fix: check every ResourceIdentifier (publicID) against
-        # regular expression, if not valid, replace with random temp string,
+        # NOTE: ObsPy fails on illegal ResourceIdentifiers.
+        # Replace all publicIDs with safe random temp string,
         # save mapping fro temp to original ID, in final serialized document,
-        # replace all temp IDs
+        # replace all temp IDs.
         if service == 'event':
             if len(cat) == 0:
                 raise httperrors.NoDataError()
             else:
+                print "writing filtered event catalog, %s events" % (len(cat))
+                
+                outstream = io.BytesIO()
+                cat.write(outstream, format="QUAKEML")
+                    
+                # replace sanitized publicIDs with original ones
+                restored_cat_xml = misc.restore_catalog_public_ids(
+                    outstream, replace_list)
+                
+                outstream.close()
+                
                 with open(outfile, 'wb') as fh:
-                    print "writing filtered event catalog, %s events" % (
-                        len(cat))
-                    cat.write(outfile, format="QUAKEML")
+                    fh.write(restored_cat_xml)
                     
                 return outfile
   
@@ -137,9 +152,9 @@ def process_dq(query_par, outfile):
         # get SNCL constraints w/o catalog
         net, sta, loc, cha = parameters.get_sncl_par(query_par, service)
 
-    print str(snclepochs)
-    print len(snclepochs.sncle)
-    print snclepochs.empty
+    #print str(snclepochs)
+    #print len(snclepochs.sncle)
+    #print snclepochs.empty
     
     if snclepochs.empty:
         print "snclepochs empty"
