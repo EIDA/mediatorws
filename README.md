@@ -28,21 +28,29 @@ implemented
 * Error message texts are JSON, not plain text
 
 
-Federator server
-----------------
+Mediator and Federator servers
+------------------------------
 
-The server is implemented using the Flask framework, in particular, it uses 
+The servers are implemented using the Flask framework, in particular, they use 
 the flask-RESTful package. Add the repository directory to your PYTHONPATH.
-Then, the server can be started as
+Then, the servers can be started as
 
 ````
 python -m federator.server --port=5000 --routing='gfz' --tmpdir='/path/to/tmp'
 ````
 
+and
+
+````
+python -m mediator.server --port=5001 --routing='gfz' --tmpdir='/path/to/tmp'
+````
+
+
 For the routing parameter, one of these acronyms can be used:
 gfz (default), odc, eth, ingv, bgr, lmu, ipgp, koeri, noa
 
-The server writes temporary files to the tmpdir, so this directory will fill up.
+
+The servers write temporary files to the tmpdir, so this directory will fill up.
 It is recommended to purge this directory regularly, e.g., using a tool like
 tmpreaper.
 
