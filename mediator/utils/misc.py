@@ -320,6 +320,8 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
                 sta=pick.waveform_id.station_code, 
                 cha=pick.waveform_id.channel_code, loc=loc, time=pick.time)
             
+            #print "check picks: %s" % str(pick_dict)
+            
             # check SNCL constraints
             if sncl_constraint.match(pick_dict):
                 #print "matched %s and %s" % (pick_dict, sncl_constraint)
@@ -465,7 +467,7 @@ def get_sncl_constraint(query_par=None, service=''):
             query_par, service=service)
         
     else:
-        net, sta, loc, cha = [''] * 4
+        net, sta, loc, cha = [[]] * 4
     
     sncl_constraint = parameters.SNCLConstraint(net, sta, loc, cha)
     return sncl_constraint

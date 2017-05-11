@@ -151,10 +151,18 @@ def process_dq(query_par, outfile):
         net, sta, loc, cha = parameters.get_sncl_par(
             query_par, service, wildcards=True)
         
-        s = misc.SNCL(net, sta, loc, cha)
         iv = [(start_time, end_time),]
-        sncle = misc.SNCLE(s, iv)
-        sn = [sncle,]
+        
+        # TODO(fab): check SNCL epochs
+        sn = []
+        for n in net:
+            for s in sta:
+                for l in loc:
+                    for c in cha:
+                        s = misc.SNCL(net, sta, loc, cha)
+                        sncle = misc.SNCLE(s, iv)
+                        sn.append(sncle)
+                        
         snclepochs = misc.SNCLEpochs(sn)
 
     #print str(snclepochs)

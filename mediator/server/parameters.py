@@ -10,7 +10,10 @@ import re
 
 from obspy import UTCDateTime
 
+
 PARAMETER_PREFIX_SEPARATOR = '.'
+PARAMETER_LIST_SEPARATOR = ','
+
 
 GENERAL_PARAMS = {
     'starttime': {
@@ -487,7 +490,12 @@ class SNCLConstraint(object):
     
     """
     
-    def __init__(self, net='', sta='', loc='', cha=''):
+    def __init__(self, net=[], sta=[], loc=[], cha=[]):
+        """
+        net, sta, loc, cha are lists.
+        
+        """
+        
         self.net = net
         self.sta = sta
         self.loc = loc
@@ -496,18 +504,24 @@ class SNCLConstraint(object):
     
     def match(self, pick_dict):
         """
-        Check if SNCL constraints match. Very simple. No wildcards. No lists.
+        Check if SNCL constraints match. Very simple. 
+        
+        TODO(fab): '*' wildcard.
         
         """
         
-        # don't compare unset parametes (they are None)
-        if self.net is not None and self.net != pick_dict['net']:
+        #print "matching against: %s" % str(self)
+        
+        if self.net and (None not in self.net) and (
+                pick_dict['net'] not in self.net):
             return False
         
-        if self.sta is not None and self.sta != pick_dict['sta']:
+        if self.sta and (None not in self.sta) and (
+                pick_dict['sta'] not in self.sta):
             return False
         
-        if self.cha is not None and self.cha != pick_dict['cha']:
+        if self.cha and (None not in self.cha) and (
+                pick_dict['cha'] not in self.cha):
             return False
         
         check_loc = pick_dict['loc']
@@ -515,7 +529,8 @@ class SNCLConstraint(object):
         if check_loc == '--':
             check_loc = ''
             
-        if self.loc is not None and self.loc != check_loc:
+        if self.loc and (None not in self.loc) and (
+                check_loc not in self.loc):
             return False
         
         return True
@@ -523,38 +538,32 @@ class SNCLConstraint(object):
     
     def __str__(self):
         out_str = "net=%s sta=%s loc=%s cha=%s" % (
-            self.net, self.sta, self.loc, self.cha)
+            str(self.net), str(self.sta), str(self.loc), str(self.cha))
         
         return out_str
     
 
 def get_start_end_time_par(query_par, service='', todatetime=False):
     """Get start/end times from query parameters, depending on service."""
-    
-    starttime = None
-    endtime = None
-    
+
     if not service:
         service = query_par.getpar('service')
     
     if service == 'station':
-        starttime = query_par.getpar('s.starttime')
-        endtime = query_par.getpar('s.endtime')
-    
+        prefix = 's'
     
     elif service == 'waveform':
-        starttime = query_par.getpar('w.starttime')
-        endtime = query_par.getpar('w.endtime')
-    
+        prefix = 'w'
     
     elif service == 'wfcatalog':
-        starttime = query_par.getpar('q.starttime')
-        endtime = query_par.getpar('q.endtime')
+        prefix = 'q'
         
     elif service == 'event':
-        starttime = query_par.getpar('e.starttime')
-        endtime = query_par.getpar('e.endtime')
-        
+        prefix = 'e'
+    
+    starttime = query_par.getpar("%s.starttime" % prefix)
+    endtime = query_par.getpar("%s.endtime" % prefix)
+
     if starttime is not None and todatetime:
         starttime = UTCDateTime(starttime).datetime
         
@@ -566,53 +575,46 @@ def get_start_end_time_par(query_par, service='', todatetime=False):
 
 def get_sncl_par(query_par, service='', wildcards=False):
     """Get SNCL parameters from query parameters, depending on service."""
-    
-    net = None
-    sta = None
-    loc = None
-    cha = None
-    
+
     if not service:
         service = query_par.getpar('service')
     
     if service == 'station':
-        net = query_par.getpar('s.network')
-        sta = query_par.getpar('s.station')
-        loc = query_par.getpar('s.location')
-        cha = query_par.getpar('s.channel')
+        prefix = 's'
     
     elif service == 'waveform':
-        net = query_par.getpar('w.network')
-        sta = query_par.getpar('w.station')
-        loc = query_par.getpar('w.location')
-        cha = query_par.getpar('w.channel')
-    
+        prefix = 'w'
     
     elif service == 'wfcatalog':
-        net = query_par.getpar('q.network')
-        sta = query_par.getpar('q.station')
-        loc = query_par.getpar('q.location')
-        cha = query_par.getpar('q.channel')
+        prefix = 'q'
         
     elif service == 'event':
         
         # use SNCL params of station for event
-        net = query_par.getpar('s.network')
-        sta = query_par.getpar('s.station')
-        loc = query_par.getpar('s.location')
-        cha = query_par.getpar('s.channel')
-
-    if wildcards:
-        if net is None:
-            net = '*'
-        if sta is None:
-            sta = '*'
-        if loc is None:
-            loc = '*'
-        if cha is None:
-            cha = '*'
-            
+        # TODO(fab): to be changed to e
+        prefix = 's'
+    
+    net = listify_sncl_par(query_par.getpar("%s.network" % prefix), wildcards)
+    sta = listify_sncl_par(query_par.getpar("%s.station" % prefix), wildcards)
+    loc = listify_sncl_par(query_par.getpar("%s.location" % prefix), wildcards)
+    cha = listify_sncl_par(query_par.getpar("%s.channel" % prefix), wildcards)
+  
     return net, sta, loc, cha
+
+
+def listify_sncl_par(par, wildcards=False):
+    """Turn sncl par string into list."""
+    
+    if par is None and wildcards:
+        par = ['*',]
+        
+    elif par is None and not wildcards:
+        par = [None,]
+        
+    else:
+        par = [x.strip() for x in par.split(PARAMETER_LIST_SEPARATOR)]
+
+    return par
 
 
 def get_non_sncl_postlines(query_par):
