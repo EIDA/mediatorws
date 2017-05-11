@@ -24,7 +24,7 @@ import obspy
 import requests
 
 from mediator import settings
-from mediator.server import httperrors, parameters
+from mediator.server import httperrors, parameters, sncl
 from mediator.utils import misc
 
 
@@ -55,7 +55,7 @@ def process_dq(query_par, outfile):
     # TODO(fab): with SNCL/geometry constraint (no E geometry constraint)
     
     service = query_par.getpar('service')
-    snclepochs = misc.SNCLEpochs()
+    snclepochs = sncl.SNCLEpochs()
     
     if query_par.service_enabled('event'):
         
@@ -105,7 +105,7 @@ def process_dq(query_par, outfile):
             # apply S SNCL constraint:
             # snclepochs: remove SNCLEs (OK)
             # catalog: remove whole events
-            snclepochs, cat = misc.get_sncl_epochs_from_catalog(
+            snclepochs, cat = sncl.get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par)
         except Exception, e:
             err_msg = "SNCL epoch creation failed: %s" % e
@@ -159,11 +159,11 @@ def process_dq(query_par, outfile):
             for s in sta:
                 for l in loc:
                     for c in cha:
-                        s = misc.SNCL(net, sta, loc, cha)
-                        sncle = misc.SNCLE(s, iv)
+                        s = sncl.SNCL(net, sta, loc, cha)
+                        sncle = sncl.SNCLE(s, iv)
                         sn.append(sncle)
                         
-        snclepochs = misc.SNCLEpochs(sn)
+        snclepochs = sncl.SNCLEpochs(sn)
 
     #print str(snclepochs)
     #print len(snclepochs.sncle)

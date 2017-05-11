@@ -145,7 +145,7 @@ MEDIATOR_GENERAL_PARAMS = {
         'aliases': ('event_sncl_filter',),
         'type': str,
         'values': ('all', 'any'),
-        'default': 'all'},
+        'default': 'any'},
     'pre_event_length': {
         'aliases': ('pre_event_length',),
         'type': float,
@@ -484,65 +484,6 @@ class MediatorServiceMap(object):
         return (self.params['wfcatalog'], self.ws_params['wfcatalog'])
 
 
-class SNCLConstraint(object):
-    """
-    Structure for SNCL constraints given by query parameters.
-    
-    """
-    
-    def __init__(self, net=[], sta=[], loc=[], cha=[]):
-        """
-        net, sta, loc, cha are lists.
-        
-        """
-        
-        self.net = net
-        self.sta = sta
-        self.loc = loc
-        self.cha = cha
-        
-    
-    def match(self, pick_dict):
-        """
-        Check if SNCL constraints match. Very simple. 
-        
-        TODO(fab): '*' wildcard.
-        
-        """
-        
-        #print "matching against: %s" % str(self)
-        
-        if self.net and (None not in self.net) and (
-                pick_dict['net'] not in self.net):
-            return False
-        
-        if self.sta and (None not in self.sta) and (
-                pick_dict['sta'] not in self.sta):
-            return False
-        
-        if self.cha and (None not in self.cha) and (
-                pick_dict['cha'] not in self.cha):
-            return False
-        
-        check_loc = pick_dict['loc']
-        
-        if check_loc == '--':
-            check_loc = ''
-            
-        if self.loc and (None not in self.loc) and (
-                check_loc not in self.loc):
-            return False
-        
-        return True
-    
-    
-    def __str__(self):
-        out_str = "net=%s sta=%s loc=%s cha=%s" % (
-            str(self.net), str(self.sta), str(self.loc), str(self.cha))
-        
-        return out_str
-    
-
 def get_start_end_time_par(query_par, service='', todatetime=False):
     """Get start/end times from query parameters, depending on service."""
 
@@ -573,49 +514,69 @@ def get_start_end_time_par(query_par, service='', todatetime=False):
     return starttime, endtime
     
 
-def get_sncl_par(query_par, service='', wildcards=False):
-    """Get SNCL parameters from query parameters, depending on service."""
-
-    if not service:
-        service = query_par.getpar('service')
+def get_pre_post_length(query_par):
+    """Return pre/post event/pick lengths (in seconds)."""
     
-    if service == 'station':
-        prefix = 's'
+    pre_ev_length = query_par.getpar('pre_event_length')
+    post_ev_length = query_par.getpar('post_event_length')
+    pre_pick_length = query_par.getpar('pre_pick_length')
+    post_pick_length = query_par.getpar('post_pick_length')
     
-    elif service == 'waveform':
-        prefix = 'w'
-    
-    elif service == 'wfcatalog':
-        prefix = 'q'
+    # pre/post times, check pick (default is event)
+    if pre_pick_length is None and post_pick_length is None:
         
-    elif service == 'event':
-        
-        # use SNCL params of station for event
-        # TODO(fab): to be changed to e
-        prefix = 's'
-    
-    net = listify_sncl_par(query_par.getpar("%s.network" % prefix), wildcards)
-    sta = listify_sncl_par(query_par.getpar("%s.station" % prefix), wildcards)
-    loc = listify_sncl_par(query_par.getpar("%s.location" % prefix), wildcards)
-    cha = listify_sncl_par(query_par.getpar("%s.channel" % prefix), wildcards)
-  
-    return net, sta, loc, cha
-
-
-def listify_sncl_par(par, wildcards=False):
-    """Turn sncl par string into list."""
-    
-    if par is None and wildcards:
-        par = ['*',]
-        
-    elif par is None and not wildcards:
-        par = [None,]
-        
+        # event
+        mode = 'event'
+        if pre_ev_length is not None:
+            pre_length = pre_ev_length
+        else:
+            pre_length = MEDIATOR_GENERAL_PARAMS['pre_event_length']['default']
+            
+        if post_ev_length is not None:
+            post_length = post_ev_length
+        else:
+            post_length = MEDIATOR_GENERAL_PARAMS['post_event_length']\
+                ['default']
+            
     else:
-        par = [x.strip() for x in par.split(PARAMETER_LIST_SEPARATOR)]
+        # pick
+        mode = 'pick'
+        if pre_pick_length is not None:
+            pre_length = pre_pick_length
+        else:
+            pre_length = MEDIATOR_GENERAL_PARAMS['pre_pick_length']['default']
+                
+        if post_pick_length is not None:
+            post_length = post_pick_length
+        else:
+            post_length = MEDIATOR_GENERAL_PARAMS['post_pick_length']\
+                ['default']
+            
+    return pre_length, post_length, mode
 
-    return par
 
+def get_event_sncl_filter(query_par):
+    """
+    Return setting of event_sncl_filter (any/default or all), and value of
+    SNCLConstraint match_all parameter (True for all, False for any).
+    
+    """
+    
+    if query_par is None:
+        return MEDIATOR_GENERAL_PARAMS['event_sncl_filter']['default'], False
+        
+    event_sncl_filter = query_par.getpar('event_sncl_filter')
+    if event_sncl_filter is None:
+        event_sncl_filter = MEDIATOR_GENERAL_PARAMS['event_sncl_filter']\
+            ['default']
+        
+    if event_sncl_filter.lower() == 'all':
+        match_all = True
+    else:
+        match_all = False
+        
+    return event_sncl_filter, match_all
+            
 
 def get_non_sncl_postlines(query_par):
     """Get parameter=value lines for federator POST query."""
