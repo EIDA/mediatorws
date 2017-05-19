@@ -246,7 +246,23 @@ MEDIATOR_EVENT_PARAMS = {
         'aliases': ('e.nodata',),
         'type': int,
         'default': 204,
-        'nonsnclepoch': True}
+        'nonsnclepoch': True},
+    'e.network': {
+        'aliases': ('e.network', 'e.net'),
+        'type': str,
+        'fdsnws': False},
+    'e.station': {
+        'aliases': ('e.station', 'e.sta'),
+        'type': str,
+        'fdsnws': False},
+    'e.location': {
+        'aliases': ('e.location', 'e.loc'),
+        'type': str,
+        'fdsnws': False},
+    'e.channel': {
+        'aliases': ('e.channel', 'e.cha'),
+        'type': str,
+        'fdsnws': False}
 }
   
 
@@ -418,6 +434,17 @@ MEDIATOR_SERVICE_PARAMS = {
 }
 
 
+CHANNEL_PARAMETER_CONSTRAINT_TOKEN = 'channel'
+CHANNEL_CONSTRAINT_PARAMS = ('network', 'station', 'location', 'channel')
+
+TEMPORAL_PARAMETER_CONSTRAINT_TOKEN = 'temporal'
+TEMPORAL_CONSTRAINT_PARAMS = ('starttime', 'endtime')
+
+GEOGRAPHIC_PARAMETER_CONSTRAINT_TOKEN = 'geographic'
+GEOGRAPHIC_CONSTRAINT_PARAMS = (
+    'minlongitude', 'maxlongitude', 'minlatitude', 'maxlatitude', 'latitude',
+    'longitude', 'maxradius', 'minradius')
+
 
 class MediatorServiceMap(object):
     """
@@ -452,7 +479,32 @@ class MediatorServiceMap(object):
         if service in self.map:
             self.map[service] = False
             
+    
+    def constraint_enabled(self, service, constraint):
+        
+        enabled = False
+        target_params = ()
+        
+        if constraint == CHANNEL_PARAMETER_CONSTRAINT_TOKEN:
+            target_params = CHANNEL_CONSTRAINT_PARAMS
+        
+        elif constraint == TEMPORAL_PARAMETER_CONSTRAINT_TOKEN:
+            target_params = TEMPORAL_CONSTRAINT_PARAMS
+        
+        elif constraint == GEOGRAPHIC_PARAMETER_CONSTRAINT_TOKEN:
+            target_params = GEOGRAPHIC_CONSTRAINT_PARAMS
             
+        for param in target_params:
+            prefixed_param = add_param_prefix(param, service)
+            if prefixed_param in self.params[service] and \
+                self.params[service][prefixed_param] is not None:
+                    
+                enabled = True
+                break
+        
+        return enabled
+    
+    
     def addpar(self, service, k, v):
         if service in self.params and v is not None:
             self.params[service][k] = v
@@ -490,18 +542,7 @@ def get_start_end_time_par(query_par, service='', todatetime=False):
     if not service:
         service = query_par.getpar('service')
     
-    if service == 'station':
-        prefix = 's'
-    
-    elif service == 'waveform':
-        prefix = 'w'
-    
-    elif service == 'wfcatalog':
-        prefix = 'q'
-        
-    elif service == 'event':
-        prefix = 'e'
-    
+    prefix = MEDIATOR_SERVICE_PARAMS[service]['prefix']
     starttime = query_par.getpar("%s.starttime" % prefix)
     endtime = query_par.getpar("%s.endtime" % prefix)
 
@@ -639,14 +680,36 @@ def is_timestamp_without_time(value):
     return bool(RE_TIMESTAMP_WITHOUT_TIME.search(value))
 
 
+def get_param_prefix(service):
+    """Return prefix and prefix plus separator for service."""
+    
+    prefix = MEDIATOR_SERVICE_PARAMS[service]['prefix']
+    full_prefix = "%s%s" % (prefix, PARAMETER_PREFIX_SEPARATOR)
+    
+    return prefix, full_prefix
+
+
+def add_param_prefix(param, service=''):
+    """Add service prefix to parameter name."""
+    
+    if not service:
+        return param
+    
+    _, full_prefix = get_param_prefix(service)
+
+    if not param.startswith(full_prefix):
+        param = "%s%s" % (full_prefix, param)
+        
+    return param
+
+
 def strip_param_prefix(param, service=''):
     """Strip service prefix from parameter name."""
     
     if not service:
         return param
     
-    prefix = MEDIATOR_SERVICE_PARAMS[service]['prefix']
-    full_prefix = "%s%s" % (prefix, PARAMETER_PREFIX_SEPARATOR)
+    _, full_prefix = get_param_prefix(service)
     
     if param.startswith(full_prefix):
         param = param[len(full_prefix):]

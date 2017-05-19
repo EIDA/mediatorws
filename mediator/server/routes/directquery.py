@@ -40,6 +40,21 @@ class DQRequestParser(requestparser.GeneralRequestParser):
     def service_enabled(self, service):
         return self.service_map.is_enabled(service)
     
+   
+    def channel_constraint_enabled(self, service):
+        return self.service_map.constraint_enabled(
+            service, parameters.CHANNEL_PARAMETER_CONSTRAINT_TOKEN)
+    
+    
+    def temporal_constraint_enabled(self, service):
+        return self.service_map.constraint_enabled(
+            service, parameters.TEMPORAL_PARAMETER_CONSTRAINT_TOKEN)
+    
+    
+    def geographic_constraint_enabled(self, service):
+        return self.service_map.constraint_enabled(
+            service, parameters.GEOGRAPHIC_PARAMETER_CONSTRAINT_TOKEN)
+    
     
     @property
     def event_params(self):

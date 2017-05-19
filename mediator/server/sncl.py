@@ -232,10 +232,31 @@ def merge_intervals(interval_list):
     return merged_list
 
 
+def get_sncl_epoch_list(net, sta, loc, cha, iv):
+    """
+    net, sta, loc, cha are lists.
+    iv is a list of (starttime, endtime) pairs.
+    
+    """
+        
+    sncle_list = []
+        
+    for n in net:
+        for s in sta:
+            for l in loc:
+                for c in cha:
+                    for i in iv:
+                        sn = SNCL(n, s, l, c)
+                        sncle = SNCLE(sn, i)
+                        sncle_list.append(sncle)
+    
+    return sncle_list
+
+                        
 def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
     """
     Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
-    constraints (in station namespace) to catalog (filter catalog).
+    constraints (in event namespace) to catalog (filter catalog).
     
     When a catalog is filtered, only whole events are removed (all origins are
     kept, even if their associated picks do not match the SNCL constraint).
@@ -263,7 +284,7 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
         pre_length, post_length, mode = parameters.get_pre_post_length(
             query_par)
         sncl_constraint = get_sncl_constraint(
-            query_par, service='station', match_all=match_all)
+            query_par, service='event', match_all=match_all)
     else:
         pre_length = \
             parameters.MEDIATOR_GENERAL_PARAMS['pre_event_length']['default']
@@ -426,21 +447,8 @@ def get_sncl_par(query_par, service='', wildcards=False):
 
     if not service:
         service = query_par.getpar('service')
-    
-    if service == 'station':
-        prefix = 's'
-    
-    elif service == 'waveform':
-        prefix = 'w'
-    
-    elif service == 'wfcatalog':
-        prefix = 'q'
         
-    elif service == 'event':
-        
-        # use SNCL params of station for event
-        # TODO(fab): to be changed to e
-        prefix = 's'
+    prefix = parameters.MEDIATOR_SERVICE_PARAMS[service]['prefix']
     
     net = listify_sncl_par(query_par.getpar("%s.network" % prefix), wildcards)
     sta = listify_sncl_par(query_par.getpar("%s.station" % prefix), wildcards)

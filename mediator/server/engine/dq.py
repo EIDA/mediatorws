@@ -75,10 +75,14 @@ def process_dq(query_par, outfile):
         cat_xml = str(r.text)
         #print cat_xml
 
-        # only event w/o filtering requested: we are done
+        # target service event w/o additional event sncl filtering requested: 
+        # we are done
+        # sncl constraints of S, W, and Q namespaces are ignored
         # NOTE: don't catch output that is invalid QuakeML (e.g., HTML
         # error message returned by event service)
-        if service == 'event' and not query_par.service_enabled('station'):
+        # TODO(fab): check E constraints (sncl, geo)
+        if service == 'event' and not query_par.channel_constraint_enabled(
+                'event'):
             if not cat_xml:
                 raise httperrors.NoDataError()
             else:
@@ -102,9 +106,9 @@ def process_dq(query_par, outfile):
         print "read event catalog, %s events" % (len(cat))
         
         try:
-            # apply S SNCL constraint:
-            # snclepochs: remove SNCLEs (OK)
-            # catalog: remove whole events
+            # apply E SNCL constraint:
+            #  snclepochs: remove SNCLEs (OK)
+            #  catalog: remove whole events (CHECK)
             snclepochs, cat = sncl.get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par)
         except Exception, e:
@@ -151,18 +155,9 @@ def process_dq(query_par, outfile):
         net, sta, loc, cha = parameters.get_sncl_par(
             query_par, service, wildcards=True)
         
-        iv = [(start_time, end_time),]
-        
         # TODO(fab): check SNCL epochs
-        sn = []
-        for n in net:
-            for s in sta:
-                for l in loc:
-                    for c in cha:
-                        s = sncl.SNCL(net, sta, loc, cha)
-                        sncle = sncl.SNCLE(s, iv)
-                        sn.append(sncle)
-                        
+        iv = [(start_time, end_time),]
+        sn = sncl.get_sncl_epoch_list(net, sta, loc, cha, iv)
         snclepochs = sncl.SNCLEpochs(sn)
 
     #print str(snclepochs)
