@@ -507,10 +507,17 @@ class MediatorServiceMap(object):
     
     def addpar(self, service, k, v):
         if service in self.params and v is not None:
-            self.params[service][k] = v
-            self.ws_params[service][strip_param_prefix(k, service)] = v
             self.enable(service)
+            self.params[service][k] = v
             
+            # remove params from ws_params which are not originally in the
+            # namespace of the service (e.g., remove channel constraint 
+            # parameters from event namespace)
+            is_fdsnws = MEDIATOR_SERVICE_PARAMS[service]['parameters'][k].get(
+                'fdsnws', True)
+            if is_fdsnws:
+                self.ws_params[service][strip_param_prefix(k, service)] = v
+          
             
     def set_services(self, params):
         for k, v in params.iteritems():

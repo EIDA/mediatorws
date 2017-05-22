@@ -7,18 +7,11 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-
-import datetime
-import os
-
-#import flask
-#from flask_restful import abort, reqparse, request, Resource
+from flask import current_app
 
 from mediator import settings
-from mediator.server import (general_request, httperrors, parameters, 
-                             requestparser)
-
-       
+from mediator.server import general_request, parameters, requestparser
+  
     
 class DQRequestParser(requestparser.GeneralRequestParser):
     """Collect and merge all query parameters."""
@@ -28,13 +21,15 @@ class DQRequestParser(requestparser.GeneralRequestParser):
     def __init__(self, query_args):
         super(DQRequestParser, self).__init__(query_args)
         
-        print query_args
+        if current_app.debug:
+            print "all query params: %s" % query_args
         
         self.service_map.set_services(query_args)
         
-        print self.service_map.map
-        print self.service_map.params
-        print self.service_map.ws_params
+        if current_app.debug:
+            print "service map: %s" % self.service_map.map
+            print "prefixed params: %s" % self.service_map.params
+            print "fdsnws params: %s" % self.service_map.ws_params
     
         
     def service_enabled(self, service):

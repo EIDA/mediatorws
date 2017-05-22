@@ -261,8 +261,8 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
     When a catalog is filtered, only whole events are removed (all origins are
     kept, even if their associated picks do not match the SNCL constraint).
     
-    Station geometry constraints are not supported (requires station
-    service call).
+    Station geometry and channel constraints are not supported 
+    (requires station service call).
     
     replace_map is the mapping of original to sanitized catalog object IDs.
     

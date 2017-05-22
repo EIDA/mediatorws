@@ -10,7 +10,6 @@ import datetime
 import os
 
 import flask
-from flask import current_app
 from flask_restful import abort, reqparse, request, Resource
 
 from mediator import settings

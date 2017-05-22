@@ -80,7 +80,6 @@ def process_dq(query_par, outfile):
         # sncl constraints of S, W, and Q namespaces are ignored
         # NOTE: don't catch output that is invalid QuakeML (e.g., HTML
         # error message returned by event service)
-        # TODO(fab): check E constraints (sncl, geo)
         if service == 'event' and not query_par.channel_constraint_enabled(
                 'event'):
             if not cat_xml:
@@ -108,7 +107,7 @@ def process_dq(query_par, outfile):
         try:
             # apply E SNCL constraint:
             #  snclepochs: remove SNCLEs (OK)
-            #  catalog: remove whole events (CHECK)
+            #  catalog: remove whole events (OK)
             snclepochs, cat = sncl.get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par)
         except Exception, e:
