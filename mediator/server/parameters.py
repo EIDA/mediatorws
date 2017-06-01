@@ -128,6 +128,9 @@ ALL_QUERY_PARAMS = (GENERAL_PARAMS, DATASELECT_PARAMS, STATION_PARAMS)
 TIMESTAMP_PARAMS = ('starttime', 'start', 'endtime', 'end')
 RE_TIMESTAMP_WITHOUT_TIME = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
+DEFAULT_STARTTIME_ISO = '1900-01-01T00:00:00Z'
+DEFAULT_ENDTIME_ISO = '2100-01-01T00:00:00Z'
+
 
 MEDIATOR_GENERAL_PARAMS = {
     'service': {
@@ -505,6 +508,44 @@ class MediatorServiceMap(object):
         return enabled
     
     
+    def get_constraint_params(self, service, constraint_params):
+        
+        out_params = []
+        
+        for param in constraint_params:
+            prefixed_param = add_param_prefix(param, service)
+            out_params.append(self.params[service].get(prefixed_param, None))
+        
+        return out_params
+    
+    
+    def get_time_interval(self, service, todatetime=False):
+        """
+        Return dict with keys start and end, values are datetime.datetime.
+        If both start and end time parameters are not specified, return None. 
+        
+        """
+        
+        starttime, endtime = self.get_constraint_params(
+            service, TEMPORAL_CONSTRAINT_PARAMS)
+        
+        if starttime is None and endtime is None:
+            return None
+        
+        else:
+            if starttime is not None and todatetime:
+                starttime = UTCDateTime(starttime).datetime
+        
+            if endtime is not None and todatetime:
+                endtime = UTCDateTime(endtime).datetime
+        
+            return {'start': starttime, 'end': endtime}
+    
+    
+    def get_sncl_params(self, service):
+        return self.get_constraint_params(service, CHANNEL_CONSTRAINT_PARAMS)
+    
+    
     def addpar(self, service, k, v):
         if service in self.params and v is not None:
             self.enable(service)
@@ -526,40 +567,50 @@ class MediatorServiceMap(object):
                     if k in MEDIATOR_SERVICE_PARAMS[service]['parameters']:
                         self.addpar(service, k, v)
     
+    
+    def parameters2dict(self, prefixed, fdsnws):
+        return {'prefixed': prefixed, 'fdsnws': fdsnws}
+    
+    
     @property
     def event_params(self):
-        return (self.params['event'], self.ws_params['event'])
+        return self.parameters2dict(
+            self.params['event'], self.ws_params['event'])
+        
     
     @property
     def station_params(self):
-        return (self.params['station'], self.ws_params['station'])
+        return self.parameters2dict(
+            self.params['station'], self.ws_params['station'])
     
     @property
     def waveform_params(self):
-        return (self.params['waveform'], self.ws_params['waveform'])
+        return self.parameters2dict(
+            self.params['waveform'], self.ws_params['waveform'])
     
     @property
     def wfcatalog_params(self):
-        return (self.params['wfcatalog'], self.ws_params['wfcatalog'])
+        return self.parameters2dict(
+            self.params['wfcatalog'], self.ws_params['wfcatalog'])
 
 
-def get_start_end_time_par(query_par, service='', todatetime=False):
-    """Get start/end times from query parameters, depending on service."""
+#def get_start_end_time_par(query_par, service='', todatetime=False):
+    #"""Get start/end times from query parameters, depending on service."""
 
-    if not service:
-        service = query_par.getpar('service')
+    #if not service:
+        #service = query_par.getpar('service')
     
-    prefix = MEDIATOR_SERVICE_PARAMS[service]['prefix']
-    starttime = query_par.getpar("%s.starttime" % prefix)
-    endtime = query_par.getpar("%s.endtime" % prefix)
+    #prefix = MEDIATOR_SERVICE_PARAMS[service]['prefix']
+    #starttime = query_par.getpar("%s.starttime" % prefix)
+    #endtime = query_par.getpar("%s.endtime" % prefix)
 
-    if starttime is not None and todatetime:
-        starttime = UTCDateTime(starttime).datetime
+    #if starttime is not None and todatetime:
+        #starttime = UTCDateTime(starttime).datetime
         
-    if endtime is not None and todatetime:
-        endtime = UTCDateTime(endtime).datetime
+    #if endtime is not None and todatetime:
+        #endtime = UTCDateTime(endtime).datetime
 
-    return starttime, endtime
+    #return starttime, endtime
     
 
 def get_pre_post_length(query_par):
@@ -679,6 +730,20 @@ def fix_param_value(param, value):
         value += "T00:00:00"
         
     return value
+
+
+def set_limit_on_undefined_time_interval(datetime_start, datetime_end):
+    """
+    If datetime_start or datetime_end are None, return default limit value.
+    """
+    
+    if datetime_start is None:
+        datetime_start = UTCDateTime(DEFAULT_STARTTIME_ISO).datetime
+        
+    if datetime_end is None:
+        datetime_end = UTCDateTime(DEFAULT_ENDTIME_ISO).datetime
+    
+    return datetime_start, datetime_end
 
 
 def is_timestamp_without_time(value):

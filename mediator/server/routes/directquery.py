@@ -51,6 +51,14 @@ class DQRequestParser(requestparser.GeneralRequestParser):
             service, parameters.GEOGRAPHIC_PARAMETER_CONSTRAINT_TOKEN)
     
     
+    def get_time_interval(self, service, todatetime=False):
+        return self.service_map.get_time_interval(service, todatetime)
+    
+    
+    def get_sncl_params(self, service):
+        return self.service_map.get_sncl_params(service)
+    
+    
     @property
     def event_params(self):
         return self.service_map.event_params

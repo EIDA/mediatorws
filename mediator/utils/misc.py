@@ -7,85 +7,64 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-import copy
 import os
-import re
 import tempfile
-import uuid
 
-from operator import itemgetter
-
-import flask
-from flask import make_response
-from flask_restful import Resource
-
-import obspy
 import requests
 
 from mediator import settings
-from mediator.server import parameters
+from mediator.server import httperrors, parameters
 
 
-# IDs from SC3 that do not validate against QuakeML 1.2_
-# - arrival publicIDs from ETHZ (replace all publicIDs)
-# - filterID
-# - pickID (OK from ETHZ but may be invalid elsewhere)
-RE_EVENT_XML_PUBLIC_ID = (
-    re.compile(r'publicID="(.+?)"'), re.compile(r'publicID=\'(.+?)\''),
-    re.compile(r'<filterID>(.+?)<\/filterID>'), 
-    re.compile(r'<pickID>(.+?)<\/pickID>'))
-
-PUBLIC_ID_LOCAL_PREFIX = 'smi:local/'
-
-
-def sanitize_catalog_public_ids(cat_xml):
-    """
-    Replace all public IDs in a QuakeML instance with well-behaved
-    place holders. Return string with replacements, and dict of original
-    and replaced matches.
+def write_response_string_to_file(outfile, data_str):
+    """Write response data to file."""
     
-    """
+    if not data_str:
+        return False
     
-    replace_list = []
-    replace_map = {}
-    
-    # find public IDs in QuakeML instance and get random replacement
-    for pattern in RE_EVENT_XML_PUBLIC_ID:
-        for m in re.finditer(pattern, cat_xml):
-            public_id = m.group(1)
-            replacement = "%s%s" % (PUBLIC_ID_LOCAL_PREFIX, str(uuid.uuid4()))
+    else:
+        with open(outfile, 'wb') as fh:
+            fh.write(data_str)
             
-            #print "replace %s with %s" % (public_id, replacement)
-            replace_list.append(
-                dict(orig=public_id, repl=replacement, start=m.start(1), 
-                    end=m.end(1)))
-                
-            replace_map[replacement] = public_id
-    
-    # sort replace list by start index, descending
-    replace_list = sorted(replace_list, key=itemgetter('start'), reverse=True)
-    
-    # replace public IDs by position (start at end of text so that indices are
-    # not compromised)
-    for match in replace_list:
-        cat_xml = \
-            cat_xml[:match['start']] + match['repl'] + cat_xml[match['end']:]
-       
-    return cat_xml, replace_map
+        return True
 
 
-def restore_catalog_public_ids(stream, replace_map):
-    """Replace items from replace map in io stream."""
+def query_federator_for_target_service(
+    outfile, service, query_par, snclepochs):
+    """
+    Query federator service for target service and write response to
+    outfile.
     
-    text = stream.getvalue()
+    """
     
-    # replacement strings are unique, so simple replace method can be used
-    for repl, orig in replace_map.iteritems():
-        text = text.replace(repl, orig)
+    # create POST data for federator service
+    postdata = parameters.get_non_sncl_postlines(query_par)
+    postdata += snclepochs.tofdsnpost()
     
-    return text
+    if not postdata:
+        raise httperrors.NoDataError()
     
+    federator_url = get_federator_query_endpoint(map_service(service))
     
+    print federator_url
+    print postdata
+    
+    with open(outfile, 'wb') as fh:
+        
+        print "issueing POST to federator"
+        response = requests.post(federator_url, data=postdata, stream=True)
+
+        if not response.ok:
+            error_msg = "federator POST failed with code %s" % (
+                response.status_code)
+            raise RuntimeError, error_msg
+
+        for block in response.iter_content(1024):
+            fh.write(block)
+            
+    return True
+
+
 def get_federator_endpoint(fdsn_service='dataselect'):
     """
     Get URL of EIDA federator endpoint depending on requested FDSN service

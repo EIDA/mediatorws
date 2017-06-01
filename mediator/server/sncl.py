@@ -8,6 +8,7 @@ This file is part of the EIDA mediator/federator webservices.
 """
 
 import copy
+import datetime
 import fnmatch
 import os
 import re
@@ -232,28 +233,73 @@ def merge_intervals(interval_list):
     return merged_list
 
 
-def get_sncl_epoch_list(net, sta, loc, cha, iv):
+def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
     """
-    net, sta, loc, cha are lists.
-    iv is a list of (starttime, endtime) pairs.
+    Get SNCL epochs.
+    
+    For target service 'event':
+        from catalog, with possible additional temporal and SNCL
+        constraints.
+        
+    For other target service;
+        from temporal and SNCL constraints.
     
     """
-        
-    sncle_list = []
-        
-    for n in net:
-        for s in sta:
-            for l in loc:
-                for c in cha:
-                    for i in iv:
-                        sn = SNCL(n, s, l, c)
-                        sncle = SNCLE(sn, i)
-                        sncle_list.append(sncle)
     
-    return sncle_list
+    time_interval = None
+    sncl_params = None
+    
+    # TODO(fab): 
+    # time constraint: either per pick, or fixed (relative to origin time, or
+    # explicit interval)
+    # ?? sncl constraint: either from event, or explicit (station query)
+    
+    
+    if service == 'event':
 
-                        
-def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
+        # apply E SNCL constraint (others do not make sense):    
+        #  snclepochs: remove SNCLEs 
+        #  catalog: remove whole events
+        snclepochs, cat = get_sncl_epochs_from_catalog(
+            cat, replace_map, query_par)
+
+    else:
+        
+        # target service is not event: 
+        # evaluate sncl and time constraints of
+        # station, waveform, and quality namespaces
+        time_interval = query_par.get_time_interval(service, todatetime=True)
+        sncl_params = query_par.get_sncl_params(service)
+        
+        if cat is not None:
+        
+            # target service is not event, but catalog is used for 
+            # SNCL selection
+            snclepochs, cat = get_sncl_epochs_from_catalog(
+                cat, replace_map, query_par, time_interval, sncl_params)
+    
+        else:
+        
+            # get sncl epochs w/o catalog
+            # epoch time intervals must be finite, set to default limits
+            start_time_fix, end_time_fix = \
+                parameters.set_limit_on_undefined_time_interval(
+                    time_interval['start'], time_interval['end'])
+            
+            # get SNCL constraints w/o catalog
+            net, sta, loc, cha = get_sncl_par(
+                query_par, service, wildcards=True)
+            
+            # TODO(fab): check SNCL epochs
+            iv = [(start_time_fix, end_time_fix),]
+            sn = get_sncl_epoch_list(net, sta, loc, cha, iv)
+            snclepochs = SNCLEpochs(sn)
+    
+    return snclepochs, cat
+
+
+def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, 
+    time_interval=None, copy=False):
     """
     Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
     constraints (in event namespace) to catalog (filter catalog).
@@ -265,6 +311,11 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
     (requires station service call).
     
     replace_map is the mapping of original to sanitized catalog object IDs.
+    
+    time_interval is a pair of datetime objects (starttime, endtime). If this 
+    is not None, it is used for all SNCL epochs. Still one of the componnets
+    can be None. In this case, use the default pre/post-length relative to
+    the origin time.
     
     If copy is True, return a copy of the catalog (may be useful if the catalog
     is modified).
@@ -278,20 +329,24 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
     else:
         catalog = cat
     
-    match_all = parameters.get_event_sncl_filter(query_par)[1]
-    
     if query_par is not None:
-        pre_length, post_length, mode = parameters.get_pre_post_length(
-            query_par)
+        match_all = parameters.get_event_sncl_filter(query_par)[1]
         sncl_constraint = get_sncl_constraint(
             query_par, service='event', match_all=match_all)
+        
+        pre_length, post_length, mode = parameters.get_pre_post_length(
+            query_par)  
+    
     else:
+        mode = 'event'
+        match_all = False
+        sncl_constraint = get_sncl_constraint(match_all=match_all)
+        
         pre_length = \
             parameters.MEDIATOR_GENERAL_PARAMS['pre_event_length']['default']
         post_length = \
             parameters.MEDIATOR_GENERAL_PARAMS['post_event_length']['default']
-        mode = 'event'
-        sncl_constraint = get_sncl_constraint(match_all=match_all)
+       
         
     origin_pick_ids = []
     pick_ids = []
@@ -354,17 +409,47 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, copy=False):
                 #print "add pick to event idx %s, now: %s" % (
                     #o_pick['ev_idx'], event_match_count[o_pick['ev_idx']])
                 
-                # create SNCLEs w/ standard start/endtime
-                # seconds
-                if mode == 'pick':
-                    starttime = pick['time'] - pre_length
-                    endtime = pick['time'] + post_length
+                # if request contains starttime, endtime: use fixed time
+                # interval for all SNCLs
+                # otherwise use pre/post length relative to pick or origin time
+                if time_interval is not None and not(
+                    time_interval['start'] is None or \
+                        time_interval['end'] is None) and (
+                    time_interval['end'] > time_interval['start']):
+                        
+                    starttime = time_interval['start']
+                    endtime = time_interval['end']
+                
+                elif time_interval is None and mode == 'pick':
+                    starttime = pick['time'].datetime - datetime.timedelta(
+                        seconds=pre_length)
+                    endtime = pick['time'].datetime + datetime.timedelta(
+                        seconds=post_length)
+                
                 else:
-                    starttime = o_pick['ori_time'] - pre_length
-                    endtime = o_pick['ori_time'] + post_length
+                    
+                    # init with pre/post length relative to origin time
+                    starttime = o_pick['ori_time'].datetime - \
+                        datetime.timedelta(seconds=pre_length)
+                    endtime = o_pick['ori_time'].datetime + datetime.timedelta(
+                        seconds=post_length)
+                   
+                    # if one time interval component is finite and the other is
+                    # None, apply it if the resulting time interval is finite
+                    if time_interval is not None and \
+                        time_interval['start'] is not None and \
+                        time_interval['start'] < endtime:
+                        
+                        starttime = time_interval['start']
+                        
+                    elif time_interval is not None and \
+                        time_interval['end'] is not None and \
+                        time_interval['end'] > starttime:
+                                
+                        endtime = time_interval['end']
                     
                 s = SNCL(pick['net'], pick['sta'], pick['loc'], pick['cha'])
-                iv = [(starttime.datetime, endtime.datetime),]
+                iv = [(starttime, endtime),]
                 sncle = SNCLE(s, iv)
                 sn.append(sncle)
     
@@ -472,6 +557,33 @@ def listify_sncl_par(par, wildcards=False):
             parameters.PARAMETER_LIST_SEPARATOR)]
 
     return par
+
+
+def get_sncl_epoch_list(net, sta, loc, cha, iv):
+    """
+    net, sta, loc, cha are lists.
+    iv is a list of (starttime, endtime) pairs.
+    
+    NOTE: This function can return SNCL combinations that do no exist.
+    Example: two stations, N1.S1 and N2.S2. Query for net=N1,N2 sta=S1,S2
+    yields all combinations N1.S1, N1.S2, N2.S1, N2.S2.
+    
+    """
+        
+    sncle_list = []
+        
+    for n in net:
+        for s in sta:
+            for l in loc:
+                for c in cha:
+                    for i in iv:
+                        
+                        # TODO(fab): what about None values?
+                        sn = SNCL(n, s, l, c)
+                        sncle = SNCLE(sn, i)
+                        sncle_list.append(sncle)
+    
+    return sncle_list
 
 
 def get_sncl_constraint(query_par=None, service='', match_all=False):
