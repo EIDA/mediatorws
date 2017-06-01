@@ -37,21 +37,11 @@ def query_federator_for_target_service(
     
     """
     
-    # create POST data for federator service
-    postdata = parameters.get_non_sncl_postlines(query_par)
-    postdata += snclepochs.tofdsnpost()
-    
-    if not postdata:
-        raise httperrors.NoDataError()
-    
-    federator_url = get_federator_query_endpoint(map_service(service))
-    
-    print federator_url
-    print postdata
+    # get endpoint and assemble POST data for federator service
+    federator_url, postdata = get_federator_endpoint_and_postdata(
+        service, query_par, snclepochs)
     
     with open(outfile, 'wb') as fh:
-        
-        print "issueing POST to federator"
         response = requests.post(federator_url, data=postdata, stream=True)
 
         if not response.ok:
@@ -65,6 +55,56 @@ def query_federator_for_target_service(
     return True
 
 
+def get_federator_response_for_post_service(service, query_par, snclepochs):
+    """
+    Query federator service for target service and return response.
+    Disallow waveform service.
+    
+    """
+    
+    if service == 'waveform':
+        error_msg = "federator response is not allowed for waveform service"
+        raise NotImplementedError, error_msg
+    
+    # get endpoint and assemble POST data for federator service
+    federator_url, postdata = get_federator_endpoint_and_postdata(
+        service, query_par, snclepochs)
+
+    response = requests.post(federator_url, data=postdata, stream=True)
+
+    if not response.ok:
+        error_msg = "federator POST failed with code %s" % (
+            response.status_code)
+        raise RuntimeError, error_msg
+    
+    else:
+        return response.text
+
+
+def get_federator_endpoint_and_postdata(service, query_par, snclepochs):
+    """Get service endpoint and POST payload for federator query."""
+    
+    federator_url = get_federator_query_endpoint(map_service(service))
+    postdata = get_post_payload(query_par, snclepochs)
+    
+    print "issueing POST to federator URL: %s" % federator_url
+    print postdata
+    
+    return federator_url, postdata
+    
+    
+def get_post_payload(query_par, snclepochs):
+    """Assemble and return POST payload for a service query."""
+    
+    postdata = parameters.get_non_sncl_postlines(query_par)
+    postdata += snclepochs.tofdsnpost()
+    
+    if not postdata:
+        raise httperrors.NoDataError()
+    
+    return postdata
+
+    
 def get_federator_endpoint(fdsn_service='dataselect'):
     """
     Get URL of EIDA federator endpoint depending on requested FDSN service
@@ -75,7 +115,6 @@ def get_federator_endpoint(fdsn_service='dataselect'):
     if not fdsn_service in settings.EIDA_FEDERATOR_SERVICES:
         raise NotImplementedError, "service %s not implemented" % fdsn_service
         
-    
     return "%s:%s/fdsnws/%s/1/" % (
         settings.EIDA_FEDERATOR_BASE_URL, settings.EIDA_FEDERATOR_PORT, 
         fdsn_service)
