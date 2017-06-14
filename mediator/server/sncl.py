@@ -57,6 +57,23 @@ class SNCL(object):
             channel=channel)
     
     
+    @property
+    def network(self):
+        return self.d.get('network')
+    
+    @property
+    def station(self):
+        return self.d.get('station')
+    
+    @property
+    def location(self):
+        return self.d.get('location')
+    
+    @property
+    def channel(self):
+        return self.d.get('channel')
+    
+    
     def __eq__(self, other):
         return self.d == other.d
     
@@ -117,16 +134,16 @@ class SNCLE(object):
     
     @property
     def sncl(self):
-        return self.d['sncl']
+        return self.d.get('sncl')
         
     
     @property
     def epochs(self):
-        return self.d['epochs']
+        return self.d.get('epochs')
     
     
     def __str__(self):
-        return "%s: %s" % (str(self.d['sncl']), str(self.d['epochs']))
+        return "%s: %s" % (str(self.sncl), str(self.epochs))
 
 
 class SNCLEpochs(object):
@@ -586,7 +603,7 @@ def filter_sncls_with_geographic_constraint(query_par, snclepochs):
         maxlatitude=geo_constraint.maxlatitude)
     
     # query station with SNCLS from snclepochs and geographic constraint, 
-    # level station
+    # level 'station'
     inv = misc.get_inventory_from_federated_station_service(
         query_par, snclepochs, addpar)
 
@@ -598,12 +615,12 @@ def filter_sncls_with_geographic_constraint(query_par, snclepochs):
             #print "contains station %s.%s" % (net.code, sta.code)
             station_contained.append((net.code, sta.code))
     
-    for sncl_key in snclepochs.sncl_keys:
-        net, sta = str(sncl_key).split('.')[0:2]
+    for sncl in snclepochs.sncls:
+        #net, sta = str(sncl_key).split('.')[0:2]
         
         #print "checking station %s.%s for delete" % (net, sta)
-        if (net, sta) not in station_contained:
-            snclepochs.remove_sncl(sncl_key)
+        if (sncl.network, sncl.station) not in station_contained:
+            snclepochs.remove_sncl(sncl)
 
     return snclepochs, inv
 
