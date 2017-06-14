@@ -110,7 +110,23 @@ def get_inventory_from_federated_station_service(
     
     return inv
 
+
+def get_network_station_code_pairs(inventory):
+    """
+    Return a list of (network.code, station.code) pairs from an ObsPy 
+    inventory.
     
+    """ 
+    
+    net_sta_pairs = []
+    
+    for net in inventory:
+        for sta in net:
+            net_sta_pairs.append((net.code, sta.code))
+            
+    return net_sta_pairs
+
+  
 def get_post_payload(query_par, snclepochs, addpar={}, service=''):
     """Assemble and return POST payload for a service query."""
     

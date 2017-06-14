@@ -607,19 +607,11 @@ def filter_sncls_with_geographic_constraint(query_par, snclepochs):
     inv = misc.get_inventory_from_federated_station_service(
         query_par, snclepochs, addpar)
 
-    station_contained = []
+    stations_filtered = misc.get_network_station_code_pairs(inv)
     
-    # build new snclepochs, using old intervals
-    for net in inv:
-        for sta in net:
-            #print "contains station %s.%s" % (net.code, sta.code)
-            station_contained.append((net.code, sta.code))
-    
+    # remove stations out of geographic range from snclepochs
     for sncl in snclepochs.sncls:
-        #net, sta = str(sncl_key).split('.')[0:2]
-        
-        #print "checking station %s.%s for delete" % (net, sta)
-        if (sncl.network, sncl.station) not in station_contained:
+        if (sncl.network, sncl.station) not in stations_filtered:
             snclepochs.remove_sncl(sncl)
 
     return snclepochs, inv
