@@ -445,8 +445,8 @@ TEMPORAL_CONSTRAINT_PARAMS = ('starttime', 'endtime')
 
 GEOGRAPHIC_PARAMETER_CONSTRAINT_TOKEN = 'geographic'
 GEOGRAPHIC_CONSTRAINT_PARAMS = (
-    'minlongitude', 'maxlongitude', 'minlatitude', 'maxlatitude', 'latitude',
-    'longitude', 'maxradius', 'minradius')
+    'minlongitude', 'maxlongitude', 'minlatitude', 'maxlatitude', 'longitude',
+    'latitude', 'maxradius', 'minradius')
 
 
 class MediatorServiceMap(object):
@@ -546,6 +546,11 @@ class MediatorServiceMap(object):
         return self.get_constraint_params(service, CHANNEL_CONSTRAINT_PARAMS)
     
     
+    def get_geographic_params(self, service):
+        return self.get_constraint_params(
+            service, GEOGRAPHIC_CONSTRAINT_PARAMS)
+    
+    
     def addpar(self, service, k, v):
         if service in self.params and v is not None:
             self.enable(service)
@@ -611,7 +616,81 @@ class MediatorServiceMap(object):
         #endtime = UTCDateTime(endtime).datetime
 
     #return starttime, endtime
+
+
+class GeographicConstraint(object):
+    """
+    Structure for geographic constraints given by query parameters.
     
+    """
+    
+    def __init__(
+        self, minlon=None, maxlon=None, minlat=None, maxlat=None, lon=None,
+        lat=None, maxrad=None, minrad=None):
+
+        self.minlongitude = minlon
+        self.maxlongitude = maxlon
+        self.minlatitude = minlat
+        self.maxlatitude = maxlat
+        
+        self.longitude = lon
+        self.latitude = lat
+        self.maxradius = maxrad
+        self.minradius = minrad
+        
+        
+    def set_from_query_parameters(self, query_par, service):
+        
+        (self.minlongitude, self.maxlongitude, self.minlatitude, 
+            self.maxlatitude, self.longitude, self.latitude, self.maxradius, 
+            self.minradius) = query_par.get_geographic_params(service)
+        
+    
+    def match(self, lon, lat):
+        """
+        Check if geographic constraints match. Very simple. If a criterion is
+        None, match is positive.
+        
+        TODO(fab): implement lon, lat, and radius constraint
+        
+        """
+        
+        print "matching %s, %s against: %s" % (lon, lat, str(self))
+        
+        if self.minlongitude is not None and lon < self.minlongitude:
+            return False
+        
+        if self.maxlongitude is not None and lon > self.maxlongitude:
+            return False
+        
+        if self.minlatitude is not None and lat < self.minlatitude:
+            return False
+        
+        if self.maxlatitude is not None and lat > self.maxlatitude:
+            return False
+        
+        print "TRUE"
+
+        return True
+    
+    
+    def __str__(self):
+        out_str = "minlongitude=%s maxlongitude=%s minlatitude=%s "\
+            "maxlatitude=%s" % (str(self.minlongitude), str(self.maxlongitude), 
+            str(self.minlatitude), str(self.maxlatitude))
+        
+        return out_str
+
+
+def get_geo_constraint(query_par, service=''):
+    
+    if not service:
+        service = query_par.getpar('service')
+        
+    constraint = GeographicConstraint()
+    constraint.set_from_query_parameters(query_par, service)
+    return constraint
+
 
 def get_pre_post_length(query_par):
     """Return pre/post event/pick lengths (in seconds)."""
@@ -677,12 +756,14 @@ def get_event_sncl_filter(query_par):
     return event_sncl_filter, match_all
             
 
-def get_non_sncl_postlines(query_par):
+def get_non_sncl_postlines(query_par, addpar={}, service=''):
     """Get parameter=value lines for federator POST query."""
     
     out_lines = ''
+    used_parameters = []
     
-    service = query_par.getpar('service')
+    if not service:
+        service = query_par.getpar('service')
     
     for group_idx, parameter_group in enumerate(ALL_MEDIATOR_QUERY_PARAMS):
         for k, v in parameter_group.iteritems():
@@ -694,7 +775,14 @@ def get_non_sncl_postlines(query_par):
                 # only add parameters in the namespace of requested service
                 fdsn_par = strip_param_prefix(k, service)
                 if k != fdsn_par:
-                    out_lines += "%s=%s\n" % (fdsn_par, par_value) 
+                    out_lines += "%s=%s\n" % (fdsn_par, par_value)
+                    used_parameters.append(fdsn_par)
+                    
+    for k, v in addpar.iteritems():
+        
+        # only addpars that are not yet in regular query pars
+        if k not in used_parameters:
+            out_lines += "%s=%s\n" % (k, v) 
   
     return out_lines
 

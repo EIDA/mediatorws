@@ -59,6 +59,10 @@ class DQRequestParser(requestparser.GeneralRequestParser):
         return self.service_map.get_sncl_params(service)
     
     
+    def get_geographic_params(self, service):
+        return self.service_map.get_geographic_params(service)
+    
+    
     @property
     def event_params(self):
         return self.service_map.event_params

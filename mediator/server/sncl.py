@@ -21,7 +21,6 @@ from flask_restful import Resource
 
 from intervaltree import Interval, IntervalTree
 
-import obspy
 import requests
 
 from mediator import settings
@@ -34,19 +33,33 @@ class SNCL(object):
     This class represents a SNCL dict, defined by network, station, location,
     and channel code.
     
-    sncl = {
+    d = {
         'network': CH,
         'station': ZUR,
         'location': '',
-        'channel': 'HHZ'
-    }
+        'channel': 'HHZ'}
     
     """
 
+    @classmethod
+    def from_code(cls, code):
+        net, sta, loc, cha = code.split('.')
+        return SNCL(net, sta, loc, cha)
+    
+    
     def __init__(self, network, station, location, channel):
-        self.d = dict(
+        self.d = self._from_components(network, station, location, channel)
+
+
+    def _from_components(self, network, station, location, channel):
+        return dict(
             network=network, station=station, location=location, 
             channel=channel)
+    
+    
+    def __eq__(self, other):
+        return self.d == other.d
+    
         
     def __str__(self):
         return "%(network)s.%(station)s.%(location)s.%(channel)s" % (self.d)
@@ -59,10 +72,9 @@ class SNCLE(object):
     
     Note: The intervals tree consists of merged intervals.
     
-    sncle = {
+    d = {
         'sncl': SNCL, 
-        'epochs': IntervalTree(Interval(t1, t2), ...))
-    }
+        'epochs': IntervalTree(Interval(t1, t2), ...))}
     
     """
     
@@ -74,81 +86,99 @@ class SNCLE(object):
         
         """
         
-        self.sncle = {}
+        self.d = {}
         
-        self.sncle['sncl'] = sncl
-        self.sncle['epochs'] = IntervalTree.from_tuples(epochs)
+        self.d['sncl'] = sncl
+        self.d['epochs'] = IntervalTree.from_tuples(epochs)
         
-        # empty tree is False
-        if self.sncle['epochs']:
-            self.sncle['epochs'] = merge_intervals_in_tree(
-                self.sncle['epochs'])
+        self.merge_epochs()
 
     
     def merge(self, epochs):
         """
-        Merge an epoch list into an existing SNCL.
+        Merge an epoch list into an existing SNCLE.
         epochs is a list of (t1, t2) tuples.
         
         """
         
         for iv in epochs:
-            self.sncle['epochs'].addi(iv[0], iv[1])
+            self.d['epochs'].addi(iv[0], iv[1])
         
-        if self.sncle['epochs']:
-            self.sncle['epochs'] = merge_intervals_in_tree(
-                self.sncle['epochs'])
-
-
+        self.merge_epochs()
+            
+            
+    def merge_epochs(self):
+        """Merge the epochs tree."""
+        
+        # empty IntervalTree is False
+        if self.d['epochs']:
+            self.d['epochs'] = merge_intervals_in_tree(self.d['epochs'])
+            
+    
+    @property
+    def sncl(self):
+        return self.d['sncl']
+        
+    
+    @property
+    def epochs(self):
+        return self.d['epochs']
+    
+    
     def __str__(self):
-        return "%s: %s" % (str(self.sncle['sncl']), str(self.sncle['epochs']))
+        return "%s: %s" % (str(self.d['sncl']), str(self.d['epochs']))
 
 
 class SNCLEpochs(object):
     """
-    This class represents a dict of SNCL objects with associated epochs
-    (interval tree of start and end times). The intervals in the tree are 
-    merged.
+    This class represents a dict of SNCL code (string) keys with associated 
+    epoch values (interval tree of start and end times). The intervals in the 
+    tree are merged.
     
-    sncl = {SNCL: IntervalTree(Interval(t1, t2), ...)), ...}
+    d = {sncl_code: IntervalTree(Interval(t1, t2), ...)), ...}
     
     """
     
     def __init__(self, sncle=[]):
         """
-        Init w/ list of sncle
+        Init w/ list of SNCLE objects.
         
         """
         
-        self.sncle = {}
+        self.d = {}
         
         for s in sncle:
-            self.add(s.sncle)
+            self.merge_into(s.sncl, s.epochs)
     
     
     def merge(self, other):
         """Merge other SNCLEpochs to object."""
         
-        for k, v in other.sncle.iteritems():
-            self.add({'sncl': k, 'epochs': v})
+        for k, v in other.d.iteritems():
+            self.merge_into(k, v)
 
 
-    def add(self, s):
-        """Add SNCLE dict to object."""
+    def merge_into(self, key, epochs):
+        """
+        Merge a SNCL code (or object) and IntervalTree epoch pair into 
+        SNCLEpochs.
         
-        key = s['sncl']
-        if key in self.sncle:
+        """
+        if isinstance(key, SNCL):
+            key = str(key)
+
+        if key in self.sncl_keys:
             
             # merge epoch interval trees (union)
-            self.sncle[key] |= s['epochs']
+            self.d[key] |= epochs
         
         else:
             
             # add new SNCL
-            self.sncle.update({key: s['epochs']})
+            self.d[key] = epochs
             
-        if self.sncle[key]:
-            self.sncle[key] = merge_intervals_in_tree(self.sncle[key])
+        # tree for key may be overlapping
+        self.d[key] = merge_intervals_in_tree(self.d[key])
 
 
     def tofdsnpost(self):
@@ -160,9 +190,9 @@ class SNCLEpochs(object):
         """
         
         out_str = ''
-        for sncl, ivtree in self.sncle.iteritems():
+        for sncl, ivtree in self.d.iteritems():
 
-            (net, sta, loc, cha) = str(sncl).split('.')
+            net, sta, loc, cha = sncl.split('.')
             if not loc:
                 loc = '--'
                 
@@ -174,9 +204,60 @@ class SNCLEpochs(object):
         return out_str
     
     
+    def get_intervals(self, sncl):
+        """Return interval tree for SNCL key."""
+        
+        if isinstance(sncl, SNCL):
+            sncl = str(sncl)
+
+        return self.d.get(sncl, None)
+    
+    
+    def remove_sncl(self, sncl):
+        """Remove intervals for SNCL key."""
+        
+        if isinstance(sncl, SNCL):
+            sncl = str(sncl)
+        
+        if sncl in self.d:
+            del self.d[sncl]
+
+    
+    @property
+    def sncl_keys(self):
+        """Return a copy of all SNCL codes."""
+        return self.d.keys()
+    
+    
+    @property
+    def sncls(self):
+        """Return a copy of all SNCLs."""
+        return [SNCL.from_code(x) for x in self.d]
+    
+        
+    @property
+    def time_limits(self):
+        """Return min and max time of all time interval trees."""
+        
+        max_time = None
+        min_time = None
+        
+        for _, ivtree in self.d.iteritems():
+                
+            if min_time is None or ivtree.begin() < min_time:
+                min_time = ivtree.begin()
+                
+            if  max_time is None or ivtree.end() > max_time:
+                max_time = ivtree.end()
+        
+        return min_time, max_time
+    
+    
     @property
     def empty(self):
-        if len(self.sncle) == 0:
+        """Return True if self.sncle contains no entries, False otherwise."""
+        
+        if len(self.d) == 0:
             return True
         else:
             return False
@@ -184,7 +265,7 @@ class SNCLEpochs(object):
     
     def __str__(self):
         out_str = ''
-        for k, v in self.sncle.iteritems():
+        for k, v in self.d.iteritems():
             out_str += "%s: %s\n" % (str(k), str(v))
         
         return out_str
@@ -248,12 +329,12 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
     
     time_interval = None
     sncl_params = None
+    inventory = None
     
     # TODO(fab): 
     # time constraint: either per pick, or fixed (relative to origin time, or
     # explicit interval)
     # ?? sncl constraint: either from event, or explicit (station query)
-    
     
     if service == 'event':
 
@@ -277,11 +358,36 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
             # SNCL selection
             snclepochs, cat = get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par, time_interval, sncl_params)
-    
+            
+            # Apply station geographic constraint (requires station service
+            # request). Remove stations whose locations do not match 
+            # constraint. 
+            # Example: target service station
+            # get SNCL epochs from catalog (events in E namespace lat-lon box), 
+            # but restrict result to stations in a given S namespace lat-lon 
+            # box
+            if query_par.geographic_constraint_enabled('station'):
+                snclepochs, inventory = \
+                    filter_sncls_with_geographic_constraint(query_par, 
+                        snclepochs)
+            
+            # TODO(fab)
+            # Apply channel and geographic constraints (requires station 
+            # service request)
+            # Example: target service station
+            # get epochs from catalog (events in E namespace lat-lon box), but 
+            # restrict result to stations in a given S namespace lat-lon box, 
+            # and use new SNCL parameters (S namespace), combined with 
+            # catalog epoch
+            if query_par.channel_constraint_enabled(service):
+                snclepochs, inventory = extend_sncls_with_channel_constraint(
+                    query_par, snclepochs)
+            
         else:
         
             # get sncl epochs w/o catalog
             # epoch time intervals must be finite, set to default limits
+            # NOTE: this reads only parameters, no station request
             start_time_fix, end_time_fix = \
                 parameters.set_limit_on_undefined_time_interval(
                     time_interval['start'], time_interval['end'])
@@ -295,7 +401,7 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
             sn = get_sncl_epoch_list(net, sta, loc, cha, iv)
             snclepochs = SNCLEpochs(sn)
     
-    return snclepochs, cat
+    return snclepochs, cat, inventory
 
 
 def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None, 
@@ -307,7 +413,7 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None,
     When a catalog is filtered, only whole events are removed (all origins are
     kept, even if their associated picks do not match the SNCL constraint).
     
-    Station geometry and channel constraints are not supported 
+    Station geographic and channel constraints are not supported 
     (requires station service call).
     
     replace_map is the mapping of original to sanitized catalog object IDs.
@@ -461,6 +567,94 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None,
     return SNCLEpochs(sn), catalog
 
 
+def filter_sncls_with_geographic_constraint(query_par, snclepochs):
+    """
+    Filter given snclepochs with geographic constraint for station service
+    and return updated snclepochs.
+    
+    """
+    
+    geo_constraint = parameters.get_geo_constraint(
+        query_par, service='station')
+    
+    # TODO(fab): lon, lat, and radius constraint
+    # TODO(fab): are geographic pars not yet in query_par?
+    addpar = dict(
+        level='station', minlongitude=geo_constraint.minlongitude, 
+        maxlongitude=geo_constraint.maxlongitude,
+        minlatitude=geo_constraint.minlatitude, 
+        maxlatitude=geo_constraint.maxlatitude)
+    
+    # query station with SNCLS from snclepochs and geographic constraint, 
+    # level station
+    inv = misc.get_inventory_from_federated_station_service(
+        query_par, snclepochs, addpar)
+
+    station_contained = []
+    
+    # build new snclepochs, using old intervals
+    for net in inv:
+        for sta in net:
+            #print "contains station %s.%s" % (net.code, sta.code)
+            station_contained.append((net.code, sta.code))
+    
+    for sncl_key in snclepochs.sncl_keys:
+        net, sta = str(sncl_key).split('.')[0:2]
+        
+        #print "checking station %s.%s for delete" % (net, sta)
+        if (net, sta) not in station_contained:
+            snclepochs.remove_sncl(sncl_key)
+
+    return snclepochs, inv
+
+
+def extend_sncls_with_channel_constraint(query_par, snclepochs):
+    """
+    Use epochs from given snclepochs, combine with channel constraint for 
+    station service query, and return combined snclepochs.
+    
+    TODO(fab): temporal constraint?
+    
+    Assume that SNCLs are already filtered with geographic constraint.
+    
+    """
+    
+    time_min, time_max = snclepochs.time_limits
+    
+    # TODO(fab): what about sncl params in W namespace?
+    # TODO(fab): create object for SNCL constraints
+    sncl_par = query_par.get_sncl_params('station')
+
+    addpar = dict(
+        level='channel', network=sncl_par[0], station=sncl_par[1],
+        location=sncl_par[2], channel=sncl_par[3])
+    
+    # query station with SNCLS from snclepochs and geographic constraint, 
+    # level channel
+    inv = misc.get_inventory_from_federated_station_service(
+        query_par, snclepochs, addpar)
+
+    new_sncl_list = []
+                    
+    # build new snclepochs, using old intervals for existing SNCLs
+    for net in inv:
+        for sta in net:
+            for cha in sta:
+                sncl = SNCL(net, sta, cha.location_code, cha.code)
+                
+                if str(sncl) in snclepochs.sncl_keys:
+                    ivtree = snclepochs.get_intervals(sncl)
+                    for iv in ivtree:
+                        sncle = SNCLE(sncl, iv)
+                        new_sncl_list.append(sncle)
+                        
+                else:
+                    sncle = SNCLE(sncl, (time_min, time_max))
+                    new_sncl_list.append(sncle)
+
+    return SNCLEpochs(new_sncl_list), inv
+
+
 class SNCLConstraint(object):
     """
     Structure for SNCL constraints given by query parameters.
@@ -579,8 +773,8 @@ def get_sncl_epoch_list(net, sta, loc, cha, iv):
                     for i in iv:
                         
                         # TODO(fab): what about None values?
-                        sn = SNCL(n, s, l, c)
-                        sncle = SNCLE(sn, i)
+                        sncl = SNCL(n, s, l, c)
+                        sncle = SNCLE(sncl, i)
                         sncle_list.append(sncle)
     
     return sncle_list

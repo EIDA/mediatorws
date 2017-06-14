@@ -50,7 +50,7 @@ def process_dq(query_par, outfile):
     # with SNCL constraint
     # s.network=CH&s.channel=HHZ
     
-    # TODO(fab): with SNCL/geometry constraint (no E geometry constraint)
+    # TODO(fab): with SNCL/geographic constraint (no E geographic constraint)
     
     service = query_par.getpar('service')
     snclepochs = sncl.SNCLEpochs()
@@ -99,15 +99,19 @@ def process_dq(query_par, outfile):
         print "read event catalog, %s events" % (len(cat))
 
     # get sncl epochs (event and non-event)
-    snclepochs, cat = sncl.get_sncl_epochs(
+    snclepochs, cat, inventory = sncl.get_sncl_epochs(
         query_par, service, cat, replace_map)
         
     #print len(cat)
     print str(snclepochs)
         
-    # TODO(fab): apply S geometry constraints (remove whole events)
+    # TODO(fab): apply S geographic constraints (remove whole events)
     # requires to consume service S in order to get station coords
-
+    # DONE IN get_sncl_epochs()
+    
+    # TODO(fab): check for wild cards in SNCLs
+    # based on that list: consume dataselect/station
+    
     # re-serialize filtered catalog w/ ObsPy
     if service == 'event':
         if eventcatalog.restore_catalog_to_file(outfile, cat, replace_map):
@@ -123,9 +127,10 @@ def process_dq(query_par, outfile):
         print "snclepochs empty"
         raise httperrors.NoDataError()
     
-    # TODO: check for wild cards in SNCLs
-    # based on that list: consume dataselect/station
-
+    # TODO(fab): check if final query to target service is necessary
+    # TODO(fab): if target service in station and inventory is not None,
+    # serialize inventory
+    
     # POST to federator for target service
     if misc.query_federator_for_target_service(
             outfile, service, query_par, snclepochs):

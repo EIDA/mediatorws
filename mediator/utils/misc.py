@@ -7,10 +7,13 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+import io
 import os
 import tempfile
 
 import requests
+
+import obspy
 
 from mediator import settings
 from mediator.server import httperrors, parameters
@@ -55,7 +58,8 @@ def query_federator_for_target_service(
     return True
 
 
-def get_federator_response_for_post_service(service, query_par, snclepochs):
+def get_federator_response_for_post_service(
+    service, query_par, snclepochs, addpar={}):
     """
     Query federator service for target service and return response.
     Disallow waveform service.
@@ -68,7 +72,7 @@ def get_federator_response_for_post_service(service, query_par, snclepochs):
     
     # get endpoint and assemble POST data for federator service
     federator_url, postdata = get_federator_endpoint_and_postdata(
-        service, query_par, snclepochs)
+        service, query_par, snclepochs, addpar)
 
     response = requests.post(federator_url, data=postdata, stream=True)
 
@@ -81,22 +85,36 @@ def get_federator_response_for_post_service(service, query_par, snclepochs):
         return response.text
 
 
-def get_federator_endpoint_and_postdata(service, query_par, snclepochs):
+def get_federator_endpoint_and_postdata(
+    service, query_par, snclepochs, addpar={}):
     """Get service endpoint and POST payload for federator query."""
-    
+
     federator_url = get_federator_query_endpoint(map_service(service))
-    postdata = get_post_payload(query_par, snclepochs)
+    postdata = get_post_payload(query_par, snclepochs, addpar, service)
     
     print "issueing POST to federator URL: %s" % federator_url
     print postdata
     
     return federator_url, postdata
     
+
+def get_inventory_from_federated_station_service(
+    query_par, snclepochs, addpar):
+    """Return ObsPy inventory from station federator service."""
     
-def get_post_payload(query_par, snclepochs):
+    staxml = get_federator_response_for_post_service(
+        'station', query_par, snclepochs, addpar)
+    
+    # ObsPy inventory from station xml
+    inv = obspy.read_inventory(io.StringIO(staxml), format="STATIONXML")
+    
+    return inv
+
+    
+def get_post_payload(query_par, snclepochs, addpar={}, service=''):
     """Assemble and return POST payload for a service query."""
     
-    postdata = parameters.get_non_sncl_postlines(query_par)
+    postdata = parameters.get_non_sncl_postlines(query_par, addpar, service)
     postdata += snclepochs.tofdsnpost()
     
     if not postdata:
