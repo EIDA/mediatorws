@@ -666,7 +666,7 @@ def extend_sncls_with_channel_constraint(query_par, snclepochs):
     for net in inv:
         for sta in net:
             for cha in sta:
-                sncl = SNCL(net, sta, cha.location_code, cha.code)
+                sncl = SNCL(net.code, sta.code, cha.location_code, cha.code)
                 
                 if str(sncl) in snclepochs.sncl_keys:
                     ivtuples = snclepochs.get_interval_tuples(sncl)
