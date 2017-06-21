@@ -359,10 +359,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
     inventory = None
     
     # TODO(fab): 
-    # time constraint: either per pick, or fixed (relative to origin time, or
-    # explicit interval)
+    # time constraint: either per pick
+    # or fixed (relative to origin time, or explicit interval)
     # ?? sncl constraint: either from event, or explicit (station query)
-    
     if service == 'event':
     
         print "target service event"
@@ -546,6 +545,7 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None,
                 
                 # add to matching pick count for event
                 event_match_count[o_pick['ev_idx']] += 1
+                
                 #print "add pick to event idx %s, now: %s" % (
                     #o_pick['ev_idx'], event_match_count[o_pick['ev_idx']])
                 

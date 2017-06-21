@@ -48,9 +48,15 @@ def process_dq(query_par, outfile):
     
     if query_par.service_enabled('event'):
         
-        print "event query: %s" % query_par.event_params['fdsnws']
+        event_query_par = query_par.event_params['fdsnws']
         
-        # event query
+        # If target service is not 'event' (i.e., pick information is needed),
+        # add query parameter 'includearrivals'
+        if service != 'event':
+            event_query_par['includearrivals'] = 'true'
+            
+        print "event query: %s" % event_query_par
+        
         event_service = query_par.getpar('eventservice')
         event_query_url = misc.get_event_query_endpoint(event_service)
         print "querying %s" % event_query_url
@@ -58,8 +64,7 @@ def process_dq(query_par, outfile):
         # consume event service
         # TODO(fab): 301 moved permanently (e.g., USGS moved to https)
         try:
-            r = requests.get(
-                event_query_url, params=query_par.event_params['fdsnws'])
+            r = requests.get(event_query_url, params=event_query_par)
         except Exception, e:
             print "event service query failed with error: %s" % e
             raise httperrors.NoDataError()
