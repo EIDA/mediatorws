@@ -455,14 +455,21 @@ class MediatorServiceMap(object):
     involved.
     
     """
-    
-    map = dict(event=False, station=False, waveform=False, wfcatalog=False)
-    params = dict(
-        event=dict(), station=dict(), waveform=dict(), wfcatalog=dict())
-    ws_params = dict(
-        event=dict(), station=dict(), waveform=dict(), wfcatalog=dict())
-    
+
     def __init__(self, map=None):
+        
+        # presence of query parameters ('enabled') per service
+        self.map = dict(
+            event=False, station=False, waveform=False, wfcatalog=False)
+        
+        # namespace-prefixed parameters per service 
+        self.params = dict(
+            event=dict(), station=dict(), waveform=dict(), wfcatalog=dict())
+        
+        # non-prefixed (as for naked fdsnws service) parameters per service 
+        self.ws_params = dict(
+            event=dict(), station=dict(), waveform=dict(), wfcatalog=dict())
+    
         if map is not None:
             for k, v in map.iteritems():
                 if v:

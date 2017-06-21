@@ -40,6 +40,7 @@ def query_federator_for_target_service(
     
     """
     
+    print "final POST to target service"
     # get endpoint and assemble POST data for federator service
     federator_url, postdata = get_federator_endpoint_and_postdata(
         service, query_par, snclepochs)
@@ -92,8 +93,8 @@ def get_federator_endpoint_and_postdata(
     federator_url = get_federator_query_endpoint(map_service(service))
     postdata = get_post_payload(query_par, snclepochs, addpar, service)
     
-    print "issueing POST to federator URL: %s" % federator_url
-    print postdata
+    print "Federator URL for POST and postdata: %s\n%s" % (
+        federator_url, postdata)
     
     return federator_url, postdata
     

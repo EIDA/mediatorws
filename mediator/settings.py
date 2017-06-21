@@ -209,7 +209,7 @@ FDSN_EVENT_SERVICES = {
     'iris': {
         'server': 'http://service.iris.edu'},
     'usgs': {
-        'server': 'http://earthquake.usgs.gov'},
+        'server': 'https://earthquake.usgs.gov'},
     'ncedc': {
         'server': 'http://service.ncedc.org'},
     'scedc': {

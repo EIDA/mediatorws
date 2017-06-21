@@ -16,6 +16,8 @@ from operator import itemgetter
 
 import obspy
 
+from mediator.server import httperrors
+
 
 # IDs from SC3 that do not validate against QuakeML 1.2_
 # - arrival publicIDs from ETHZ (replace all publicIDs)
@@ -45,7 +47,7 @@ def get_obspy_catalog(cat_xml):
         cat = obspy.read_events(cat_xml)
     except Exception, e:
         err_msg = "catalog read failed: %s" % e
-        raise RuntimeError, err_msg
+        raise httperrors.InternalServerError()
     
     return cat, replace_map
 

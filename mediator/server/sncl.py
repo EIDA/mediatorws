@@ -16,7 +16,6 @@ import tempfile
 import uuid
 
 import flask
-from flask import make_response
 from flask_restful import Resource
 
 from intervaltree import Interval, IntervalTree
@@ -221,13 +220,24 @@ class SNCLEpochs(object):
         return out_str
     
     
-    def get_intervals(self, sncl):
+    def get_interval_tree(self, sncl):
         """Return interval tree for SNCL key."""
         
         if isinstance(sncl, SNCL):
             sncl = str(sncl)
 
         return self.d.get(sncl, None)
+    
+    
+    def get_interval_tuples(self, sncl):
+        """Return interval tuple list for SNCL key."""
+        
+        tree = self.get_interval_tree(sncl)
+        
+        if tree is None:
+            return []
+        else:
+            return [(x.begin, x.end) for x in tree]
     
     
     def remove_sncl(self, sncl):
@@ -354,7 +364,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
     # ?? sncl constraint: either from event, or explicit (station query)
     
     if service == 'event':
-
+    
+        print "target service event"
+        
         # apply E SNCL constraint (others do not make sense):    
         #  snclepochs: remove SNCLEs 
         #  catalog: remove whole events
@@ -370,7 +382,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
         sncl_params = query_par.get_sncl_params(service)
         
         if cat is not None:
-        
+            
+            print "target service %s, querying event service" % service
+            
             # target service is not event, but catalog is used for 
             # SNCL selection
             snclepochs, cat = get_sncl_epochs_from_catalog(
@@ -405,6 +419,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
             # get sncl epochs w/o catalog
             # epoch time intervals must be finite, set to default limits
             # NOTE: this reads only parameters, no station request
+            
+            print "target service %s, SNCL epochs w/o catalog" % service
+            
             start_time_fix, end_time_fix = \
                 parameters.set_limit_on_undefined_time_interval(
                     time_interval['start'], time_interval['end'])
@@ -652,13 +669,13 @@ def extend_sncls_with_channel_constraint(query_par, snclepochs):
                 sncl = SNCL(net, sta, cha.location_code, cha.code)
                 
                 if str(sncl) in snclepochs.sncl_keys:
-                    ivtree = snclepochs.get_intervals(sncl)
-                    for iv in ivtree:
-                        sncle = SNCLE(sncl, iv)
-                        new_sncl_list.append(sncle)
+                    ivtuples = snclepochs.get_interval_tuples(sncl)
+                    
+                    sncle = SNCLE(sncl, ivtuples)
+                    new_sncl_list.append(sncle)
                         
                 else:
-                    sncle = SNCLE(sncl, (time_min, time_max))
+                    sncle = SNCLE(sncl, [(time_min, time_max),])
                     new_sncl_list.append(sncle)
 
     return SNCLEpochs(new_sncl_list), inv
@@ -779,12 +796,11 @@ def get_sncl_epoch_list(net, sta, loc, cha, iv):
         for s in sta:
             for l in loc:
                 for c in cha:
-                    for i in iv:
                         
-                        # TODO(fab): what about None values?
-                        sncl = SNCL(n, s, l, c)
-                        sncle = SNCLE(sncl, i)
-                        sncle_list.append(sncle)
+                    # TODO(fab): what about None/wildcard values?
+                    sncl = SNCL(n, s, l, c)
+                    sncle = SNCLE(sncl, iv)
+                    sncle_list.append(sncle)
     
     return sncle_list
 

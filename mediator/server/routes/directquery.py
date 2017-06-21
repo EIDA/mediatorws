@@ -16,10 +16,10 @@ from mediator.server import general_request, parameters, requestparser
 class DQRequestParser(requestparser.GeneralRequestParser):
     """Collect and merge all query parameters."""
 
-    service_map = parameters.MediatorServiceMap()
-    
     def __init__(self, query_args):
         super(DQRequestParser, self).__init__(query_args)
+        
+        self.service_map = parameters.MediatorServiceMap()
         
         if current_app.debug:
             print "all query params: %s" % query_args
