@@ -51,8 +51,11 @@ def process_dq(query_par, outfile):
         event_query_par = query_par.event_params['fdsnws']
         
         # If target service is not 'event' (i.e., pick information is needed),
+        # or if there are channel parameters for event,
         # add query parameter 'includearrivals'
-        if service != 'event':
+        if service != 'event' or (
+            service == 'event' and \
+                query_par.channel_constraint_enabled('event')):
             event_query_par['includearrivals'] = 'true'
             
         print "event query: %s" % event_query_par
