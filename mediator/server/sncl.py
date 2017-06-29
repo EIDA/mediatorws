@@ -180,6 +180,7 @@ class SNCLEpochs(object):
         SNCLEpochs.
         
         """
+        
         if isinstance(key, SNCL):
             key = str(key)
 
@@ -197,6 +198,23 @@ class SNCLEpochs(object):
         self.d[key] = merge_intervals_in_tree(self.d[key])
 
 
+    def add_or_replace(self, key, tree):
+        """
+        Add a new SNCL code (or object) with epoch of type IntervalTree to 
+        SNCLEpochs.
+        
+        """
+        
+        if isinstance(key, SNCL):
+            key = str(key)
+            
+        # add new SNCL
+        self.d[key] = tree
+        
+        # tree for key may be overlapping
+        self.d[key] = merge_intervals_in_tree(self.d[key])
+    
+    
     def tofdsnpost(self):
         """
         Write SNCLEpochs to FDSN web service POST lines.
@@ -380,10 +398,15 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
             
             print "target service %s, getting epochs from catalog" % service
             
+            original_epochs = True
+            
             # target service is not event, but catalog is used for 
             # SNCL selection
             snclepochs, cat = get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par, time_interval, sncl_params)
+            
+            snclepochs_from_catalog = copy.deepcopy(snclepochs)
+            time_min, time_max = snclepochs.time_limits
             
             # station channel constraint: build new SNCLEs with epochs from 
             # catalog, new SNCLs from additional station query
@@ -400,10 +423,12 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
                 print "(station query) refining snclepochs with channel "\
                     "constraint"
                 
-                time_min, time_max = snclepochs.time_limits
                 snclepochs, inventory = \
                     build_sncls_with_channel_and_geographic_constraint(
                         query_par, time_min, time_max)
+                
+                # original time epochs for target service have been modified
+                original_epochs = False
                 
             elif query_par.temporal_constraint_enabled('station'):
                 
@@ -415,6 +440,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
                 snclepochs, inventory = \
                     modify_sncls_with_temporal_and_geographic_constraint(
                         query_par, snclepochs)
+                
+                # original time epochs for target service have been modified
+                original_epochs = False
                 
             elif query_par.geographic_constraint_enabled('station'):
                 
@@ -431,7 +459,20 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
                 snclepochs, inventory = \
                     filter_sncls_with_geographic_constraint(
                         query_par, snclepochs)
-
+                
+            if service == 'waveform' and not original_epochs:
+                
+                print "restoring original epochs for waveform query"
+                
+                # restore original time interval from W namespace
+                start_time_fix, end_time_fix = \
+                    parameters.set_limit_on_undefined_time_interval(
+                        time_min, time_max)
+            
+                snclepochs = restore_catalog_epochs(
+                    snclepochs, snclepochs_from_catalog, start_time_fix, 
+                    end_time_fix)
+           
         else:
         
             # get sncl epochs w/o catalog
@@ -688,6 +729,29 @@ def snclepochs_from_parameters_epoch(
     # snclepochs for station query
     return SNCLEpochs(sncle_list)
     
+
+def restore_catalog_epochs(
+    snclepochs, snclepochs_from_catalog, time_min, time_max):
+    """
+    Restore epochs from second SNCLEpochs object in the first one. If
+    SNCL is missing in second one, use default time interval.
+    
+    """
+    
+    for sncl_code in snclepochs.sncl_keys:
+        
+        epoch_tree = snclepochs_from_catalog.get_interval_tree(sncl_code)
+        
+        # epochs for key exist in new snclepochs, but not in the ones from
+        # the event query catalog (this can happen if channel constraints for
+        # the station service are present)
+        if epoch_tree is None:
+            epoch_tree = IntervalTree().from_tuples([(time_min, time_max),])
+            
+        snclepochs.add_or_replace(sncl_code, epoch_tree)
+       
+    return snclepochs
+
 
 def build_sncls_with_channel_and_geographic_constraint(
     query_par, time_min, time_max):

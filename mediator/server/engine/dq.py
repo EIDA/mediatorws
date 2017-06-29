@@ -142,7 +142,7 @@ def process_dq(query_par, outfile):
         raise httperrors.NoDataError()
     
     # TODO(fab): check if final query to target service is necessary
-    # TODO(fab): if target service in station and inventory is not None,
+    # TODO(fab): if target service is 'station' and inventory is not None,
     # serialize inventory
     
     # POST to federator for target service
