@@ -390,7 +390,8 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
         
         # target service is not event: 
         # evaluate sncl and time constraints of
-        # station, waveform, and quality namespaces
+        # station and waveform namespaces
+        # TODO(fab): quality namespace
         time_interval = query_par.get_time_interval(service, todatetime=True)
         sncl_params = query_par.get_sncl_params(service)
         
