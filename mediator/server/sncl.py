@@ -350,7 +350,7 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
         constraints.
         
     For other target service;
-        from temporal and SNCL constraints.
+        from temporal, geographic, and SNCL constraints.
     
     """
     
@@ -358,13 +358,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
     sncl_params = None
     inventory = None
     
-    # TODO(fab): 
-    # time constraint: either per pick
-    # or fixed (relative to origin time, or explicit interval)
-    # ?? sncl constraint: either from event, or explicit (station query)
     if service == 'event':
     
-        print "target service event"
+        print "target service event, getting epochs from catalog"
         
         # apply E SNCL constraint (others do not make sense):    
         #  snclepochs: remove SNCLEs 
@@ -382,26 +378,16 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
         
         if cat is not None:
             
-            print "target service %s, querying event service" % service
+            print "target service %s, getting epochs from catalog" % service
             
             # target service is not event, but catalog is used for 
             # SNCL selection
             snclepochs, cat = get_sncl_epochs_from_catalog(
                 cat, replace_map, query_par, time_interval, sncl_params)
             
-            # Apply station geographic constraint (requires station service
-            # request). Remove stations whose locations do not match 
-            # constraint. 
-            # Example: target service station
-            # get SNCL epochs from catalog (events in E namespace lat-lon box), 
-            # but restrict result to stations in a given S namespace lat-lon 
-            # box
-            if query_par.geographic_constraint_enabled('station'):
-                snclepochs, inventory = \
-                    filter_sncls_with_geographic_constraint(query_par, 
-                        snclepochs)
+            # station channel constraint: build new SNCLEs with epochs from 
+            # catalog, new SNCLs from additional station query
             
-            # TODO(fab)
             # Apply channel and geographic constraints (requires station 
             # service request)
             # Example: target service station
@@ -409,10 +395,43 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
             # restrict result to stations in a given S namespace lat-lon box, 
             # and use new SNCL parameters (S namespace), combined with 
             # catalog epoch
-            if query_par.channel_constraint_enabled(service):
-                snclepochs, inventory = extend_sncls_with_channel_constraint(
-                    query_par, snclepochs)
-            
+            if query_par.channel_constraint_enabled('station'):
+                
+                print "(station query) refining snclepochs with channel "\
+                    "constraint"
+                
+                time_min, time_max = snclepochs.time_limits
+                snclepochs, inventory = \
+                    build_sncls_with_channel_and_geographic_constraint(
+                        query_par, time_min, time_max)
+                
+            elif query_par.temporal_constraint_enabled('station'):
+                
+                print "(station query) refining snclepochs with temporal "\
+                    "constraint"
+                
+                # station temporal constraint: use SNCLs from catalog, use
+                # new epochs from additional station query
+                snclepochs, inventory = \
+                    modify_sncls_with_temporal_and_geographic_constraint(
+                        query_par, snclepochs)
+                
+            elif query_par.geographic_constraint_enabled('station'):
+                
+                print "(station query) refining snclepochs with geographic "\
+                    "constraint"
+                
+                # Apply station geographic constraint (requires station service
+                # request). Remove stations whose locations do not match 
+                # constraint. 
+                # Example: target service station
+                # get SNCL epochs from catalog (events in E namespace lat-lon 
+                # box), but restrict result to stations in a given S namespace 
+                # lat-lon box
+                snclepochs, inventory = \
+                    filter_sncls_with_geographic_constraint(
+                        query_par, snclepochs)
+
         else:
         
             # get sncl epochs w/o catalog
@@ -426,14 +445,9 @@ def get_sncl_epochs(query_par, service, cat=None, replace_map=None):
                     time_interval['start'], time_interval['end'])
             
             # get SNCL constraints w/o catalog
-            net, sta, loc, cha = get_sncl_par(
-                query_par, service, wildcards=True)
-            
-            # TODO(fab): check SNCL epochs
-            iv = [(start_time_fix, end_time_fix),]
-            sn = get_sncl_epoch_list(net, sta, loc, cha, iv)
-            snclepochs = SNCLEpochs(sn)
-    
+            snclepochs = snclepochs_from_parameters_epoch(
+                query_par, start_time_fix, end_time_fix, service=service)
+
     return snclepochs, cat, inventory
 
 
@@ -442,6 +456,8 @@ def get_sncl_epochs_from_catalog(cat, replace_map, query_par=None,
     """
     Get SNCL epochs from an ObsPy catalog. If requested, apply SNCL 
     constraints (in event namespace) to catalog (filter catalog).
+    
+    Assumes that event temporal constraint has already been applied to catalog.
     
     When a catalog is filtered, only whole events are removed (all origins are
     kept, even if their associated picks do not match the SNCL constraint).
@@ -608,77 +624,130 @@ def filter_sncls_with_geographic_constraint(query_par, snclepochs):
     
     """
     
-    geo_constraint = parameters.get_geo_constraint(
-        query_par, service='station')
-    
-    # TODO(fab): lon, lat, and radius constraint
-    # TODO(fab): are geographic pars not yet in query_par?
-    addpar = dict(
-        level='station', minlongitude=geo_constraint.minlongitude, 
-        maxlongitude=geo_constraint.maxlongitude,
-        minlatitude=geo_constraint.minlatitude, 
-        maxlatitude=geo_constraint.maxlatitude)
-    
+    addpar = parameters.get_station_service_geographic_constraints(
+        query_par, level='station')
+
     # query station with SNCLS from snclepochs and geographic constraint, 
     # level 'station'
     inv = misc.get_inventory_from_federated_station_service(
         query_par, snclepochs, addpar)
 
-    stations_filtered = misc.get_network_station_code_pairs(inv)
-    
     # remove stations out of geographic range from snclepochs
-    for sncl in snclepochs.sncls:
-        if (sncl.network, sncl.station) not in stations_filtered:
-            snclepochs.remove_sncl(sncl)
+    snclepochs = filter_snclepochs_with_inventory(snclepochs, inv)
 
     return snclepochs, inv
 
 
-def extend_sncls_with_channel_constraint(query_par, snclepochs):
-    """
-    Use epochs from given snclepochs, combine with channel constraint for 
-    station service query, and return combined snclepochs.
+def filter_snclepochs_with_inventory(snclepochs, inv):
+    """Remove stations from snclepochs that are not in inventory.""" 
     
-    TODO(fab): temporal constraint?
+    stations_filtered = misc.get_network_station_code_pairs(inv)
     
-    Assume that SNCLs are already filtered with geographic constraint.
-    
-    """
-    
-    time_min, time_max = snclepochs.time_limits
-    
-    # TODO(fab): what about sncl params in W namespace?
-    # TODO(fab): create object for SNCL constraints
-    sncl_par = query_par.get_sncl_params('station')
+    for sncl in snclepochs.sncls:
+        if (sncl.network, sncl.station) not in stations_filtered:
+            snclepochs.remove_sncl(sncl)
 
-    addpar = dict(
-        level='channel', network=sncl_par[0], station=sncl_par[1],
-        location=sncl_par[2], channel=sncl_par[3])
-    
-    # query station with SNCLS from snclepochs and geographic constraint, 
-    # level channel
-    inv = misc.get_inventory_from_federated_station_service(
-        query_par, snclepochs, addpar)
+    return snclepochs
 
-    new_sncl_list = []
-                    
-    # build new snclepochs, using old intervals for existing SNCLs
+
+def snclepochs_from_inventory_epoch(inv, time_min, time_max):
+    """Return SNCLEpochs from inventory and given epoch."""
+    
+    sncle_list = []
+           
     for net in inv:
         for sta in net:
             for cha in sta:
                 sncl = SNCL(net.code, sta.code, cha.location_code, cha.code)
-                
-                if str(sncl) in snclepochs.sncl_keys:
-                    ivtuples = snclepochs.get_interval_tuples(sncl)
-                    
-                    sncle = SNCLE(sncl, ivtuples)
-                    new_sncl_list.append(sncle)
-                        
-                else:
-                    sncle = SNCLE(sncl, [(time_min, time_max),])
-                    new_sncl_list.append(sncle)
+                sncle = SNCLE(sncl, [(time_min, time_max),])
+                sncle_list.append(sncle)
 
-    return SNCLEpochs(new_sncl_list), inv
+    return SNCLEpochs(sncle_list)
+
+
+def snclepochs_from_snclepochs_epoch(snclepochs, time_min, time_max):
+    """Return new SNCLEpochs from SNCLEpochs and given epoch."""
+    
+    sncle_list = []
+    for sncl in snclepochs.sncls:
+        sncle = SNCLE(sncl, [(time_min, time_max),])
+        sncle_list.append(sncle)
+   
+    return SNCLEpochs(sncle_list)
+
+
+def snclepochs_from_parameters_epoch(
+    query_par, time_min, time_max, service='station'):
+    
+    net, sta, loc, cha = get_sncl_par(
+        query_par, service=service, wildcards=True)
+    
+    sncle_list = get_sncl_epoch_list(
+        net, sta, loc, cha, [(time_min, time_max),])
+   
+    # snclepochs for station query
+    return SNCLEpochs(sncle_list)
+    
+
+def build_sncls_with_channel_and_geographic_constraint(
+    query_par, time_min, time_max):
+    """
+    Use epochs from given time interval, combine with channel and geographic 
+    constraint for station service query, and return combined snclepochs.
+    
+    TODO(fab): list of time intervals
+    
+    """
+    
+    addpar = parameters.get_station_service_geographic_constraints(
+        query_par, level='channel')
+    
+    # build snclepochs for station query POST lines
+    snclepochs_query = snclepochs_from_parameters_epoch(
+        query_par, time_min, time_max, service='station')
+
+    # query station with SNCLS from snclepochs and geographic constraint, 
+    # level channel
+    inv = misc.get_inventory_from_federated_station_service(
+        query_par, snclepochs_query, addpar)
+
+    # build new snclepochs, using given interval
+    snclepochs = snclepochs_from_inventory_epoch(inv, time_min, time_max)
+
+    return snclepochs, inv
+
+
+def modify_sncls_with_temporal_and_geographic_constraint(
+    query_par, snclepochs):
+    """
+    Use SNCLs from event service, already filtered with event channel and
+    temporal constraints, and combine with station temporal and geographic 
+    constraints.
+
+    if str(sncl) in snclepochs.sncl_keys:
+        ivtuples = snclepochs.get_interval_tuples(sncl)
+    
+    """
+    
+    addpar = parameters.get_station_service_geographic_constraints(
+        query_par, level='channel')
+
+    # build snclepochs for station query POST lines
+    # TODO(fab): what about temporal params in W namespace?
+    time_interval = query_par.get_time_interval('station', todatetime=True)
+    
+    snclepochs_query = snclepochs_from_snclepochs_epoch(
+        snclepochs, time_interval['start'], time_interval['end'])
+    
+    # query station with SNCLS from snclepochs and geographic constraint, 
+    # level channel
+    inv = misc.get_inventory_from_federated_station_service(
+        query_par, snclepochs_query, addpar)
+
+    new_snclepochs = snclepochs_from_inventory_epoch(
+        inv, time_interval['start'], time_interval['end'])
+
+    return new_snclepochs, inv
 
 
 class SNCLConstraint(object):

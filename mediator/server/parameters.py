@@ -699,6 +699,24 @@ def get_geo_constraint(query_par, service=''):
     return constraint
 
 
+def get_station_service_geographic_constraints(query_par, level='channel'):
+    
+    addpar = dict(level=level)
+       
+    if query_par.geographic_constraint_enabled('station'):
+        geo_constraint = get_geo_constraint(query_par, service='station')
+        
+        # TODO(fab): lon, lat, and radius constraint
+        addpar.update(
+            dict(
+                minlongitude=geo_constraint.minlongitude, 
+                maxlongitude=geo_constraint.maxlongitude,
+                minlatitude=geo_constraint.minlatitude, 
+                maxlatitude=geo_constraint.maxlatitude))
+            
+    return addpar
+
+
 def get_pre_post_length(query_par):
     """Return pre/post event/pick lengths (in seconds)."""
     

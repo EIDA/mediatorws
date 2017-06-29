@@ -40,6 +40,19 @@ def process_dq(query_par, outfile):
     #  @DATADIR@/share/fdsn/contributors.xml
     #  eventid (optional) is implemented, is a publicID
 
+    # exclude a few service parameter combinations that make no sense
+    if query_par.service_enabled('station') and \
+        query_par.service_enabled('event'):
+        
+        if (query_par.channel_constraint_enabled('station') and \
+            query_par.temporal_constraint_enabled('station')) or (
+            
+            query_par.channel_constraint_enabled('station') and \
+            query_par.channel_constraint_enabled('event')):
+            
+            print "error: bad service parameter combination"
+            raise httperrors.BadRequestError()     
+
     service = query_par.getpar('service')
     snclepochs = sncl.SNCLEpochs()
     

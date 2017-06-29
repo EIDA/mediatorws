@@ -14,7 +14,6 @@ from flask_restful import reqparse, request
 
 from mediator import settings
 from mediator.server import httperrors, parameters
-from mediator.server.engine import dq
 from mediator.utils import misc
 
 
