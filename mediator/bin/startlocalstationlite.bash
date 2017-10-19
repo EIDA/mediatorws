@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # start stationlite service
-python -m stationlite.server --port=5002
+python -m eidangservices.stationlite.server --port=5002
