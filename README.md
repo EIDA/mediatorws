@@ -42,12 +42,12 @@ python -m federator.server --port=5000 --routing='gfz' --tmpdir='/path/to/tmp'
 and
 
 ````
-python -m mediator.server --port=5001 --routing='gfz' --tmpdir='/path/to/tmp'
+python -m mediator.server --port=5001 --tmpdir='/path/to/tmp'
 ````
 
 
-For the routing parameter, one of these acronyms can be used:
-gfz (default), odc, eth, ingv, bgr, lmu, ipgp, koeri, noa
+For the routing parameter (used for the federator), one of these acronyms can 
+be used: gfz (default), odc, eth, ingv, bgr, lmu, ipgp, koeri, noa
 
 
 The servers write temporary files to the tmpdir, so this directory will fill up.
