@@ -13,6 +13,8 @@ from flask_restful import Api
 
 from mediator import settings
 
+from eidangservices.stationlite.engine import dbquery
+
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
 from eidangservices.stationlite.server.routes.wildcards import \
@@ -20,7 +22,7 @@ from eidangservices.stationlite.server.routes.wildcards import \
 
 
     
-def main(debug=False, port=5002):
+def main(debug=False, port=5002, db=''):
     """Run Flask app."""
 
     errors = {
@@ -30,8 +32,9 @@ def main(debug=False, port=5002):
         },
     }
 
-    app = Flask(__name__)
     
+    
+    app = Flask(__name__)
     api = Api(errors=errors)
 
     ## routing service endpoint
@@ -50,7 +53,7 @@ def main(debug=False, port=5002):
  
     api.init_app(app)
     
-    app.config.update(PORT=port)
+    app.config.update(PORT=port, DB=db)
     app.run(threaded=True, debug=debug, port=port)
 
 

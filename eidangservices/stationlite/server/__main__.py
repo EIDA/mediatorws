@@ -20,12 +20,14 @@ def main():
     # required=True
     parser.add_argument('--port', type=int, help='Server port')
     parser.add_argument(
+        '--db', type=str, default='', help='Database (SQLite) file.')
+    parser.add_argument(
         '--debug', action='store_true', default=False, 
         help="Run in debug mode.")
 
     args = parser.parse_args()
 
-    start_app(debug=args.debug, port=args.port)
+    start_app(debug=args.debug, port=args.port, db=args.db)
     
 
 if __name__ == "__main__":

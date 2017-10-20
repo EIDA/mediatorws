@@ -48,22 +48,9 @@ def create_and_init_tables(db_path):
     engine = create_engine('sqlite:///{}'.format(db_path))
     metadata.create_all(engine)
     
-    #print tables
-    
     connection = engine.connect()
     init_tables(connection, tables)
-    
-    # show populated tables
-    for tb in ('node', 'service', 'endpoint'):
-        
-        print "\ntable {}".format(tb)
-        
-        s = select([tables[tb]])
-        rp = connection.execute(s)
-        r = rp.fetchall()
-        
-        print r
-    
+
     
 def setup_tables(metadata):
     
@@ -127,6 +114,8 @@ def setup_tables(metadata):
     )
     
     # channel
+    # TODO(fab): network_ref should reference networkepoch,
+    # station_ref should reference stationepoch
     channel = Table('channel', metadata,
         Column('oid', Integer(), primary_key=True),
         Column(
@@ -186,28 +175,23 @@ def setup_tables(metadata):
 
 def init_tables(connection, tables):
     
-    print "INIT TABLES"
-    
     # populate service, node, endpoint
     ins_service = []
     ins_node = []
     ins_endpoint = []
     
-    print "init node"
     for node, node_par in settings.EIDA_NODES.items():
         ins_node.append(dict(name=node, description=unicode(node_par['name'])))
 
     ins = tables['node'].insert()
     r = connection.execute(ins, ins_node)
     
-    print "init service"
     for sv in CACHED_SERVICES:
         ins_service.append(dict(name=sv))
     
     ins = tables['service'].insert()
     r = connection.execute(ins, ins_service)
     
-    print "init endpoint"
     for node, node_par in settings.EIDA_NODES.items():
         
         # get node id
@@ -487,7 +471,7 @@ def db_insert_network(connection, tables, net, node_id):
     nodes = db_insert_network_node_relation(
         connection, tables, network_id, node_id)
     
-    print "{} {}".format(log_msg, ' '.join(nodes))
+    #print "{} {}".format(log_msg, ' '.join(nodes))
         
     # insert network epoch, if new
     networkepoch_id = find_db_networkepoch_id(connection, tables, net)
@@ -540,12 +524,9 @@ def db_insert_station(connection, tables, station, network_code):
     
     station_id = find_db_station_id(connection, tables, station['name'])
 
-    if station_id is not None:
-        print "insert_station: station {} already exists, skipping station "\
-            "insert".format(station['name'])
-        
-    else:
-        
+    # insert unless station ID is already there
+    if station_id is None:
+
         ins = tables['station'].insert({'name': station['name']})
         r = connection.execute(ins)
         station_id = r.inserted_primary_key[0]
