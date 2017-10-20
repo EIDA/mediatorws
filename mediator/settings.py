@@ -31,8 +31,9 @@ EIDA_NODES = {
                     'server': 'http://geofon.gfz-potsdam.de',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
+                    'url': 'http://geofon.gfz-potsdam.de/eidaws/wfcatalog/"\
+                        "alpha/query',
+                    'server': 'http://geofon.gfz-potsdam.de'}
                 }
             },
         'testquerysncls': {
@@ -62,8 +63,8 @@ EIDA_NODES = {
                     'server': 'http://www.orfeus-eu.org',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
+                    'url': 'http://www.orfeus-eu.org/eidaws/wfcatalog/1/query',
+                    'server': 'http://www.orfeus-eu.org'}
                 }
             },
         'testquerysncls': {
@@ -119,7 +120,7 @@ EIDA_NODES = {
                     'service': False,
                     'static_file': 'http://ws.resif.fr/eida_routing.xml'},
                 'wfcatalog': {
-                    'url': 'http://ws.resif.fr/eidaws/wfcatalog/1/',
+                    'url': 'http://ws.resif.fr/eidaws/wfcatalog/1/query',
                     'server': 'http://ws.resif.fr'}
                 }
             },
@@ -148,8 +149,8 @@ EIDA_NODES = {
                     'server': ' http://eida.ingv.it',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
+                    'url': 'http://catalog.data.ingv.it/wfcatalog/1/query',
+                    'server': 'http://catalog.data.ingv.it'}
                 }
             },
         'testquerysncls': {
@@ -177,8 +178,8 @@ EIDA_NODES = {
                     'server': 'http://eida.bgr.de',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
+                    'url': 'http://eida.bgr.de/eidaws/wfcatalog/alpha/query',
+                    'server': 'http://eida.bgr.de'}
                 }
             },
         'testquerysncls': {
@@ -206,8 +207,9 @@ EIDA_NODES = {
                     'server': 'http://erde.geophysik.uni-muenchen.de',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
+                    'url': 'http://erde.geophysik.uni-muenchen.de/eidaws/"\
+                        "wfcatalog/1/query',
+                    'server': 'http://erde.geophysik.uni-muenchen.de'}
                 }
             },
         'testquerysncls': {
@@ -261,7 +263,8 @@ EIDA_NODES = {
             'eida': {
                 'routing': {
                     'service': False,
-                    'static_file': 'http://eida-routing.infp.ro/eidaws/routing/1/routing.xml'},
+                    'static_file': 'http://eida-routing.infp.ro/eidaws/"\
+                        "routing/1/routing.xml'},
                 'wfcatalog': {
                     'url': '',
                     'server': ''}
