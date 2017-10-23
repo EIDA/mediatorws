@@ -263,8 +263,6 @@ class GeneralRequestTranslator(object):
                     param)
                 
                 # check if valid web service parameter
-                # NOTE(damb): If there is a valid service parameter the
-                # par_group_idx v
                 if par_group_idx is not None:
                     
                     value = parameters.fix_param_value(param, value)
@@ -353,16 +351,12 @@ def get_request_parser(request_params, request_parser=None):
 def process_request(args):
     """Call fdsnws_fetch with args, return path of result file."""
 
-    # TODO(damb): Arguments must be passed as a dict!
     tempfile_path = args.getpar(FDSNWSFETCH_OUTFILE_PARAM)
     if tempfile_path is None:
         return None
 
     # TODO(fab): capture log output
 
-    print('Serialized args: %s' % args.serialize())
-    print('Argument list: %s' % args.getlist())
-    
     try:
         fdsnws_fetch.main(args.getlist())
     except Exception:
@@ -375,14 +369,14 @@ def process_request(args):
         return None
 
 
-# TODO(damb): Use parameters from CLI!
 def process_new_request(query_params, path_tempfile=None,
         timeout=settings.DEFAULT_ROUTING_TIMEOUT,
         retries=settings.DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
         threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
+        # TODO(damb): Either use a logger or pass the log_level.
         verbose=False):
-    """process a 'new' request"""
+    """Route a 'new' request."""
 
     if path_tempfile is None:
         return None
@@ -401,7 +395,6 @@ def process_new_request(query_params, path_tempfile=None,
 
         route.route(url, query_params, cred, authdata, postdata, dest, timeout,
               retries, retry_wait, threads, verbose)
-
     except Exception:
         return None
     

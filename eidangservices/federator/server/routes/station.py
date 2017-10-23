@@ -17,7 +17,6 @@ from federator.utils import misc
 
 
 
-
 class StationRequestHandler(general_request.RequestParameterHandler):
     """Handle request parameters for service=station"""
         
@@ -58,7 +57,7 @@ class StationResource(general_request.GeneralResource):
         args = StationRequestHandler(args).params
         self.logger.debug("Request query parameters: %s." % args)
 
-        # TODO(damb): Migrate function to self._process_request
+        # TODO(damb): Migrate function identifier to self._process_request
         return self._process_new_request(
             args, self._get_result_mimetype(args), 
             path_tempfile=self.path_tempfile)
