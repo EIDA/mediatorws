@@ -40,7 +40,8 @@ def build_parser(parents=[]):
             description='Launch EIDA federator web service.', 
             parents=parents)
 
-    parser.add_argument('--port', type=int, 
+    parser.add_argument('--port', type=int,
+        default=settings.DEFAULT_SERVER_PORT, 
         help='server port')
     parser.add_argument('-R', '--routing', type=str, metavar='SERVICE_ID',
         default=settings.DEFAULT_ROUTING_SERVICE,
