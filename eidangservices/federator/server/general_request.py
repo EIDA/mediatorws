@@ -7,19 +7,29 @@ This file is part of the EIDA mediator/federator webservices.
 """
 
 import datetime
+import logging
 import os
+
+from future.utils import iteritems
 
 import flask
 from flask import current_app
 from flask_restful import abort, reqparse, request, Resource
 
-from eidangservices import settings
+from federator import settings
+from federator.server import httperrors, parameters, route
+from federator.utils import fdsnws_fetch, misc
 
-from eidangservices.federator.server import httperrors, parameters
-from eidangservices.federator.utils import fdsnws_fetch, misc
+try:
+    # Python 2.x
+    import urlparse
+except ImportError:
+    # Python 3.x
+    import urllib.parse as urlparse
 
 
 FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
+FDSNWS_QUERY_SERVICE_PARAM = 'service'
 
 FDSNWSFETCH_OUTFILE_PARAM = '-o'
 FDSNWSFETCH_SERVICE_PARAM = '-y'
@@ -30,7 +40,19 @@ FDSNWSFETCH_POSTFILE_PARAM = '-p'
 
 class GeneralResource(Resource):
     """Handler for general resource."""
-    
+
+    LOGGER = "federator.general_resource"
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.LOGGER)
+        self.__path_tempfile = misc.get_temp_filepath() 
+   
+    # __init__ ()
+
+    @property
+    def path_tempfile(self):
+        return self.__path_tempfile
+
     def _process_post_args(self, fetch_args):
         """Process POST parameters of a request."""
         
@@ -88,6 +110,8 @@ class GeneralResource(Resource):
     def _process_request(self, fetch_args, mimetype, postfile=''):
         """Process request and send resulting file to client."""
         
+        self.logger.debug("fetch_args: %s" % fetch_args)
+
         resource_path = process_request(fetch_args)
         
         # remove POST temp file
@@ -109,11 +133,112 @@ class GeneralResource(Resource):
                 # TODO(fab): how to let user know of error?
                 pass
 
+    def _process_new_request(self, args, mimetype, path_tempfile, 
+            postfile=''):
+        """Process a new request and send resulting file to client."""
+        
+        resource_path = process_new_request(args, 
+                path_tempfile=path_tempfile,
+                timeout=current_app.config['ROUTING_TIMEOUT'],
+                retries=current_app.config['ROUTING_RETRIES'],
+                retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
+                threads=current_app.config['NUM_THREADS'])
 
+        # remove POST temp file
+        if postfile and os.path.isfile(postfile):
+            os.unlink(postfile)
+
+        if resource_path is None or os.path.getsize(resource_path) == 0:
+            # TODO(fab): get user-supplied error code
+            raise httperrors.NoDataError()
+            
+        else:
+            # return contents of temp file
+            try:
+                return flask.send_file(resource_path, mimetype=mimetype)
+            except Exception:
+                # cannot send error code since response is already started
+                # TODO(fab): how to let user know of error?
+                pass
+
+    # _process_new_request ()
+
+# class GeneralResource
+
+
+class RequestParameterHandler(object):
+    """
+    Implementation of a parameter handler performing fixes and corrections at
+    query parameters.
+    """
+
+    LOGGER = 'federator.request_parameter_handler'
+
+    def __init__(self, query_args):
+        self.logger = logging.getLogger(self.LOGGER)
+        
+        self.__params = {}
+
+        for param, value in iteritems(query_args):
+            if value is not None:
+                self.logger.debug(
+                    'Processing query argument: param=%s, value=%s' % 
+                    (param, value))
+                # NOTE(fab): param is the FDSN service parameter name from the
+                # HTTP web service query (could be long or short version)
+                par_group_idx, par_name = self._is_defined_parameter(param)
+                
+                # check if valid web service parameter
+                if par_group_idx is not None:
+                    
+                    # TODO(damb): Add a valid service parameter
+                    value = self._fix_param_value(param, value)
+
+                    self.__params[param] = value 
+                
+                else:
+                    raise httperrors.BadRequestError(
+                        settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                        datetime.datetime.utcnow())
+    
+    # __init__ ()
+
+    @property 
+    def params(self):
+        return self.__params
+
+
+    def add(self, param, value):
+        # NOTE(damb): overwrites existing params
+        self.__params[param] = value
+
+    # add ()
+
+    def _fix_param_value(self, param, value):
+        """Check format of parameter values and fix, if necessary."""
+        return parameters.fix_param_value(param, value)
+
+    # _fix_param_value ()
+
+    def _is_defined_parameter(self, param):
+        """Check if a given query parameter has a definition and return it. If
+        not found, return None."""
+        return parameters.parameter_description(param)
+
+    # _is_defined_parameter ()
+
+# class RequestParameterHandler
+
+# -----------------------------------------------------------------------------
+# NOTE(damb): fdnsws_fetch modularization makes request translation probably
+# obsolete.
 class GeneralRequestTranslator(object):
     """Translate query params to commandline params."""
 
+    LOGGER = 'federator.general_request_translator'
+
     def __init__(self, query_args):
+        self.logger = logging.getLogger(self.LOGGER)
         
         self.out_params = {}
         self.out_params[FDSNWSFETCH_QUERY_PARAM] = []
@@ -123,18 +248,23 @@ class GeneralRequestTranslator(object):
         
         # routing URL
         self.out_params[FDSNWSFETCH_ROUTING_PARAM] = get_routing_url(
-            current_app.config['ROUTING'])
+            current_app.config['ROUTING_SERVICE'])
         
+        self.logger.debug('Translating request parameters ...')
+
         # find params that have a direct mapping to fdsnws_fetch params
         for param, value in query_args.iteritems():
             if value is not None:
                 
+                print('p=%s, v=%s' % (param, value))    
                 # NOTE: param is the FDSN service parameter name from the HTTP 
                 # web service query (could be long or short version)
                 par_group_idx, par_name = parameters.parameter_description(
                     param)
                 
                 # check if valid web service parameter
+                # NOTE(damb): If there is a valid service parameter the
+                # par_group_idx v
                 if par_group_idx is not None:
                     
                     value = parameters.fix_param_value(param, value)
@@ -142,6 +272,8 @@ class GeneralRequestTranslator(object):
                     fdsnfetch_par = parameters.ALL_QUERY_PARAMS[par_group_idx]\
                         [par_name]['fdsn_fetch_par']
                     
+                    # NOTE(damb): Parameters either are added as a
+                    # fdsnfetch param or as a query param
                     if fdsnfetch_par:
                         self.add(fdsnfetch_par, value)
                     
@@ -220,14 +352,16 @@ def get_request_parser(request_params, request_parser=None):
 
 def process_request(args):
     """Call fdsnws_fetch with args, return path of result file."""
-    
+
+    # TODO(damb): Arguments must be passed as a dict!
     tempfile_path = args.getpar(FDSNWSFETCH_OUTFILE_PARAM)
     if tempfile_path is None:
         return None
-    
+
     # TODO(fab): capture log output
 
-    print args.serialize()
+    print('Serialized args: %s' % args.serialize())
+    print('Argument list: %s' % args.getlist())
     
     try:
         fdsnws_fetch.main(args.getlist())
@@ -237,6 +371,43 @@ def process_request(args):
     # get contents of temp file
     if os.path.isfile(tempfile_path):
         return tempfile_path
+    else:
+        return None
+
+
+# TODO(damb): Use parameters from CLI!
+def process_new_request(query_params, path_tempfile=None,
+        timeout=settings.DEFAULT_ROUTING_TIMEOUT,
+        retries=settings.DEFAULT_ROUTING_RETRIES,
+        retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
+        threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
+        verbose=False):
+    """process a 'new' request"""
+
+    if path_tempfile is None:
+        return None
+
+    # TODO(fab): capture log output
+
+    try:
+        cred = {}
+        authdata = None
+        postdata = None
+
+        url = route.RoutingURL(urlparse.urlparse(get_routing_url(
+                    current_app.config['ROUTING_SERVICE'])),
+                query_params)
+        dest = open(path_tempfile, 'wb')
+
+        route.route(url, query_params, cred, authdata, postdata, dest, timeout,
+              retries, retry_wait, threads, verbose)
+
+    except Exception:
+        return None
+    
+    # get contents of temp file
+    if os.path.isfile(path_tempfile):
+        return path_tempfile
     else:
         return None
 

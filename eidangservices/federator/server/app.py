@@ -85,8 +85,13 @@ def main(args):
     api.init_app(app)
     
     app.config.update(
-        ROUTING=args.routing,
+        # TODO(damb): Pass log_level to app.config!
+        NUM_THREADS=args.threads,
         PORT=args.port,
+        ROUTING_SERVICE=args.routing,
+        ROUTING_TIMEOUT=args.timeout,
+        ROUTING_RETRIES=args.retries,
+        ROUTING_RETRY_WAIT=args.retry_wait,
         TMPDIR=args.tmpdir
     )
     
