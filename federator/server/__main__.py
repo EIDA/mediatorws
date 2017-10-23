@@ -92,9 +92,7 @@ def main():
         except Exception as err:
             print('WARNING: Setup logging failed for "%s" with "%s".' % 
                     (args.path_logging_conf, err))
-    start_app(
-        debug=args.debug, port=args.port, routing=args.routing, 
-        tmpdir=args.tmpdir)
+    start_app(args)
 
 # main ()
 

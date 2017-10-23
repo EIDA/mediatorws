@@ -25,9 +25,11 @@ from eidangservices.federator.server.routes.station import StationResource
 
 
     
-def main(
-    debug=False, port=5000, routing=settings.DEFAULT_ROUTING_SERVICE,
-    tmpdir=''):
+def main(args):
+    #debug=False, port=5000, routing=settings.DEFAULT_ROUTING_SERVICE,
+    #tmpdir=''):
+    #    debug=args.debug, port=args.port, routing=args.routing, 
+    #    tmpdir=args.tmpdir)
     """Run Flask app."""
 
     errors = {
@@ -37,8 +39,8 @@ def main(
         },
     }
     
-    if tmpdir:
-        tempfile.tempdir = tmpdir
+    if args.tmpdir:
+        tempfile.tempdir = args.tmpdir
     
     app = Flask(__name__)
     
@@ -83,12 +85,12 @@ def main(
     api.init_app(app)
     
     app.config.update(
-        ROUTING=routing,
-        PORT=port,
-        TMPDIR=tmpdir
+        ROUTING=args.routing,
+        PORT=args.port,
+        TMPDIR=args.tmpdir
     )
     
-    app.run(threaded=True, debug=debug, port=port)
+    app.run(threaded=True, debug=args.debug, port=args.port)
 
 
 if __name__ == '__main__':
