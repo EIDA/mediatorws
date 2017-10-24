@@ -13,8 +13,8 @@ import os
 from future.utils import iteritems
 
 import flask
-from flask import current_app
-from flask_restful import abort, reqparse, request, Resource
+from flask import current_app, request
+from flask_restful import abort, reqparse, Resource
 
 from federator import settings
 from federator.server import httperrors, parameters, route
@@ -53,17 +53,17 @@ class GeneralResource(Resource):
     def path_tempfile(self):
         return self.__path_tempfile
 
-    def _process_post_args(self, fetch_args):
-        """Process POST parameters of a request."""
+    def _preprocess_post_request(self, request_handler):
+        """Preprocess POST parameters of a request.
+       
+        When parsing the POST request data param=value pairs are removed and
+        considered as query parameters i.e. added to the args dict.
+        """
         
         # make temp file for POST pars (-p)
         temp_postfile = misc.get_temp_filepath()
         
-        # fill in POST file parameter for fetch
-        fetch_args.add(FDSNWSFETCH_POSTFILE_PARAM, temp_postfile)
-        
-        # print request.data
-
+        #self.logger.debug('Request data (POST): %s' % request.data)
         # remove name=value pairs from original POST request and convert them
         # to fdsnws_fetch parameters
         cleaned_post = ''
@@ -81,14 +81,83 @@ class GeneralResource(Resource):
             if len(check_param) == 2:
                 
                 # add query params
+                self.logger.debug('Adding query parameter: %s' % check_param)
+                request_handler.add(check_param[0].strip(), 
+                        check_param[1].strip())
+
+            elif len(check_param) == 1:
+                
+                # copy line (automatically append)
+                cleaned_post = "%s%s\n" % (cleaned_post, line)
+                self.logger.debug('Adding POST content: "%s"' % line)
+            
+            else:
+                self.logger.warn("Ignoring illegal POST line: %s" % line)
+                continue
+
+        # check that POST request is not empty
+        if len(cleaned_post) == 0:
+            self.logger.warn("Empty POST request")
+            raise httperrors.BadRequestError(
+                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                datetime.datetime.utcnow())
+
+        
+        self.logger.debug(
+            'Writing cleaned POST content to temporary post file ...')
+        with open(temp_postfile, 'w') as fout:
+            fout.write(cleaned_post)
+            
+        return temp_postfile, request_handler
+
+    # def _preprocess_post_request
+
+
+    # _process_post_args
+    def _process_post_args(self, fetch_args):
+        """Process POST parameters of a request.
+       
+        When parsing the POST request data param=value pairs are removed and
+        considered as query parameters.
+        """
+        
+        # make temp file for POST pars (-p)
+        temp_postfile = misc.get_temp_filepath()
+        
+        # fill in POST file parameter for fetch
+        fetch_args.add(FDSNWSFETCH_POSTFILE_PARAM, temp_postfile)
+        
+        # print request.data
+        self.logger.debug('Request data (POST): %s' % request.data)
+
+        # remove name=value pairs from original POST request and convert them
+        # to fdsnws_fetch parameters
+        cleaned_post = ''
+        req_lines = request.data.split('\n')
+            
+        for line in req_lines:
+            
+            self.logger.debug('Line: %s' % line)
+            # skip empty lines
+            if not line:
+                continue
+            
+            # check for name=value params
+            check_param = line.split(FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
+            
+            if len(check_param) == 2:
+                
+                # add query params
                 query_par = "%s=%s" % (
                     check_param[0].strip(), check_param[1].strip())
+                self.logger.debug('Adding query parameter: %s' % query_par)
                 fetch_args.add(FDSNWSFETCH_QUERY_PARAM, query_par)
             
             elif len(check_param) == 1:
                 
-                # copy line
+                # copy line (automatically append)
                 cleaned_post = "%s%s\n" % (cleaned_post, line)
+                self.logger.debug('cleaned_post(2): %s' % cleaned_post)
             
             else:
                 print "ignore illegal POST line: %s" % line
@@ -101,10 +170,16 @@ class GeneralResource(Resource):
                 settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
                 datetime.datetime.utcnow())
 
+        self.logger.debug('Cleaned POST: %s' % cleaned_post)
+        self.logger.debug('Fetch args (serialized): %s' % 
+                fetch_args.serialize())
+
         with open(temp_postfile, 'w') as fout:
             fout.write(cleaned_post)
             
         return temp_postfile, fetch_args
+
+    # _process_post_args
 
 
     def _process_request(self, fetch_args, mimetype, postfile=''):
@@ -119,7 +194,6 @@ class GeneralResource(Resource):
             os.unlink(postfile)
 
         if resource_path is None or os.path.getsize(resource_path) == 0:
-            
             # TODO(fab): get user-supplied error code
             raise httperrors.NoDataError()
             
@@ -134,19 +208,28 @@ class GeneralResource(Resource):
                 pass
 
     def _process_new_request(self, args, mimetype, path_tempfile, 
-            postfile=''):
+            path_postfile=None):
         """Process a new request and send resulting file to client."""
         
+        self.logger.debug(("Processing request: args={0}, path_temfile={1}, "
+                + "path_postfile={2}, timout={3}, retries={4}, "
+                + "retry_wait={5}, threads={6}").format(args, path_tempfile,
+                    path_postfile, current_app.config['ROUTING_TIMEOUT'], 
+                    current_app.config['ROUTING_RETRIES'],
+                    current_app.config['ROUTING_RETRY_WAIT'], 
+                    current_app.config['NUM_THREADS']))
+
         resource_path = process_new_request(args, 
                 path_tempfile=path_tempfile,
+                path_postfile=path_postfile,
                 timeout=current_app.config['ROUTING_TIMEOUT'],
                 retries=current_app.config['ROUTING_RETRIES'],
                 retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
                 threads=current_app.config['NUM_THREADS'])
 
         # remove POST temp file
-        if postfile and os.path.isfile(postfile):
-            os.unlink(postfile)
+        if path_postfile and os.path.isfile(path_postfile):
+            os.unlink(path_postfile)
 
         if resource_path is None or os.path.getsize(resource_path) == 0:
             # TODO(fab): get user-supplied error code
@@ -369,7 +452,9 @@ def process_request(args):
         return None
 
 
-def process_new_request(query_params, path_tempfile=None,
+def process_new_request(query_params, 
+        path_tempfile=None,
+        path_postfile=None,
         timeout=settings.DEFAULT_ROUTING_TIMEOUT,
         retries=settings.DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
@@ -387,6 +472,10 @@ def process_new_request(query_params, path_tempfile=None,
         cred = {}
         authdata = None
         postdata = None
+
+        if path_postfile:
+            with open(path_postfile) as fd:
+                postdata = fd.read()
 
         url = route.RoutingURL(urlparse.urlparse(get_routing_url(
                     current_app.config['ROUTING_SERVICE'])),
