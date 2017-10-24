@@ -57,8 +57,7 @@ class StationResource(general_request.GeneralResource):
         args = StationRequestHandler(args).params
         self.logger.debug("Request query parameters: %s." % args)
 
-        # TODO(damb): Migrate function identifier to self._process_request
-        return self._process_new_request(
+        return self._process_request(
             args, self._get_result_mimetype(args), 
             path_tempfile=self.path_tempfile)
 
@@ -80,8 +79,7 @@ class StationResource(general_request.GeneralResource):
         args = request_handler.params
         self.logger.debug("Request query parameters: %s." % args)
 
-        # TODO(damb): Migrate function identifier to self._process_request
-        return self._process_new_request(
+        return self._process_request(
             args, self._get_result_mimetype(args), 
             path_tempfile=self.path_tempfile, path_postfile=temp_postfile)
 

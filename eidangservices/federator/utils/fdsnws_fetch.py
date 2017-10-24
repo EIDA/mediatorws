@@ -77,6 +77,9 @@ import socket
 import csv
 import re
 import struct
+import sys
+import threading
+import time
 
 try:
     # Python 3.2 and earlier
