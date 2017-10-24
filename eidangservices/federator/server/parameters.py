@@ -11,108 +11,84 @@ import re
 GENERAL_PARAMS = {
     'starttime': {
         'aliases': ('starttime', 'start'),
-        'type': str,
-        'fdsn_fetch_par': '-s'},
+        'type': str},
     'endtime': {
         'aliases': ('endtime', 'end'),
-        'type': str,
-        'fdsn_fetch_par': '-e'},
+        'type': str},
     'network': {
         'aliases': ('network', 'net'),
-        'type': str,
-        'fdsn_fetch_par': '-N'},
+        'type': str},
     'station': {
         'aliases': ('station', 'sta'),
-        'type': str,
-        'fdsn_fetch_par': '-S'},
+        'type': str},
     'location': {
         'aliases': ('location', 'loc'),
-        'type': str,
-        'fdsn_fetch_par': '-L'},
+        'type': str},
     'channel': {
         'aliases': ('channel', 'cha'),
-        'type': str,
-        'fdsn_fetch_par': '-C'},
+        'type': str},
     'format': {
         'aliases': ('format',),
-        'type': str,
-        'fdsn_fetch_par': ''},
+        'type': str},
     'nodata': {
         'aliases': ('nodata',),
-        'type': int,
-        'fdsn_fetch_par': ''}
+        'type': int}
 }
 
 
 DATASELECT_PARAMS = {
     'quality': {
         'aliases': ('quality',),
-        'type': str,
-        'fdsn_fetch_par': ''},
+        'type': str},
     'minimumlength': {
         'aliases': ('minimumlength',),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'longestonly': {
         'aliases': ('longestonly',),
-        'type': bool,
-        'fdsn_fetch_par': ''}
+        'type': bool},
 }
 
 
 STATION_PARAMS = {
     'minlatitude': {
         'aliases': ('minlatitude', 'minlat'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'maxlatitude': {
         'aliases': ('maxlatitude', 'maxlat'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'minlongitude': {
         'aliases': ('minlongitude', 'minlon'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'maxlongitude': {
         'aliases': ('maxlongitude', 'maxlon'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'latitude': {
         'aliases': ('latitude', 'lat'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'longitude': {
         'aliases': ('longitude', 'lon'),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'minradius': {
         'aliases': ('minradius',),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'maxradius': {
         'aliases': ('maxradius',),
-        'type': float,
-        'fdsn_fetch_par': ''},
+        'type': float},
     'level': {
         'aliases': ('level',),
-        'type': str,
-        'fdsn_fetch_par': ''},
+        'type': str},
     'includerestricted': {
         'aliases': ('includerestricted',),
-        'type': bool,
-        'fdsn_fetch_par': ''},
+        'type': bool},
     'includeavailability': {
         'aliases': ('includeavailability',),
-        'type': bool,
-        'fdsn_fetch_par': ''},
+        'type': bool},
     'updatedafter': {
         'aliases': ('updatedafter',),
-        'type': str,
-        'fdsn_fetch_par': ''},
+        'type': str},
     'matchtimeseries': {
         'aliases': ('matchtimeseries',),
-        'type': bool,
-        'fdsn_fetch_par': ''}
+        'type': bool},
 }
 
 
