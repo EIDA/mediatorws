@@ -13,7 +13,7 @@ from flask import Flask
 from flask_restful import Api
 
 
-from federator import settings
+#from federator import settings
 
 from federator.server.routes.dataselect import DataselectResource
 from federator.server.routes.misc import \
@@ -21,6 +21,7 @@ from federator.server.routes.misc import \
     StationWadlResource
 from federator.server.routes.station import StationResource
 
+from mediator import settings
 
     
 def main(

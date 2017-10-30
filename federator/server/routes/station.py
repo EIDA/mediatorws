@@ -10,10 +10,11 @@ import os
 import flask
 from flask_restful import abort, reqparse, request, Resource
 
-from federator import settings
+#from federator import settings
 from federator.server import general_request, httperrors, parameters
-from federator.utils import misc                                      
+from federator.utils import misc     
 
+from mediator import settings
 
 
 class StationRequestTranslator(general_request.GeneralRequestTranslator):

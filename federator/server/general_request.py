@@ -13,9 +13,10 @@ import flask
 from flask import current_app
 from flask_restful import abort, reqparse, request, Resource
 
-from federator import settings
 from federator.server import httperrors, parameters
 from federator.utils import fdsnws_fetch, misc
+
+from mediator import settings
 
 
 FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
