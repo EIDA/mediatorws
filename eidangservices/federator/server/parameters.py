@@ -91,7 +91,6 @@ STATION_PARAMS = {
         'type': bool},
 }
 
-
 ALL_QUERY_PARAMS = (GENERAL_PARAMS, DATASELECT_PARAMS, STATION_PARAMS)
 
 TIMESTAMP_PARAMS = ('starttime', 'start', 'endtime', 'end')

@@ -6,6 +6,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 import datetime
 import logging
+# FIXME(damb): Check if 'import os' needed!
 import os
 
 import flask

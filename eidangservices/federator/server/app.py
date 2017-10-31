@@ -12,24 +12,23 @@ import tempfile
 from flask import Flask
 from flask_restful import Api
 
-from eidangservices import settings
 
-from eidangservices.federator.server.routes.dataselect import \
-    DataselectResource
+from federator import settings
 
-from eidangservices.federator.server.routes.misc import \
-    DataselectVersionResource, StationVersionResource, DataselectWadlResource,\
-    StationWadlResource
+from federator.server.routes.dataselect import DataselectResource
+from federator.server.routes.misc import \
+    DataselectVersionResource, StationVersionResource, \
+    WFCatalogVersionResource, DataselectWadlResource,\
+    StationWadlResource, WFCatalogWadlResource 
+from federator.server.routes.station import StationResource
+from federator.server.routes.wfcatalog import WFCatalogResource 
 
-from eidangservices.federator.server.routes.station import StationResource
+
+    
 
 
     
 def main(args):
-    #debug=False, port=5000, routing=settings.DEFAULT_ROUTING_SERVICE,
-    #tmpdir=''):
-    #    debug=args.debug, port=args.port, routing=args.routing, 
-    #    tmpdir=args.tmpdir)
     """Run Flask app."""
 
     errors = {
@@ -82,6 +81,24 @@ def main(args):
         DataselectWadlResource, "%s%s" % (settings.FDSN_DATASELECT_PATH, 
             settings.FDSN_WADL_METHOD_TOKEN))
         
+    ## wfcatalog service endpoint
+
+    # TODO(damb): add query method
+    api.add_resource(
+        WFCatalogResource, "%s%s" % (settings.FDSN_WFCATALOG_PATH, 
+            settings.FDSN_QUERY_METHOD_TOKEN))
+
+    # version method
+    api.add_resource(
+        WFCatalogVersionResource, "%s%s" % (settings.FDSN_WFCATALOG_PATH, 
+            settings.FDSN_VERSION_METHOD_TOKEN))
+        
+    # application.wadl method
+    api.add_resource(
+        WFCatalogWadlResource, "%s%s" % (settings.FDSN_WFCATALOG_PATH, 
+            settings.FDSN_WADL_METHOD_TOKEN))
+
+
     api.init_app(app)
     
     app.config.update(

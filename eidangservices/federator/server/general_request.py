@@ -113,7 +113,7 @@ class GeneralResource(Resource):
             path_postfile=None):
         """Process a request and send resulting file to client."""
         
-        self.logger.debug(("Processing request: args={0}, path_temfile={1}, "
+        self.logger.debug(("Processing request: args={0}, path_tempfile={1}, "
                 + "path_postfile={2}, timout={3}, retries={4}, "
                 + "retry_wait={5}, threads={6}").format(args, path_tempfile,
                     path_postfile, current_app.config['ROUTING_TIMEOUT'], 
@@ -238,7 +238,7 @@ def process_request(query_params,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
         threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
         # TODO(damb): Either use a logger or pass the log_level.
-        verbose=False):
+        verbose=True):
     """Route a 'new' request."""
 
     if path_tempfile is None:

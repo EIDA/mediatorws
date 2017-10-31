@@ -206,9 +206,11 @@ SERVER_NAME = 'EIDA Federator (alpha)'
 VERSION = '0.9.1'
 SHARE_DIR = 'share'
 
+FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
 
 FDSN_STATION_PATH = '/fdsnws/station/1/'
 FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
+FDSN_WFCATALOG_PATH = '/fdsnws/wfcatalog/1/'
 FDSN_EVENT_PATH = '/fdsnws/event/1/'
 
 EIDA_ROUTING_PATH = '/eidaws/routing/1/'
@@ -220,14 +222,18 @@ FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
+FDSN_WFCATALOG_VERSION = '1.0.0'
+
 
 FDSN_WADL_DIR = SHARE_DIR
 FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
 FDSN_STATION_WADL_FILENAME = 'station.wadl'
+FDSN_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
 
 DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
 STATION_MIMETYPE_XML = 'application/xml'
 STATION_MIMETYPE_TEXT = 'text/plain'
+WFCATALOG_MIMETYPE = 'application/json'
 VERSION_MIMETYPE = 'text/plain'
 WADL_MIMETYPE = 'application/xml'
 

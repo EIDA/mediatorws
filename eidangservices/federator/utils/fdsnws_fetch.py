@@ -717,6 +717,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
 
         i = 0
         n = len(postlines)
+        print('postlines: %s' % postlines)
 
         while i < len(postlines):
             if n == len(postlines):
@@ -894,7 +895,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                                     break
                                 
                                 # skip header lines that start with '#'
-                                # Note: first header line is inserted in
+                                # NOTE: first header line is inserted in
                                 # TextCombiner class
                                 if buf.startswith('#'):
                                     continue
@@ -956,7 +957,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
 
 
 def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
-          retry_wait, maxthreads, verbose):
+          retry_wait, maxthreads, verbose=True):
     threads = []
     running = 0
     finished = Queue.Queue()

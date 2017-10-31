@@ -33,6 +33,16 @@ class StationVersionResource(Resource):
         return get_version_response(settings.FDSN_STATION_VERSION)
 
 
+class WFCatalogVersionResource(Resource):
+    """Service version for wfcatalog."""
+    
+    def get(self):
+        return get_version_response(settings.FDSN_WFCATALOG_VERSION)
+
+    def post(self): 
+        return get_version_response(settings.FDSN_WFCATALOG_VERSION)
+
+
 class DataselectWadlResource(Resource):
     """application.wadl for dataselect."""
     
@@ -65,6 +75,22 @@ class StationWadlResource(Resource):
             mimetype=settings.WADL_MIMETYPE)
             
 
+class WFCatalogWadlResource(Resource):
+    """application.wadl for wfcatalog."""
+    
+    def get(self):
+        return flask.send_file(
+            os.path.join(settings.APP_SHARE, 
+                settings.FDSN_WFCATALOG_WADL_FILENAME), 
+            mimetype=settings.WADL_MIMETYPE)
+
+    def post(self): 
+        return flask.send_file(
+            os.path.join(settings.APP_SHARE, 
+                settings.FDSN_WFCATALOG_WADL_FILENAME), 
+            mimetype=settings.WADL_MIMETYPE)
+
+# -----------------------------------------------------------------------------
 def get_version_response(version_string):
     """Return Response object for version string with correct mimetype."""
     
