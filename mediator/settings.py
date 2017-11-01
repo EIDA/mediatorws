@@ -15,7 +15,7 @@ import os
 # (last accessed 2017-08-17)
 EIDA_NODES = {
     'gfz': {
-        'name': 'GFZ',
+        'name': 'Deutsches GeoForschungsZentrum Potsdam',
         'services': {
             'arclink': {
                 'server': 'eida.gfz-potsdam.de',
@@ -105,7 +105,7 @@ EIDA_NODES = {
         },
         
     'resif': {
-        'name': 'RESIF',
+        'name': u'Réseau sismologique & géodésique français',
         'services': {
             'arclink': {
                 'server': 'eida.resif.fr',
@@ -221,7 +221,7 @@ EIDA_NODES = {
         },
         
     'ipgp': {
-        'name': 'IPGP Data Center',
+        'name': 'INSTITUT DE PHYSIQUE DU GLOBE DE PARIS Data Center',
         'services': {
             'arclink': {
                 'server': 'eida.ipgp.fr',
@@ -250,7 +250,7 @@ EIDA_NODES = {
         },
         
     'niep': {
-        'name': 'NIEP',
+        'name': 'National Institute for Earth Physics Romania',
         'services': {
             'arclink': {
                 'server': 'eida-sc3.infp.ro',
@@ -338,6 +338,97 @@ EIDA_NODES = {
     }
 
 
+OTHER_SERVERS = {
+    'iris': {
+        'name': 'IRIS Data Management Center',
+        'services': {
+            
+            # is there an IRIS arclink server?
+            'fdsn': {
+                'server': 'http://service.iris.edu',
+                'station': True,
+                'dataselect': True,
+                'event': True}
+            },
+        
+        # HHZ, HH1, HH2 (100 sps) ??
+        'testquerysncls': {
+            'network': 'IU',
+            'station': 'ULN',
+            'location': '10',
+            'channel': 'BH?',
+            'startdate': '2013-10-01T00:00:00'}
+    },
+    
+    # service.ncedc.org
+    'ncedc': {
+        'name': 'Northern California Earthquake Data Center',
+        'services': {
+            
+            'fdsn': {
+                'server': 'http://service.ncedc.org',
+                'station': True,
+                'dataselect': True,
+                'event': True}
+            },
+        
+        # ????
+        'testquerysncls': {
+            'network': 'BK',
+            'station': 'VAK',
+            'location': '00',
+            'channel': 'BH?',
+            'startdate': '2010-09-01T00:00:00'}
+    },
+    
+    # scedc.caltech.edu/
+    # disabled, because it seems to have strict surge protection, and does not
+    # provide POST
+    #'scedc': {
+        #'name': 'SCEDC',
+        #'services': {
+            
+            #'fdsn': {
+                #'server': 'http://service.scedc.caltech.edu',
+                #'station': True,
+                #'dataselect': True,
+                #'event': True}
+            #},
+        
+        #'testquerysncls': {
+            #'network': 'CI',
+            #'station': 'CJM',
+            #'location': '--',
+            #'channel': 'HH?',
+            #'startdate': '2011-11-01T00:00:00'}
+    #},
+
+        
+    # www.moho.iag.usp.br
+    'usp': {
+        'name': u'Centro de Sismologia da Universidade de São Paulo',
+        'services': {
+            'arclink': {
+                'server': 'seisrequest.iag.usp.br',
+                'port': 18001},
+            
+            'fdsn': {
+                'server': 'http://seisrequest.iag.usp.br',
+                'station': True,
+                'dataselect': True,
+                'event': False}
+            },
+        
+        'testquerysncls': {
+            'network': 'BR',
+            'station': 'SALV',
+            'location': '--',
+            'channel': 'HH?',
+            'startdate': '2012-06-01T00:00:00'}
+    }   
+}
+
+
 FDSN_EVENT_SERVICES = {
     'eth': {
         'server': 'http://arclink.ethz.ch'},
@@ -360,10 +451,11 @@ FDSN_EVENT_SERVICES = {
 DEFAULT_ROUTING_SERVICE = 'gfz'
 DEFAULT_EVENT_SERVICE = 'usgs'
 
-SERVER_NAME = 'EIDA Mediator (alpha)'
+SERVER_NAME_MEDIATOR = 'EIDA Mediator (alpha)'
+SERVER_NAME_FEDERATOR = 'EIDA Federator (alpha)'
+
 VERSION = '0.9.1'
 SHARE_DIR = 'share'
-
 
 FDSN_STATION_PATH = '/fdsnws/station/1/'
 FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
@@ -386,6 +478,12 @@ EIDA_FEDERATOR_BASE_URL = 'http://mediator-devel.ethz.ch'
 EIDA_FEDERATOR_PORT = 80
 
 EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
+
+IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'
+IRIS_FDSNWS_PORT = 80
+
+IRIS_FDSNWS_SERVICES = ('dataselect', 'station')
+
 
 # -----------
 
