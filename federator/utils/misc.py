@@ -66,13 +66,11 @@ class FDSNWSParser(FlaskParser):
     def parse_form(self, req, name, field):
 
         buf = req.stream.read()
-        if buf:
+        if buf or req.stream.tell() == 0:
             FDSNWSParser.STREAM_BUFFER = buf
 
-        print(FDSNWSParser.STREAM_BUFFER)
         # convert buffer into list
         req_buffer = FDSNWSParser.STREAM_BUFFER.split("\n")
-        print(req_buffer)
 
         param_dict = {}
         sncls = []
