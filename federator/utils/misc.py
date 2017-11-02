@@ -61,16 +61,14 @@ class CustomParser(argparse.ArgumentParser):
 
 class FDSNWSParser(FlaskParser):
 
-    STREAM_BUFFER = ''
-
     def parse_form(self, req, name, field):
 
         buf = req.stream.read()
         if buf or req.stream.tell() == 0:
-            FDSNWSParser.STREAM_BUFFER = buf
+            req.data = buf
 
         # convert buffer into list
-        req_buffer = FDSNWSParser.STREAM_BUFFER.split("\n")
+        req_buffer = req.data.split("\n")
 
         param_dict = {}
         sncls = []
