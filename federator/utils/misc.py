@@ -71,7 +71,12 @@ class FDSNWSParser(FlaskParser):
         req_buffer = req.data.split("\n")
 
         param_dict = {}
-        sncls = []
+        networks = []
+        stations = []
+        locations = []
+        channels = []
+        starttimes = []
+        endtimes = []
 
         for line in req_buffer:
             check_param = line.split(settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
@@ -81,35 +86,26 @@ class FDSNWSParser(FlaskParser):
                 param_dict[check_param[0].strip()] = check_param[1].strip()
                 #self.logger.debug('Query parameter: %s' % check_param)
             elif len(check_param) == 1:
+                # parse SNCL
                 sncl = line.split()
                 if len(sncl) == 6:
-                    sncls.append(line.strip())
+                    networks.append(sncl[0])
+                    stations.append(sncl[1])
+                    locations.append(sncl[2])
+                    channels.append(sncl[3])
+                    starttimes.append(sncl[4])
+                    endtimes.append(sncl[5])
             else:
                 #self.logger.warn("Ignoring illegal POST line: %s" % line)
                 continue
 
-            """
-            elif len(check_param) == 1:
-                # parse SNCL
-                sncl = line.split()
-                if len(sncl) == 6:
-                    sncl_dict = {}
-                    sncl_dict['network'] = sncl[0]
-                    sncl_dict['station'] = sncl[1]
-                    sncl_dict['location'] = sncl[2]
-                    sncl_dict['channel'] = sncl[3]
-                    sncl_dict['starttime'] = sncl[4]
-                    sncl_dict['endtime'] = sncl[5]
+            param_dict['network'] = networks
+            param_dict['station'] = stations
+            param_dict['location'] = locations
+            param_dict['channel'] = channels
+            param_dict['starttime'] = starttimes
+            param_dict['endtime'] = endtimes
 
-                    return core.get_value(sncl_dict, name, field)
-
-                else:
-                    # TODO(damb): raise an error
-                    pass 
-                    #self.logger.debug('Adding POST content: "%s"' % line)
-            """
-        if sncls:
-            param_dict['sncls'] = sncls
         return core.get_value(param_dict, name, field)
 
     # parse_form ()
@@ -160,3 +156,7 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
                 '%Y-%m-%dT%H:%M:%S')
 
 # from_fdsnws_datetime ()
+
+def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
+    return dt.isoformat(*args, **kwargs)
+
