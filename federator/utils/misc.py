@@ -158,5 +158,13 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
 # from_fdsnws_datetime ()
 
 def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
+    # ignores localtime parameter
     return dt.isoformat(*args, **kwargs)
 
+
+def convert_sncl_dict_to_lines(args):
+    """
+    convert a SNCL schema + a serialized TemporalSchema to SNCL FDSNWS
+    postfile lines
+    """
+    return [' '.join(sncl) for sncl in zip(*args.values())]

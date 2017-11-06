@@ -43,7 +43,6 @@ class WFCatalogResource(general_request.GeneralResource):
         # request.method == 'GET'
         _context = {'request': request}
         # sanity check - starttime and endtime must be specified
-        print(temporal_args)
         if not temporal_args or not all(len(temporal_args[t]) == 1 for t in
             ('starttime', 'endtime')):
             raise httperrors.BadRequestError(
@@ -80,7 +79,9 @@ class WFCatalogResource(general_request.GeneralResource):
     @misc.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
     def post(self, temporal_args, sncl_args, wfcatalog_args):
         # request.method == 'POST'
-        sncl_args.update(temporal_args)
+        # NOTE: must be sent as binary to preserve line breaks
+        # curl: --data-binary @postfile --header "Content-Type:text/plain"
+#        sncl_args.update(temporal_args)
         # TODO(damb): check if at least one SNCL is defined
 #        if (not sncl_args or 
 #            len(set(len(v) for k,v in sncl_args.iteritems())) <= 1):
@@ -102,8 +103,7 @@ class WFCatalogResource(general_request.GeneralResource):
 
         self.logger.debug('SNCL args: %s' % sncl_args)
         # merge SNCL parameters
-        sncls = zip(*sncl_args.values())
-        sncls = [' '.join(sncl) for sncl in sncls]
+        sncls = misc.convert_sncl_dict_to_lines(sncl_args)
         self.logger.debug('SNCLs: %s' % sncls)
 
         self.logger.debug('Writing SNCLs to temporary post file ...')
