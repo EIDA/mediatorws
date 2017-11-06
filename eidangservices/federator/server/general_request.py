@@ -42,13 +42,12 @@ class GeneralResource(Resource):
 
     def __init__(self):
         self.logger = logging.getLogger(self.LOGGER)
-        self.__path_tempfile = misc.get_temp_filepath() 
    
     # __init__ ()
 
     @property
     def path_tempfile(self):
-        return self.__path_tempfile
+        return misc.get_temp_filepath() 
 
     def _preprocess_post_request(self, request_handler):
         """Preprocess POST parameters of a request.
