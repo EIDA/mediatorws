@@ -18,10 +18,19 @@ from sqlalchemy import (
 
 from mediator import settings
 
+import eidangservices
+#import eidangservices.stationlite.server.app as flaskapp
+
 from eidangservices.stationlite.engine import db
+#from eidangservices.stationlite.server import app as flaskapp
+
+#from eidangservices.stationlite.server.app import db as flaskdb
 
 # TODO(fab): db file from command line
-engine = create_engine('sqlite:///{}'.format('eida_stationlite.db'))
+#engine = create_engine('sqlite:///{}'.format('eida_stationlite.db'))
+
+#the_connection = flaskapp.db.connect()
+the_connection = eidangservices.stationlite.server.app.db.connect()
 
 
 def find_snclepochs_and_routes_from_query(
@@ -44,8 +53,8 @@ def find_snclepochs_and_routes_from_query(
     
     # TODO(fab): correct query
     s = select(
-        [tn.c.name, ts.c.name, tc.c.locationcode, tc.c.code, tr.c.starttime, 
-         tr.c.endtime, te.c.url]).where(
+        [tn.c.nametn.c.name, ts.c.name, tc.c.locationcode, tc.c.code, 
+         tr.c.starttime, tr.c.endtime, te.c.url]).where(
             and_(
                 net == tn.c.name,
                 sta == ts.c.name,
@@ -82,3 +91,17 @@ def find_snclepochs_and_routes_from_query(
              'url': row[6]})
     
     return routes
+
+
+def find_networks():
+    
+    tn = tables['network']
+    
+    s = select([tn.c.name])
+    
+    rp = the_connection.execute(s)
+    r = rp.fetchall()
+    
+    return [x for x in r]
+
+    

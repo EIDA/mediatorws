@@ -27,7 +27,7 @@ def main():
 
     args = parser.parse_args()
 
-    start_app(debug=args.debug, port=args.port, db=args.db)
+    start_app(debug=args.debug, port=args.port, dbfile=args.db)
     
 
 if __name__ == "__main__":

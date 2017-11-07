@@ -19,9 +19,11 @@ class StationLiteResource(Resource):
     def get(self):
         
         #connection = dbquery.engine.connect()
+        #return misc.get_response('get', settings.GENERAL_TEXT_MIMETYPE)
         
-        return misc.get_response('get', settings.GENERAL_TEXT_MIMETYPE)
-        
+        net = dbquery.find_networks()
+        return misc.get_response(str(net), settings.GENERAL_TEXT_MIMETYPE)
+    
 
     def post(self): 
         return misc.get_response('post', settings.GENERAL_TEXT_MIMETYPE)
