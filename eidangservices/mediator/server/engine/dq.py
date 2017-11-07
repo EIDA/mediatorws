@@ -22,9 +22,10 @@ from intervaltree import Interval, IntervalTree
 
 import requests
 
-from mediator import settings
-from mediator.server import httperrors, parameters, sncl
-from mediator.utils import eventcatalog, misc
+from eidangservices import settings
+
+from eidangservices.mediator.server import httperrors, parameters, sncl
+from eidangservices.mediator.utils import eventcatalog, misc
 
 
 def process_dq(query_par, outfile):

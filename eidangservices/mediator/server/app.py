@@ -13,10 +13,10 @@ from flask import Flask
 from flask_restful import Api
 
 
-from mediator import settings
+from eidangservices import settings
 
-from mediator.server.routes.directquery import DQResource
-from mediator.server.routes.misc import VersionResource
+from eidangservices.mediator.server.routes.directquery import DQResource
+from eidangservices.mediator.server.routes.misc import VersionResource
 
 
     

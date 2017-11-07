@@ -10,7 +10,8 @@ there are no ambiguities.
 
 import requests
 
-from eidanodetest import settings
+from eidangservices import settings
+
 
 TEST_TIME_INTERVALS = {
     'small': {

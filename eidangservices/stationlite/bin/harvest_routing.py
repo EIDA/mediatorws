@@ -30,9 +30,9 @@ from sqlalchemy import create_engine
 
 from eidanodetest.thirdparty.singletony import Singlet
 
-from mediator import settings
-from mediator.utils import misc as mediator_misc
+from eidangservices import settings
 
+from eidangservices.mediator.utils import misc as mediator_misc
 from eidangservices.stationlite.engine import db
 
 

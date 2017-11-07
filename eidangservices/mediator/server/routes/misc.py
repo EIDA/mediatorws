@@ -13,7 +13,7 @@ import flask
 from flask import make_response
 from flask_restful import Resource
 
-from mediator import settings                                
+from eidangservices import settings                                
 
 
 class DQResource(Resource):

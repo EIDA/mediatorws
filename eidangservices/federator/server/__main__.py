@@ -9,7 +9,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 import argparse
 
-from federator.server.app import main as start_app
+from eidangservices.federator.server.app import main as start_app
 
 def main():
     

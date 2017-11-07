@@ -12,16 +12,17 @@ import tempfile
 from flask import Flask
 from flask_restful import Api
 
+from eidangservices import settings
 
-#from federator import settings
+from eidangservices.federator.server.routes.dataselect import \
+    DataselectResource
 
-from federator.server.routes.dataselect import DataselectResource
-from federator.server.routes.misc import \
+from eidangservices.federator.server.routes.misc import \
     DataselectVersionResource, StationVersionResource, DataselectWadlResource,\
     StationWadlResource
-from federator.server.routes.station import StationResource
 
-from mediator import settings
+from eidangservices.federator.server.routes.station import StationResource
+
 
     
 def main(

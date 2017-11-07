@@ -16,7 +16,7 @@ from operator import itemgetter
 
 import obspy
 
-from mediator.server import httperrors
+from eidangservices.mediator.server import httperrors
 
 
 # IDs from SC3 that do not validate against QuakeML 1.2_

@@ -16,8 +16,9 @@ from flask import current_app
 import requests
 import obspy
 
-from mediator import settings
-from mediator.server import httperrors, parameters
+from eidangservices import settings
+
+from eidangservices.mediator.server import httperrors, parameters
 
 
 DATETIME_TIMESTAMP_FORMAT_FOR_FILENAME_DATE = '%Y%m%d'

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 
-EIDA Mediator settings.
+EIDA next generation web services settings.
 
 This file is part of the EIDA mediator/federator webservices.
 

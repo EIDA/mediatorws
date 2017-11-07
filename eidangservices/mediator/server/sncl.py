@@ -21,9 +21,10 @@ from intervaltree import Interval, IntervalTree
 
 import requests
 
-from mediator import settings
-from mediator.server import parameters
-from mediator.utils import misc
+from eidangservices import settings
+
+from eidangservices.mediator.server import parameters
+from eidangservices.mediator.utils import misc
 
 
 class SNCL(object):

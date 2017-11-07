@@ -16,7 +16,7 @@ from sqlalchemy import (
     ForeignKey, create_engine, insert, select, update, and_, func)
 
 
-from mediator import settings
+from eidangservices import settings
 
 import eidangservices
 #import eidangservices.stationlite.server.app as flaskapp

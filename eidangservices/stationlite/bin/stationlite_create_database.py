@@ -12,7 +12,7 @@ from gflags import DEFINE_string
 from gflags import FLAGS
 
 
-from mediator import settings
+from eidangservices import settings
 from eidangservices.stationlite.engine import db
 
 

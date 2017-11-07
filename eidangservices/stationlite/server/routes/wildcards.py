@@ -6,7 +6,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 from flask_restful import Resource
 
-from mediator import settings
+from eidangservices import settings
 
 from eidangservices.stationlite.utils import misc
 

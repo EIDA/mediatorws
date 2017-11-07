@@ -9,8 +9,10 @@ This file is part of the EIDA mediator/federator webservices.
 
 from flask import current_app
 
-from mediator import settings
-from mediator.server import general_request, parameters, requestparser
+from eidangservices import settings
+
+from eidangservices.mediator.server import general_request, parameters, \
+    requestparser
   
     
 class DQRequestParser(requestparser.GeneralRequestParser):

@@ -8,7 +8,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 from werkzeug.exceptions import HTTPException
 
-from mediator import settings
+from eidangservices import settings
 
 # Error <CODE>: <SIMPLE ERROR DESCRIPTION>
 # <MORE DETAILED ERROR DESCRIPTION>

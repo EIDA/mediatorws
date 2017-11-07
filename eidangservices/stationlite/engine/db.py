@@ -17,7 +17,7 @@ from sqlalchemy import (
     ForeignKey, create_engine, insert, select, update, and_, func)
 
 
-from mediator import settings
+from eidangservices import settings
 
 
 STD_CODE_LENGTH = 32

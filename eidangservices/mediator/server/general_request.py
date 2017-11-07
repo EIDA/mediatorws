@@ -12,10 +12,11 @@ import os
 import flask
 from flask_restful import Resource
 
-from mediator import settings
-from mediator.server import httperrors, parameters
-from mediator.server.engine import dq
-from mediator.utils import misc
+from eidangservices import settings
+
+from eidangservices.mediator.server import httperrors, parameters
+from eidangservices.mediator.server.engine import dq
+from eidangservices.mediator.utils import misc
 
 
 QUERY_VALUE_SEPARATOR_CHAR = '='
