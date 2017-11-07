@@ -23,18 +23,27 @@ from federator.utils.misc import from_fdsnws_datetime, fdsnws_isoformat
 
 
 # TODO(damb): Improve error messages.
+# TODO(damb): Improve 'format' field implementation.
+
 validate_percentage = validate.Range(min=0, max=100)
-validate_bool = validate.OneOf(['true', 'false'])
+validate_latitude = validate.Range(min=-90., max=90)
+validate_longitude = validate.Range(min=-180., max=180.)
+validate_radius = validate.Range(min=0., max=180.)
+
 not_empty = validate.NoneOf([None, ''])
 
 def NotEmptyField(field_type, **kwargs):
     return functools.partial(field_type, validate=not_empty, **kwargs)
 
 Percentage = functools.partial(fields.Float, validate=validate_percentage)
-JsonBool = functools.partial(fields.Str, validate=validate_bool)
 NotEmptyString = NotEmptyField(fields.Str)
 NotEmptyInt = NotEmptyField(fields.Int, as_string=True)
 NotEmptyFloat = NotEmptyField(fields.Float, as_string=True)
+
+Degree = functools.partial(fields.Float, as_string=True)
+Latitude = functools.partial(Degree, validate=validate_latitude)
+Longitude = functools.partial(Degree, validate=validate_longitude)
+Radius = functools.partial(Degree, validate=validate_radius)
 
 # -----------------------------------------------------------------------------
 class JSONBool(fields.Bool):
@@ -189,6 +198,9 @@ class SNCLSchema(Schema):
         missing = ['*']
     )
 
+    # TODO(damb): Validator implementation on schema level. Check if at least
+    # one SNCL is defined for POST request context.
+
     class Meta:
         strict = True
         ordered = True
@@ -212,9 +224,6 @@ class ServiceOpts(SchemaOpts):
 class ServiceSchema(Schema):
     """
     Base class for webservice schema definitions.
-
-    To overwrite the default service parameter value simply overwrite the
-    set_service function.
     """
     OPTIONS_CLASS = ServiceOpts
 
@@ -238,6 +247,10 @@ class DataselectSchema(ServiceSchema):
     The parameters defined correspond to the definition
     (http://www.orfeus-eu.org/data/eida/webservices/dataselect/).
     """
+    format = fields.Str(
+            missing='miniseed',
+            validate=validate.OneOf(['miniseed'])
+        )
 
     class Meta:
         service = 'dataselect'
@@ -254,7 +267,55 @@ class StationSchema(ServiceSchema):
     (http://www.orfeus-eu.org/data/eida/webservices/station/).
     """
     
-    #TODO(damb): define parameters
+    format = fields.Str(
+            missing='xml',
+            validate=validate.OneOf(['xml', 'text'])
+        )
+
+    # temporal options
+    startbefore = FDSNWSDateTime(format='fdsnws')
+    startafter = FDSNWSDateTime(format='fdsnws')
+    endbefore = FDSNWSDateTime(format='fdsnws')
+    endafter = FDSNWSDateTime(format='fdsnws')
+
+    # geographic (rectangular spatial) options
+    minlatitude = Latitude(load_from='minlat')
+    maxlatitude = Latitude(load_from='maxlat')
+    minlongitude = Longitude(load_from='minlon')
+    maxlongitude = Longitude(load_from='maxlon')
+
+    # geographic (circular spatial) options
+    latitude = Latitude(load_from='lat')
+    longitude = Longitude(load_from='lon')
+    minradius = Radius()
+    maxradius = Radius()
+
+    # request options
+    level = fields.Str(
+            missing='station',
+            validate=validate.OneOf(
+                ['network', 'station', 'channel', 'response']
+            )
+        )
+    includerestricted = FDSNWSBool(missing=u'true')
+    includeavailability = FDSNWSBool(missing=u'false')
+    updateafter = FDSNWSDateTime(format='fdsnws')
+    matchtimeseries = FDSNWSBool(missing=u'false')
+
+
+    @validates_schema
+    def validate_spatial_params(self, data):
+        # NOTE(damb): Allow either rectangular or circular spatial parameters
+        rectangular_spatial = ('minlatitude', 'maxlatitude', 'minlongitude',
+                'maxlongitude')
+        circular_spatial = ('latitude', 'longitude', 'minradius', 'maxradius')
+
+        if (any(k in data for k in rectangular_spatial) and
+                any(k in data for k in circular_spatial)):
+            raise ValidationError(
+                'Bad Request: Both rectangular spatial and circular spatial' +
+                ' parameters defined.')
+
 
     class Meta:
         service = 'station'
@@ -273,17 +334,18 @@ class WFCatalogSchema(ServiceSchema):
     # TODO(damb): starttime and endtime are required for this schema; howto
     # implement a proper validator/ required=True
 
-    csegments = JsonBool(default='false', missing='false')
-    format = fields.Str(default='json', missing='json')
-    granularity = fields.Str(default='day', missing='day')
+    csegments = FDSNWSBool(missing=u'false')
+    format = fields.Str(
+            missing='json',
+            validate=validate.OneOf(['json'])
+        )
+    granularity = fields.Str(missing='day')
     include = fields.Str(
-        default='default',
         missing='default',
         validate=validate.OneOf(['default', 'sample', 'header', 'all'])
     )
-    #longestonly = JsonBool(default='false', missing='false')
     longestonly = FDSNWSBool(missing=u'false')
-    #minimumlength = fields.Float(default=0., missing=0.)
+    #minimumlength = fields.Float(missing=0.)
     minimumlength = NotEmptyFloat()
 
     # record options

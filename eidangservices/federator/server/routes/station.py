@@ -9,24 +9,12 @@ import logging
 # FIXME(damb): Check if 'import os' needed!
 import os
 
-import flask
 from flask import request
-from flask_restful import abort, reqparse, Resource
+from webargs.flaskparser import use_args
 
 from federator import settings
-from federator.server import general_request, httperrors, parameters
+from federator.server import general_request, schema, httperrors
 from federator.utils import misc                                      
-
-
-class StationRequestHandler(general_request.RequestParameterHandler):
-    """Handle request parameters for service=station"""
-        
-    def __init__(self, query_args):
-        super(StationRequestHandler, self).__init__(query_args)
-
-        self.add(general_request.FDSNWS_QUERY_SERVICE_PARAM, 'station')
-
-# class StationRequestHandler
 
 
 class StationResource(general_request.GeneralResource):
@@ -37,52 +25,78 @@ class StationResource(general_request.GeneralResource):
         super(StationResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    def get(self):
-        
+    @use_args(schema.TemporalSchema(
+        context={'request': request}), 
+        locations=('query',)
+    )
+    @use_args(schema.SNCLSchema(
+        context={'request': request}), 
+        locations=('query',)
+    )
+    @use_args(schema.StationSchema(), locations=('query',))
+    def get(self, temporal_args, sncl_args, station_args):
         # request.method == 'GET'
+        _context = {'request': request}
 
-        args = station_reqparser.parse_args()
-        self.logger.debug('StationResource (GET) args: %s' % args)
+        args = {}
+        # serialize objects
+        s = schema.TemporalSchema(context=_context)
+        args.update(s.dump(temporal_args).data)
+        self.logger.debug('TemporalSchema (serialized): %s' %
+                s.dump(temporal_args).data)
 
-        # sanity check against query with no params
-        arg_count = 0
-        for n, v in args.iteritems():
-            if v:
-                arg_count += 1 
-        
-        if arg_count == 0:
-            raise httperrors.BadRequestError(
-                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
-                datetime.datetime.utcnow())
-            
-        args = StationRequestHandler(args).params
-        self.logger.debug("Request query parameters: %s." % args)
+        s = schema.SNCLSchema(context=_context)
+        args.update(s.dump(sncl_args).data)
+        self.logger.debug('SNCLSchema (serialized): %s' % 
+                s.dump(sncl_args).data)
 
-        return self._process_request(
-            args, self._get_result_mimetype(args), 
+        s = schema.StationSchema(context=_context)
+        args.update(s.dump(station_args).data)
+        self.logger.debug('StationSchema (serialized): %s' % 
+                s.dump(station_args).data)
+
+        # process request
+        self.logger.debug('Request args: %s' % args)
+        return self._process_request(args, self._get_result_mimetype(args), 
             path_tempfile=self.path_tempfile)
 
     # get ()
 
-    def post(self):
-
+    @misc.use_fdsnws_args(schema.TemporalSchema(), locations=('form',))
+    @misc.use_fdsnws_args(schema.SNCLSchema(), locations=('form',)) 
+    @misc.use_fdsnws_args(schema.StationSchema(), locations=('form',))
+    def post(self, temporal_args, sncl_args, station_args):
         # request.method == 'POST'
-        # Note: must be sent as binary to preserve line breaks
-        # curl: --data-binary @postfile --header "Content-Type:text/plain"
-        args = station_reqparser.parse_args()
-        self.logger.debug('StationResource (POST) args: %s' % args)
 
-        request_handler = StationRequestHandler(args)
+        # TODO(damb): At least one SNCL must be defined -> Delegated to context
+        # dependent SNCLSchema validator
 
-        self.logger.debug('Preprocessing POST request data ...')
-        temp_postfile, request_handler = self._preprocess_post_request(
-                request_handler)
-        args = request_handler.params
-        self.logger.debug("Request query parameters: %s." % args)
+        # serialize objects
+        s = schema.WFCatalogSchema()
+        station_args = s.dump(station_args).data
+        self.logger.debug('WFCatalogSchema (serialized): %s' % station_args)
+        
+        self.logger.debug('Request args: %s' % station_args)
+        # serialize objects
+        s = schema.TemporalSchema()
+        self.logger.debug('TemporalSchema (serialized): %s' %
+                s.dump(temporal_args).data)
+        sncl_args.update(s.dump(temporal_args).data)
 
-        return self._process_request(
-            args, self._get_result_mimetype(args), 
-            path_tempfile=self.path_tempfile, path_postfile=temp_postfile)
+        self.logger.debug('SNCL args: %s' % sncl_args)
+        # merge SNCL parameters
+        sncls = misc.convert_sncl_dict_to_lines(sncl_args)
+        self.logger.debug('SNCLs: %s' % sncls)
+
+        self.logger.debug('Writing SNCLs to temporary post file ...')
+        temp_postfile = misc.get_temp_filepath()
+        with open(temp_postfile, 'w') as ofd:
+            ofd.write('\n'.join(sncls))
+
+        return self._process_request(station_args,
+                self._get_result_mimetype(args), 
+                path_tempfile=self.path_tempfile,
+                path_postfile=temp_postfile)
 
     # post ()
     
@@ -97,7 +111,3 @@ class StationResource(general_request.GeneralResource):
     # _get_result_mimetype () 
             
 # class StationResource
-        
-
-station_reqparser = general_request.get_request_parser(
-    parameters.STATION_PARAMS, general_request.general_reqparser)
