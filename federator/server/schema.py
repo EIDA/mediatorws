@@ -45,6 +45,13 @@ Latitude = functools.partial(Degree, validate=validate_latitude)
 Longitude = functools.partial(Degree, validate=validate_longitude)
 Radius = functools.partial(Degree, validate=validate_radius)
 
+NoData = functools.partial(
+        fields.Int,
+        as_string=True, 
+        missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+        validate=validate.OneOf([204, 404])
+    )
+
 # -----------------------------------------------------------------------------
 class JSONBool(fields.Bool):
     """
@@ -251,6 +258,7 @@ class DataselectSchema(ServiceSchema):
             missing='miniseed',
             validate=validate.OneOf(['miniseed'])
         )
+    nodata = NoData()
 
     class Meta:
         service = 'dataselect'
@@ -271,6 +279,7 @@ class StationSchema(ServiceSchema):
             missing='xml',
             validate=validate.OneOf(['xml', 'text'])
         )
+    nodata = NoData()
 
     # temporal options
     startbefore = FDSNWSDateTime(format='fdsnws')
