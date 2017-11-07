@@ -49,7 +49,14 @@ NoData = functools.partial(
         fields.Int,
         as_string=True, 
         missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
-        validate=validate.OneOf([204, 404])
+        validate=validate.OneOf([
+            settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+            404
+        ])
+    )
+Quality = functools.partial(
+        fields.Str,
+        validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B'])
     )
 
 # -----------------------------------------------------------------------------
@@ -260,6 +267,13 @@ class DataselectSchema(ServiceSchema):
         )
     nodata = NoData()
 
+    quality = Quality(missing='B')
+    minimumlength = fields.Float(
+            missing=0.,
+            validate=lambda n: 0. <= n
+        )
+    longestonly = FDSNWSBool(missing=u'false')
+
     class Meta:
         service = 'dataselect'
         strict = True
@@ -330,7 +344,7 @@ class StationSchema(ServiceSchema):
         service = 'station'
         strict = True
 
-# class DataselectSchema 
+# class StationSchema 
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -360,9 +374,7 @@ class WFCatalogSchema(ServiceSchema):
     # record options
     encoding = NotEmptyString()
     num_records = NotEmptyInt()
-    quality = fields.Str(
-        validate=validate.OneOf(['D', 'R', 'Q', 'M'])
-    )
+    quality = Quality()
     record_length = NotEmptyInt()
     #sample_rate = NotEmptyFloat()
     sample_rate = fields.Float(as_string=True)

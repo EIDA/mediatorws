@@ -50,7 +50,7 @@ class DataselectResource(general_request.GeneralResource):
         context={'request': request}), 
         locations=('form',)
     )
-    @use_args(schema.DataselectSchema())
+    @misc.use_fdsnws_args(schema.DataselectSchema())
     def post(self, sncl_args, args):
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
