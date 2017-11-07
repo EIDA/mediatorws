@@ -834,14 +834,36 @@ def get_parameter_description(group_idx, param_key):
     """Return parameter description with type, aliases, default value."""
     return ALL_MEDIATOR_QUERY_PARAMS[group_idx][param_key]
 
-  
+
+def get_parameter_type(query_param):
+    """Return type of query param."""
+    
+    group_idx, parkey = parameter_description(query_param)
+    
+    if group_idx is not None:
+        partype = get_parameter_description(group_idx, parkey)['type']
+    else:
+        partype = None
+    
+    return partype
+
+
 def fix_param_value(param, value):
     """Check format of parameter values and fix, if necessary."""
+    
+    partype = get_parameter_type(param)
     
     # add zero time part to date-only timestamp (required for routing service)
     if param.lower() in TIMESTAMP_PARAMS and is_timestamp_without_time(value):
         value += "T00:00:00"
         
+    # change bool values to strings 'true' or 'false'
+    if partype is bool:
+        if value:
+            value = 'true'
+        else:
+            value = 'false'
+    
     return value
 
 

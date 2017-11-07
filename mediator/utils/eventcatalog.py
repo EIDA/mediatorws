@@ -46,8 +46,8 @@ def get_obspy_catalog(cat_xml):
     try:
         cat = obspy.read_events(cat_xml)
     except Exception, e:
-        err_msg = "catalog read failed: %s" % e
-        raise httperrors.InternalServerError()
+        err_msg = "obspy catalog read failed: %s" % e
+        raise RuntimeError, err_msg
     
     return cat, replace_map
 
@@ -61,12 +61,11 @@ def restore_catalog_to_file(outfile, cat, replace_map):
     else:
         print "writing filtered event catalog, %s events" % (len(cat))
                 
-        outstream = io.BytesIO()
-        cat.write(outstream, format="QUAKEML")
+        with io.BytesIO() as bf:
+            cat.write(bf, format="QUAKEML")
                 
-        # replace sanitized publicIDs with original ones
-        restored_cat_xml = restore_catalog_public_ids(outstream, replace_map)
-        outstream.close()
+            # replace sanitized publicIDs with original ones
+            restored_cat_xml = restore_catalog_public_ids(bf, replace_map)
                 
         with open(outfile, 'wb') as fh:
             fh.write(restored_cat_xml)
@@ -120,3 +119,24 @@ def restore_catalog_public_ids(stream, replace_map):
         text = text.replace(repl, orig)
     
     return text
+
+
+def merge_catalogs(catalogs, replace_maps):
+    """
+    Merge a list of catalogs and replacement maps into one.
+    TODO(fab)
+    
+    """
+    if not catalogs:
+        return catalogs, replace_maps
+        
+    else:
+        cat = catalogs[0].copy()
+        replace_map = replace_maps[0]
+    
+        for idx in xrange(1, len(catalogs)):
+            cat += catalogs[idx]
+            replace_map.update(replace_maps[idx])
+    
+    return cat, replace_map
+

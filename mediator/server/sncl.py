@@ -12,7 +12,6 @@ import datetime
 import fnmatch
 import os
 import re
-import tempfile
 import uuid
 
 import flask
@@ -23,7 +22,7 @@ from intervaltree import Interval, IntervalTree
 import requests
 
 from mediator import settings
-from mediator.server import httperrors, parameters
+from mediator.server import parameters
 from mediator.utils import misc
 
 

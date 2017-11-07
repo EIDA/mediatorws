@@ -431,21 +431,29 @@ OTHER_SERVERS = {
 
 FDSN_EVENT_SERVICES = {
     'eth': {
-        'server': 'http://arclink.ethz.ch'},
+        'server': 'http://arclink.ethz.ch',
+        'arrivals': True},
     'ingv': {
-        'server': 'http://webservices.rm.ingv.it'},
+        'server': 'http://webservices.rm.ingv.it',
+        'arrivals': False},
     'niep': {
-        'server': 'http://eida-sc3.infp.ro'},
+        'server': 'http://eida-sc3.infp.ro',
+        'arrivals': True},
     'iris': {
-        'server': 'http://service.iris.edu'},
+        'server': 'http://service.iris.edu',
+        'arrivals': False},
     'usgs': {
-        'server': 'https://earthquake.usgs.gov'},
+        'server': 'https://earthquake.usgs.gov',
+        'arrivals': False},
     'ncedc': {
-        'server': 'http://service.ncedc.org'},
+        'server': 'http://service.ncedc.org',
+        'arrivals': True},
     'scedc': {
-        'server': 'http://service.scedc.caltech.edu'},
+        'server': 'http://service.scedc.caltech.edu',
+        'arrivals': True},
     'isc': {
-        'server': 'http://www.isc.ac.uk'}
+        'server': 'http://www.isc.ac.uk',
+        'arrivals': True}
 }
 
 DEFAULT_ROUTING_SERVICE = 'gfz'

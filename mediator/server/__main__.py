@@ -20,9 +20,11 @@ def main():
     # required=True
     parser.add_argument('--port', type=int, help='Server port')
     parser.add_argument(
-        '--routing', type=str, default='gfz', help='Routing service')
-    parser.add_argument(
         '--tmpdir', type=str, default='', help='Directory for temp files.')
+    
+    parser.add_argument(
+        '--federator', type=str, default='', help='Federator server URL.')
+    
     parser.add_argument(
         '--debug', action='store_true', default=False, 
         help="Run in debug mode.")
@@ -30,8 +32,8 @@ def main():
     args = parser.parse_args()
 
     start_app(
-        debug=args.debug, port=args.port, routing=args.routing, 
-        tmpdir=args.tmpdir)
+        debug=args.debug, port=args.port, tmpdir=args.tmpdir, 
+        federator=args.federator)
     
 
 if __name__ == "__main__":

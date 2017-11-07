@@ -59,7 +59,8 @@ def process_request(args):
         dq.process_dq(args, tempfile_path)
         
     except Exception, e:
-        raise RuntimeError, "there was an exception: %s" % e
+        print "process_request() exception: %s" % e 
+        return None
 
     # get contents of temp file
     if os.path.isfile(tempfile_path):

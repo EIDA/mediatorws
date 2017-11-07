@@ -11,12 +11,18 @@ import io
 import os
 import tempfile
 
-import requests
+from flask import current_app
 
+import requests
 import obspy
 
 from mediator import settings
 from mediator.server import httperrors, parameters
+
+
+DATETIME_TIMESTAMP_FORMAT_FOR_FILENAME_DATE = '%Y%m%d'
+DATETIME_TIMESTAMP_FORMAT_FOR_FILENAME_SECOND = '%Y%m%d-%H%M%S'
+DATETIME_TIMESTAMP_FORMAT_FOR_FILENAME_MICROSECOND = '%Y%m%d-%H%M%S-%f'
 
 
 def write_response_string_to_file(outfile, data_str):
@@ -135,6 +141,7 @@ def get_post_payload(query_par, snclepochs, addpar={}, service=''):
     postdata += snclepochs.tofdsnpost()
     
     if not postdata:
+        # TODO(fab): do not raise from here
         raise httperrors.NoDataError()
     
     return postdata
@@ -147,12 +154,21 @@ def get_federator_endpoint(fdsn_service='dataselect'):
     
     """
     
+    # service: station or dataselect
     if not fdsn_service in settings.EIDA_FEDERATOR_SERVICES:
         raise NotImplementedError, "service %s not implemented" % fdsn_service
+    
+    if current_app.config['FEDERATOR']:
+        if current_app.config['FEDERATOR'].startswith('http://'):
+            federator_server = current_app.config['FEDERATOR']
+        else:
+            federator_server = "http://{}".format(
+                current_app.config['FEDERATOR'])
+    else:
+        federator_server = "{}:{}".format(
+            settings.EIDA_FEDERATOR_BASE_URL, settings.EIDA_FEDERATOR_PORT)
         
-    return "%s:%s/fdsnws/%s/1/" % (
-        settings.EIDA_FEDERATOR_BASE_URL, settings.EIDA_FEDERATOR_PORT, 
-        fdsn_service)
+    return "{}/fdsnws/{}/1/".format(federator_server, fdsn_service)
 
 
 def get_federator_query_endpoint(fdsn_service='dataselect'):
@@ -166,15 +182,42 @@ def get_federator_query_endpoint(fdsn_service='dataselect'):
     return "%s%s" % (endpoint, settings.FDSN_QUERY_METHOD_TOKEN)
 
 
-def get_event_query_endpoint(event_service):
+def get_event_service_endpoints(query_par, default=True):
+    """
+    Get URLs for event service endopints given as comma-separated lists of
+    acronyms.
+    
+    """
+    
+    service_acronyms = [x.strip() for x in query_par.getpar(
+        'eventservice').split(parameters.PARAMETER_LIST_SEPARATOR)]
+    
+    url_list = []
+    for acr in service_acronyms:
+        
+        url = get_event_query_endpoint(acr, default=default)
+        
+        if url is not None:
+            url_list.append(url)
+      
+    return url_list
+
+
+def get_event_query_endpoint(event_service, default=True):
     """
     Get URL of EIDA federator query endpoint depending on requested FDSN 
     service (dataselect or station).
     
     """
     
-    endpoint = get_event_url(event_service)
-    return "%s%s" % (endpoint, settings.FDSN_QUERY_METHOD_TOKEN)
+    url = None
+    
+    endpoint = get_event_url(event_service, default=default)
+    
+    if endpoint is not None:
+        url = "%s%s" % (endpoint, settings.FDSN_QUERY_METHOD_TOKEN)
+    
+    return url
 
 
 def get_routing_url(routing_service):
@@ -190,17 +233,25 @@ def get_routing_url(routing_service):
     return "%s%s" % (server, settings.EIDA_ROUTING_PATH)
 
 
-def get_event_url(event_service):
+def get_event_url(event_service, default=True):
     """Get event URL for event service abbreviation."""
+    
+    url = None
     
     try:
         server = settings.FDSN_EVENT_SERVICES[event_service]['server']
     except KeyError:
-        server = settings.FDSN_EVENT_SERVICES[settings.DEFAULT_EVENT_SERVICE]\
-            ['server']
+        if default:
+            server = settings.FDSN_EVENT_SERVICES\
+                [settings.DEFAULT_EVENT_SERVICE]['server']
+        else:
+            server = None
         
-    return "%s%s" % (server, settings.FDSN_EVENT_PATH)
-
+    if server is not None:
+        url = "%s%s" % (server, settings.FDSN_EVENT_PATH)
+        
+    return url
+    
 
 def map_service(service):
     """

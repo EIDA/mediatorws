@@ -20,9 +20,7 @@ from mediator.server.routes.misc import VersionResource
 
 
     
-def main(
-    debug=False, port=5001, routing=settings.DEFAULT_ROUTING_SERVICE,
-    tmpdir=''):
+def main(debug=False, port=5001, tmpdir='', federator=''):
     """Run Flask app."""
 
     errors = {
@@ -55,12 +53,7 @@ def main(
         
     api.init_app(app)
     
-    app.config.update(
-        ROUTING=routing,
-        PORT=port,
-        TMPDIR=tmpdir
-    )
-    
+    app.config.update(PORT=port, TMPDIR=tmpdir, FEDERATOR=federator)
     app.run(threaded=True, debug=debug, port=port)
 
 

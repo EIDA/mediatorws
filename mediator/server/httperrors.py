@@ -8,7 +8,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 from werkzeug.exceptions import HTTPException
 
-from federator import settings
+from mediator import settings
 
 # Error <CODE>: <SIMPLE ERROR DESCRIPTION>
 # <MORE DETAILED ERROR DESCRIPTION>
@@ -59,7 +59,7 @@ class FDSNHTTPError(HTTPException):
     code = 0
     error_desc_short = ''
     
-    def __init__(self, documentation_uri, request_url, request_time):
+    def __init__(self, documentation_uri='', request_url='', request_time=''):
         super(FDSNHTTPError, self).__init__()
         
         self.description = get_error_message(
@@ -67,8 +67,13 @@ class FDSNHTTPError(HTTPException):
             documentation_uri, request_url, request_time)
 
 
-class NoDataError(HTTPException):
+#class NoDataError(HTTPException):
+    #code = 204
+    
+
+class NoDataError(FDSNHTTPError):
     code = 204
+    error_desc_short = 'No data'
 
 
 class BadRequestError(FDSNHTTPError):
