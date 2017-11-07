@@ -118,3 +118,5 @@ class WFCatalogResource(general_request.GeneralResource):
     # post ()
 
 # class WFCatalogResource
+
+# ---- END OF <wfcatalog.py> ----
