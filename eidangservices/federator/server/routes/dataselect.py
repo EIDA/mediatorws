@@ -23,25 +23,16 @@ class DataselectResource(general_request.GeneralResource):
         super(DataselectResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.TemporalSchema(
-        context={'request': request}), 
-        locations=('query',)
-    )
     @use_args(schema.SNCLSchema(
         context={'request': request}), 
         locations=('query',)
     )
     @use_args(schema.DataselectSchema())
-    def get(self, temporal_args, sncl_args, args):
+    def get(self, sncl_args, args):
         # request.method == 'GET'
         _context = {'request': request}
 
         # serialize objects
-        s = schema.TemporalSchema(context=_context)
-        args.update(s.dump(temporal_args).data)
-        self.logger.debug('TemporalSchema (serialized): %s' %
-                s.dump(temporal_args).data)
-
         s = schema.SNCLSchema(context=_context)
         args.update(s.dump(sncl_args).data)
         self.logger.debug('SNCLSchema (serialized): %s' % 
@@ -55,22 +46,22 @@ class DataselectResource(general_request.GeneralResource):
     # get ()
 
         
-    @misc.use_fdsnws_args(schema.TemporalSchema(), locations=('form',))
-    @misc.use_fdsnws_args(schema.SNCLSchema(), locations=('form',)) 
+    @misc.use_fdsnws_args(schema.SNCLSchema(
+        context={'request': request}), 
+        locations=('form',)
+    )
     @use_args(schema.DataselectSchema())
-    def post(self, temporal_args, sncl_args, args):
+    def post(self, sncl_args, args):
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
 
-        self.logger.debug('Request args: %s' % args)
         # serialize objects
-        s = schema.TemporalSchema()
-        self.logger.debug('TemporalSchema (serialized): %s' %
-                s.dump(temporal_args).data)
-        sncl_args.update(s.dump(temporal_args).data)
+        s = schema.SNCLSchema()
+        sncl_args = s.dump(sncl_args).data
+        self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
 
-        self.logger.debug('SNCL args: %s' % sncl_args)
+        self.logger.debug('Request args: %s' % args)
         # merge SNCL parameters
         sncls = misc.convert_sncl_dict_to_lines(sncl_args)
         self.logger.debug('SNCLs: %s' % sncls)

@@ -30,20 +30,16 @@ class WFCatalogResource(general_request.GeneralResource):
         super(WFCatalogResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.TemporalSchema(
-        context={'request': request}), 
-        locations=('query',)
-    )
     @use_args(schema.SNCLSchema(
         context={'request': request}), 
         locations=('query',)
     )
     @use_args(schema.WFCatalogSchema(), locations=('query',))
-    def get(self, temporal_args, sncl_args, wfcatalog_args):
+    def get(self, sncl_args, wfcatalog_args):
         # request.method == 'GET'
         _context = {'request': request}
         # sanity check - starttime and endtime must be specified
-        if not temporal_args or not all(len(temporal_args[t]) == 1 for t in
+        if not sncl_args or not all(len(sncl_args[t]) == 1 for t in
             ('starttime', 'endtime')):
             raise httperrors.BadRequestError(
                     settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
@@ -52,11 +48,6 @@ class WFCatalogResource(general_request.GeneralResource):
 
         args = {}
         # serialize objects
-        s = schema.TemporalSchema(context=_context)
-        args.update(s.dump(temporal_args).data)
-        self.logger.debug('TemporalSchema (serialized): %s' %
-                s.dump(temporal_args).data)
-
         s = schema.SNCLSchema(context=_context)
         args.update(s.dump(sncl_args).data)
         self.logger.debug('SNCLSchema (serialized): %s' % 
@@ -74,34 +65,26 @@ class WFCatalogResource(general_request.GeneralResource):
 
     # get ()
 
-    @misc.use_fdsnws_args(schema.TemporalSchema(), locations=('form',))
-    @misc.use_fdsnws_args(schema.SNCLSchema(), locations=('form',)) 
+    @misc.use_fdsnws_args(schema.SNCLSchema(
+        context={'request': request}), 
+        locations=('form',)
+    )
     @misc.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
-    def post(self, temporal_args, sncl_args, wfcatalog_args):
+    def post(self, sncl_args, wfcatalog_args):
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
-#        sncl_args.update(temporal_args)
-        # TODO(damb): check if at least one SNCL is defined
-#        if (not sncl_args or 
-#            len(set(len(v) for k,v in sncl_args.iteritems())) <= 1):
-#            raise httperrors.BadRequestError(
-#                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
-#                datetime.datetime.utcnow())
 
         # serialize objects
+        s = schema.SNCLSchema()
+        sncl_args = s.dump(sncl_args).data
+        self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
+
         s = schema.WFCatalogSchema()
         wfcatalog_args = s.dump(wfcatalog_args).data
         self.logger.debug('WFCatalogSchema (serialized): %s' % wfcatalog_args)
-        
         self.logger.debug('Request args: %s' % wfcatalog_args)
-        # serialize objects
-        s = schema.TemporalSchema()
-        self.logger.debug('TemporalSchema (serialized): %s' %
-                s.dump(temporal_args).data)
-        sncl_args.update(s.dump(temporal_args).data)
 
-        self.logger.debug('SNCL args: %s' % sncl_args)
         # merge SNCL parameters
         sncls = misc.convert_sncl_dict_to_lines(sncl_args)
         self.logger.debug('SNCLs: %s' % sncls)

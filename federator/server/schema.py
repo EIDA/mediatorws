@@ -122,54 +122,6 @@ class DelimitedRequestList(webargs.fields.DelimitedList):
 
 
 # -----------------------------------------------------------------------------
-class TemporalSchema(Schema):
-    starttime = RequestList(
-        FDSNWSDateTime(format='fdsnws'),
-        load_from='start',
-        missing = []
-    )
-    endtime = RequestList(
-        FDSNWSDateTime(format='fdsnws'),
-        load_from='end',
-        missing = []
-    )
-
-    @validates_schema
-    def validate_datetimes(self, data):
-        # NOTE(damb): context dependent validation
-        invalid = []
-        if self.context.get('request'):
-            if self.context.get('request').method == 'GET':
-                # for 'GET' requests only accept one datetime item in the list
-                endtime = data.get('endtime')
-                if endtime and len(data.get('endtime')) == 1:
-                    endtime = data.get('endtime')[0]
-                if not endtime:
-                    endtime = datetime.datetime.utcnow()
-                if (len(data.get('starttime')) > 1 or 
-                        len(data.get('endtime')) > 1):
-                    raise ValidationError('invalid number of times passed')
-                if (len(data.get('starttime')) == 1 and 
-                        data['starttime'][0] >= endtime): 
-                    invalid.append((data['starttime'], endtime))
-
-            elif self.context.get('request').method == 'POST': 
-                invalid = [(starttime, endtime) for starttime, endtime in
-                        zip(data['starttime'], data['endtime']) if starttime >=
-                        endtendtime]
-            else:
-                pass
-
-        if invalid:
-            raise ValidationError('endtime must be greater than starttime')
-
-    class Meta:
-        strict = True
-        ordered = True
-
-# class TemporalSchema
-
-
 class SNCLSchema(Schema):
     network = DelimitedRequestList(
         fields.Str(),
@@ -195,9 +147,59 @@ class SNCLSchema(Schema):
         delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
         missing = ['*']
     )
+    starttime = RequestList(
+        FDSNWSDateTime(format='fdsnws'),
+        load_from='start',
+        missing = []
+    )
+    endtime = RequestList(
+        FDSNWSDateTime(format='fdsnws'),
+        load_from='end',
+        missing = []
+    )
 
-    # TODO(damb): Validator implementation on schema level. Check if at least
-    # one SNCL is defined for POST request context.
+    @validates_schema
+    def validate(self, data):
+
+        def validate_datetimes(context, data):
+            # NOTE(damb): context dependent validation
+            invalid = []
+            if context.get('request'):
+                if context.get('request').method == 'GET':
+                    # for 'GET' requests only accept one datetime item in the
+                    # list
+                    endtime = data.get('endtime')
+                    if endtime and len(data.get('endtime')) == 1:
+                        endtime = data.get('endtime')[0]
+                    if not endtime:
+                        endtime = datetime.datetime.utcnow()
+                    if (len(data.get('starttime')) > 1 or 
+                            len(data.get('endtime')) > 1):
+                        raise ValidationError('invalid number of times passed')
+                    if (len(data.get('starttime')) == 1 and 
+                            data['starttime'][0] >= endtime): 
+                        invalid.append((data['starttime'], endtime))
+
+                elif context.get('request').method == 'POST': 
+                    invalid = [(starttime, endtime) for starttime, endtime in
+                            zip(data['starttime'], data['endtime']) 
+                            if starttime >= endtime]
+                else:
+                    pass
+
+            if invalid:
+                raise ValidationError('endtime must be greater than starttime')
+
+        def validate_schema(context, data):
+            # at least one SNCL must be defined for request.method == 'POST'
+            if (context.get('request') and 
+                    context.get('request').method == 'POST' and
+                    [v for v in data.values() if len(v) < 1]):
+                raise ValidationError('No SNCL defined.')
+       
+        validate_datetimes(self.context, data)
+        validate_schema(self.context, data)
+
 
     class Meta:
         strict = True
