@@ -187,9 +187,7 @@ class SNCLSchema(Schema):
         fields.Str(),
         load_from='loc', 
         delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
-        #TODO(damb): What is the defaul value i.e. '??' or '--' or even not
-        # set?
-        missing=['??']
+        missing=['*']
     )
     channel = DelimitedRequestList(
         fields.Str(),
