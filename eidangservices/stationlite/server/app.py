@@ -7,14 +7,14 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-from flask import Flask
+from flask import Flask, g
 
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 
 from eidangservices import settings
 
-#from eidangservices.stationlite.engine import dbquery
+from eidangservices.stationlite.engine import db
 
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
@@ -22,9 +22,6 @@ from eidangservices.stationlite.server.routes.wildcards import \
     WildcardsResource
 
 
-db = SQLAlchemy()
-
-    
 def main(debug=False, port=5002, dbfile=''):
     """Run Flask app."""
 
@@ -57,10 +54,21 @@ def main(debug=False, port=5002, dbfile=''):
     app.config.update(
         PORT=port, DB=dbfile, SQLALCHEMY_DATABASE_URI=sqlalchemy_uri)
     
+    #app.app_context().push()
     api.init_app(app)
-    db.init_app(app)
+    
+    register_teardowns(app)
     
     app.run(threaded=True, debug=debug, port=port)
+
+
+def register_teardowns(app):
+    
+    @app.teardown_appcontext
+    def close_db(error):
+        """Closes the database again at the end of the request."""
+        if hasattr(g, 'db_connection'):
+            g.db_connection.close()
 
 
 if __name__ == '__main__':

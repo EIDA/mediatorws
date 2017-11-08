@@ -11,6 +11,7 @@ import os
 
 from operator import itemgetter
 
+from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import (
     MetaData, Table, Column, Integer, Float, String, Unicode, DateTime, 
@@ -33,8 +34,16 @@ SQL_TABLE_NAMES = (
     'channel', 'routing', 'node', 'endpoint', 'service')
 
 CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
-#CACHED_SERVICES = ('station', 'dataselect')
 
+
+def get_engine_and_connection(connection_uri):
+    
+    engine = create_engine(connection_uri)
+    connection = engine.connect()
+    
+    return engine, connection
+    
+    
 def create_and_init_tables(db_path):
     
     metadata = MetaData()
@@ -44,11 +53,11 @@ def create_and_init_tables(db_path):
     if os.path.isfile(db_path):
         error_msg = "error: db file {} already exists".format(db_path)
         raise RuntimeError, error_msg
-        
-    engine = create_engine('sqlite:///{}'.format(db_path))
-    metadata.create_all(engine)
     
-    connection = engine.connect()
+    engine, connection = get_engine_and_connection(
+        'sqlite:///{}'.format(db_path))
+    
+    metadata.create_all(engine)
     init_tables(connection, tables)
 
     

@@ -11,26 +11,14 @@ import os
 
 from operator import itemgetter
 
+
 from sqlalchemy import (
     MetaData, Table, Column, Integer, Float, String, Unicode, DateTime, 
     ForeignKey, create_engine, insert, select, update, and_, func)
 
 
 from eidangservices import settings
-
-import eidangservices
-#import eidangservices.stationlite.server.app as flaskapp
-
 from eidangservices.stationlite.engine import db
-#from eidangservices.stationlite.server import app as flaskapp
-
-#from eidangservices.stationlite.server.app import db as flaskdb
-
-# TODO(fab): db file from command line
-#engine = create_engine('sqlite:///{}'.format('eida_stationlite.db'))
-
-#the_connection = flaskapp.db.connect()
-the_connection = eidangservices.stationlite.server.app.db.connect()
 
 
 def find_snclepochs_and_routes_from_query(
@@ -40,8 +28,8 @@ def find_snclepochs_and_routes_from_query(
     
     """
     
-    tn = tables['network']
-    tne = tables['networkepoch']
+    tn = tables['network']['networkepoch']
+    tne = tables
     
     ts = tables['station']
     tse = tables['stationepoch']
@@ -93,15 +81,15 @@ def find_snclepochs_and_routes_from_query(
     return routes
 
 
-def find_networks():
+def find_networks(connection, tables):
     
     tn = tables['network']
     
     s = select([tn.c.name])
     
-    rp = the_connection.execute(s)
+    rp = connection.execute(s)
     r = rp.fetchall()
     
-    return [x for x in r]
+    return [x[0] for x in r]
 
     

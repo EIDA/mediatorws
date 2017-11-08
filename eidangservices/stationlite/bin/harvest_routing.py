@@ -25,8 +25,6 @@ from gflags import DEFINE_string
 from gflags import FLAGS
 
 from lxml import etree
-from sqlalchemy import create_engine
-
 
 from eidanodetest.thirdparty.singletony import Singlet
 
@@ -126,8 +124,8 @@ def main():
     now_utc = datetime.datetime.utcnow()
     
     # connect to db
-    engine = create_engine('sqlite:///{}'.format(FLAGS.db))
-    connection = engine.connect()
+    engine, connection = db.get_engine_and_connection(
+        'sqlite:///{}'.format(FLAGS.db))
     
     # get routing endpoint
     routing_server = mediator_misc.get_routing_url(ROUTING_NODE)

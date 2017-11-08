@@ -11,6 +11,10 @@ import argparse
 
 from eidangservices.stationlite.server.app import main as start_app
 
+# TODO(fab): make more general
+DEFAULT_DBFILE = '/home/fab/projects/EIDA/Routing/test/'\
+    'harvest_stationlite_2017-10-20/stationlite_2017-10-20.db'
+
 def main():
     
     parser = argparse.ArgumentParser(
@@ -20,7 +24,8 @@ def main():
     # required=True
     parser.add_argument('--port', type=int, help='Server port')
     parser.add_argument(
-        '--db', type=str, default='', help='Database (SQLite) file.')
+        '--db', type=str, default=DEFAULT_DBFILE, 
+        help='Database (SQLite) file.')
     parser.add_argument(
         '--debug', action='store_true', default=False, 
         help="Run in debug mode.")
