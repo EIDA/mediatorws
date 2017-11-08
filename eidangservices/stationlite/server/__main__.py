@@ -8,12 +8,14 @@ This file is part of the EIDA mediator/federator webservices.
 """
 
 import argparse
+import os
 
 from eidangservices.stationlite.server.app import main as start_app
 
-# TODO(fab): make more general
-DEFAULT_DBFILE = '/home/fab/projects/EIDA/Routing/test/'\
-    'harvest_stationlite_2017-10-20/stationlite_2017-10-20.db'
+DEFAULT_DBFILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 
+    '../example/db/stationlite_2017-10-20.db')
+
 
 def main():
     
