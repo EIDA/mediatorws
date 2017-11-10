@@ -16,7 +16,7 @@ import webargs
 
 import marshmallow as ma
 from marshmallow import (Schema, SchemaOpts, fields, validate,
-    ValidationError, post_load, validates_schema)
+    ValidationError, post_load, post_dump, validates_schema)
 
 from federator import settings
 from federator.utils.misc import from_fdsnws_datetime, fdsnws_isoformat
@@ -108,6 +108,8 @@ class RequestList(fields.List):
     """
     A list providing a context dependent serialization.
     """
+    #TODO(damb): Rewrite the deserialize method
+
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
@@ -173,6 +175,17 @@ class SNCLSchema(Schema):
         missing = []
     )
 
+    @post_dump
+    def skip_empty_datetimes(self, data):
+        if (self.context.get('request') and 
+                self.context.get('request').method == 'GET'):
+            if not data.get('starttime'):
+                del data['starttime']
+            if not data.get('endtime'):
+                del data['endtime']
+            return data
+
+
     @validates_schema
     def validate(self, data):
 
@@ -183,22 +196,27 @@ class SNCLSchema(Schema):
                 if context.get('request').method == 'GET':
                     # for 'GET' requests only accept one datetime item in the
                     # list
-                    endtime = data.get('endtime')
-                    if endtime and len(data.get('endtime')) == 1:
-                        endtime = data.get('endtime')[0]
-                    if not endtime:
-                        endtime = datetime.datetime.utcnow()
-                    if (len(data.get('starttime')) > 1 or 
-                            len(data.get('endtime')) > 1):
-                        raise ValidationError('invalid number of times passed')
-                    if (len(data.get('starttime')) == 1 and 
-                            data['starttime'][0] >= endtime): 
-                        invalid.append((data['starttime'], endtime))
+                    starttime = data.get('starttime')
+                    if not starttime:
+                        starttime = []
 
-                elif context.get('request').method == 'POST': 
-                    invalid = [(starttime, endtime) for starttime, endtime in
-                            zip(data['starttime'], data['endtime']) 
-                            if starttime >= endtime]
+                    endtime = data.get('endtime')
+                    if not endtime:
+                        endtime = [datetime.datetime.utcnow()]
+
+                    if (len(starttime) > 1 or len(endtime) > 1):
+                        raise ValidationError('invalid number of times passed')
+
+                    if (len(starttime) == 1 and starttime[0] >= endtime[0]): 
+                        invalid.append((starttime[0], endtime[0]))
+
+                elif context.get('request').method == 'POST':
+                    try:
+                        invalid = [(s_time, e_time) for s_time, e_time in
+                                zip(data['starttime'], data['endtime']) 
+                                if s_time >= e_time]
+                    except KeyError:
+                        raise ValidationError('missing temporal constraints')
                 else:
                     pass
 
@@ -208,9 +226,11 @@ class SNCLSchema(Schema):
         def validate_schema(context, data):
             # at least one SNCL must be defined for request.method == 'POST'
             if (context.get('request') and 
-                    context.get('request').method == 'POST' and
-                    [v for v in data.values() if len(v) < 1]):
-                raise ValidationError('No SNCL defined.')
+                    context.get('request').method == 'POST'):
+                if [v for v in data.values() if len(v) < 1]:
+                    raise ValidationError('No SNCL defined.')
+                if 1 != len(set([len(v) for v in data.values()])):
+                    raise ValidationError('Invalid SNCL definition')
        
         validate_datetimes(self.context, data)
         validate_schema(self.context, data)
