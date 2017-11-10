@@ -161,6 +161,7 @@ class SNCLSchema(Schema):
         delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
         missing = ['*']
     )
+    # TODO(damb): For GET requests fields are available even when empty
     starttime = RequestList(
         FDSNWSDateTime(format='fdsnws'),
         load_from='start',
@@ -267,7 +268,7 @@ class DataselectSchema(ServiceSchema):
         )
     nodata = NoData()
 
-    quality = Quality(missing='B')
+    quality = Quality()#missing='B')
     minimumlength = fields.Float(
             missing=0.,
             validate=lambda n: 0. <= n

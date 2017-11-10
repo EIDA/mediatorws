@@ -231,12 +231,17 @@ FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
 FDSN_STATION_WADL_FILENAME = 'station.wadl'
 FDSN_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
 
-DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
-STATION_MIMETYPE_XML = 'application/xml'
-STATION_MIMETYPE_TEXT = 'text/plain'
-WFCATALOG_MIMETYPE = 'application/json'
-VERSION_MIMETYPE = 'text/plain'
-WADL_MIMETYPE = 'application/xml'
+MIMETYPE_MSEED = 'application/vnd.fdsn.mseed'
+MIMETYPE_TEXT = 'text/plain' 
+MIMETYPE_JSON = 'application/json'
+MIMETYPE_XML = 'application/xml'
+
+DATASELECT_MIMETYPE = MIMETYPE_MSEED
+STATION_MIMETYPE_XML = MIMETYPE_XML
+STATION_MIMETYPE_TEXT = MIMETYPE_TEXT
+WFCATALOG_MIMETYPE = MIMETYPE_JSON
+VERSION_MIMETYPE = MIMETYPE_TEXT
+WADL_MIMETYPE = MIMETYPE_XML
 
 
 STATION_RESPONSE_TEXT_HEADER = \
@@ -249,6 +254,10 @@ STATIONXML_RESOURCE_METADATA_ELEMENTS = (
     '{http://www.fdsn.org/xml/station/1}Module', 
     '{http://www.fdsn.org/xml/station/1}ModuleURI')
 STATIONXML_NETWORK_ELEMENT = '{http://www.fdsn.org/xml/station/1}Network'
+STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'
+STATIONXML_LATITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Latitude'
+STATIONXML_LONGITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Longitude'
+
 
 FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
 

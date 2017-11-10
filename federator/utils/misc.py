@@ -9,6 +9,7 @@ This file is part of the EIDA mediator/federator webservices.
 import argparse
 import datetime
 import os
+import random
 import re
 import sys
 import tempfile
@@ -129,6 +130,13 @@ def realpath(p):
     return os.path.realpath(os.path.expanduser(p))
 
 # realpath ()
+
+
+def choices(seq, k=1):
+    return ''.join(random.choice(seq) for i in range(k))
+
+# choices ()
+
 
 def from_fdsnws_datetime(datestring, use_dateutil=True):
     """

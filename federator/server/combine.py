@@ -15,10 +15,17 @@ Federator response combination facilities
 import datetime
 import json
 import logging
+import os
+import stat
+import struct
+import tempfile
+import threading
 
-from federator.settings import STATION_RESPONSE_TEXT_HEADER, \
-    STATIONXML_RESOURCE_METADATA_ELEMENTS, STATIONXML_NETWORK_ELEMENT, \
-    FDSNWS_GEOMETRY_PARAMS_SHORT, FDSNWS_GEOMETRY_PARAMS_LONG
+from flask import current_app
+from future.utils import iteritems
+
+from federator import settings
+from federator.utils import misc
 
 try:
     # Python 3.2 and earlier
@@ -27,79 +34,291 @@ except ImportError:
     from xml.etree import ElementTree as ET  # NOQA
 
 
-def get_geometry_par_type(qp):
-
-    par_short_count = 0
-    par_long_count = 0
-    
-    for (p, v) in qp.iteritems():
-        
-        if p in FDSNWS_GEOMETRY_PARAMS_SHORT:
-            try:
-                _ = float(v)
-                par_short_count += 1
-            except Exception:
-                continue
-            
-        elif p in FDSNWS_GEOMETRY_PARAMS_LONG:
-            try:
-                _ = float(v)
-                par_long_count += 1
-            except Exception:
-                continue
-            
-    if par_long_count == len(FDSNWS_GEOMETRY_PARAMS_LONG):
-        par_type = 'long'
-    elif par_short_count == len(FDSNWS_GEOMETRY_PARAMS_SHORT):
-        par_type = 'short'
-    else:
-        par_type = None
-    
-    return par_type
-
-# get_geometry_par_type ()
-
-
-def remove_stations_outside_box(net, qp, geometry_par_type):
-                    
-    stations = net.findall(STATIONXML_STATION_ELEMENT)
-                    
-    for st in stations:
-        lat = float(st.find(STATIONXML_LATITUDE_ELEMENT).text)
-        lon = float(st.find(STATIONXML_LONGITUDE_ELEMENT).text)
-                        
-        if not is_within_box(lat, lon, qp, geometry_par_type):
-            net.remove(st)
-
-# remove_stations_outside_box ()
-
 # -----------------------------------------------------------------------------
 class Combiner(object):
     """
     Abstract interface for combiners
     """
 
+    MIMETYPE = None
     LOGGER = 'federator.combiner'
 
-    def __init__(self):
-        self.logger = logging.getLogger(self.LOGGER)
 
-    def combine(self, text):
+    def __init__(self, path_pipe):
+        self.logger = logging.getLogger(self.LOGGER)
+        self._path_pipe = path_pipe
+        self._buffer_size = 0
+        self.__buffer_lock = threading.Lock()
+        self._lock = threading.Lock()
+    
+    @staticmethod
+    def create(format, **kwargs):
+        """factory method for combiners"""
+        if 'miniseed' == format:
+            return MseedCombiner(**kwargs)
+        elif 'text' == format:
+            return TextCombiner(**kwargs)
+        elif 'xml' == format: 
+            return XMLCombiner(**kwargs)
+        elif  'json' == format:
+            return JSONCombiner(**kwargs)
+        else:
+            raise KeyError('Invalid combiner chosen.')
+
+    @property
+    def buffer_size(self):
+        with self.__buffer_lock:
+            return self._buffer_size
+
+    def add_buffer_size(self, val):
+        with self.__buffer_lock:
+            self._buffer_size += val
+
+    @property
+    def _pipe(self):
+        if (self._path_pipe and os.path.exists(self._path_pipe) and
+                stat.S_ISFIFO(os.stat(self._path_pipe).st_mode)):
+            try:
+                self.logger.debug("Opening named pipe '%s' ..." %
+                        self._path_pipe)
+                return os.open(self.__path_pipe, os.O_WRONLY | os.O_NONBLOCK)
+            except OSError as e:
+                if e.errno == errno.O_ENXIO:
+                    self.logger.error("Could not open pipe '%s'. (%s)" %
+                            (self._path_pipe, str(e)))
+                else:
+                    raise
+            finally:
+                return None
+        return None
+    
+
+    @property
+    def mimetype(self):
+        return self.MIMETYPE
+
+    def combine(self, fd):
         raise NotImplementedError
 
-    def dump(self, fd):
+    def dump(self, fd, **kwargs):
         raise NotImplementedError
 
 # class Combiner
 
+
+class MseedCombiner(Combiner):
+    """
+    An implementation of a miniseed combiner.
+
+    NOTE: The combiner is using a temporary file. However, future versions will
+    write directly to an output file descriptor (ofd).
+    """
+
+    MIMETYPE = settings.MIMETYPE_MSEED
+
+    DATA_ONLY_BLOCKETTE_NUMBER = 1000
+    FIXED_DATA_HEADER_SIZE = 48
+    MINIMUM_RECORD_LENGTH = 256
+
+    _CHARS = "abcdefghijklmnopqrstuvwxyz0123456789_"
+
+    def __init__(self, **kwargs):
+        path_pipe = kwargs.get('path_pipe')
+        super(MseedCombiner, self).__init__(path_pipe)
+        self.__records = None
+
+        self.__path_tempfile = os.path.join(tempfile.gettempdir(), 
+               misc.choices(self._CHARS, k=10))
+        while os.path.isfile(self.__path_tempfile):
+            self.__path_tempfile = os.path.join(tempfile.gettempdir(), 
+                    misc.choices(self._CHARS, k=10))
+
+    # __init__()
+
+    def combine(self, fd):
+        with open(self.__path_tempfile, 'w') as ofd:
+            record_idx = 1
+            size = 0 
+            # NOTE: cannot use fixed chunk size, because
+            # response from single node mixes mseed record
+            # sizes. E.g., a 4096 byte chunk could contain 7
+            # 512 byte records and the first 512 bytes of a 
+            # 4096 byte record, which would not be completed
+            # in the same write operation
+            while True:
+                
+                # read fixed header
+                buf = fd.read(self.FIXED_DATA_HEADER_SIZE)
+                if not buf:
+                    break
+                
+                record = buf
+                curr_size = len(buf)
+                
+                # get offset of data (value before last, 
+                # 2 bytes, unsigned short)
+                data_offset_idx = self.FIXED_DATA_HEADER_SIZE - 4
+                data_offset, = struct.unpack(
+                    '!H', 
+                    buf[data_offset_idx:data_offset_idx+2])
+                
+                if data_offset >= self.FIXED_DATA_HEADER_SIZE:
+                    remaining_header_size = data_offset - \
+                        self.FIXED_DATA_HEADER_SIZE
+                
+                elif data_offset == 0 :
+                    self.logger.debug("record %s: zero data offset" % (
+                        record_idx))
+                    
+                    # This means that blockettes can follow,
+                    # but no data samples. Use minimum record 
+                    # size to read following blockettes. This
+                    # can still fail if blockette 1000 is after
+                    # position 256
+                    remaining_header_size = \
+                        self.MINIMUM_RECORD_LENGTH - \
+                            self.FIXED_DATA_HEADER_SIZE
+                
+                else:
+                    # Full header size cannot be smaller than 
+                    # fixed header size. This is an error.
+                    self.logger.warn("record %s: data offset smaller than "\
+                        "fixed header length: %s, bailing "\
+                        "out" % (record_idx, data_offset))
+                    break
+                    
+                buf = fd.read(remaining_header_size)
+                if not buf:
+                    self.logger.warn("remaining header corrupt in record "\
+                        "%s" % record_idx)
+                    break
+                
+                record += buf
+                curr_size += len(buf)
+                
+                # scan variable header for blockette 1000 
+                blockette_start = 0
+                b1000_found = False
+                
+                while (blockette_start < remaining_header_size):
+                    
+                    # 2 bytes, unsigned short
+                    blockette_id, = struct.unpack(
+                        '!H', 
+                        buf[blockette_start:blockette_start+2])
+                    
+                    # get start of next blockette (second 
+                    # value, 2 bytes, unsigned short)
+                    next_blockette_start, = struct.unpack(
+                        '!H', 
+                        buf[blockette_start+2:blockette_start+4])
+                    
+                    if blockette_id == \
+                        self.DATA_ONLY_BLOCKETTE_NUMBER:
+                        
+                        b1000_found = True
+                        break
+                    
+                    elif next_blockette_start == 0:
+                        # no blockettes follow
+                        self.logger.debug("record %s: no blockettes follow "\
+                            "after blockette %s at pos %s" % (
+                            record_idx, blockette_id, 
+                            blockette_start))
+                        break
+                    
+                    else:
+                        blockette_start = next_blockette_start
+                
+                # blockette 1000 not found
+                if not b1000_found:
+                    self.logger.debug("record %s: blockette 1000 not found,"\
+                        " stop reading" % record_idx)
+                    break
+                    
+                # get record size (1 byte, unsigned char)
+                record_size_exponent_idx = blockette_start + 6
+                record_size_exponent, = struct.unpack(
+                    '!B', 
+                    buf[record_size_exponent_idx:\
+                    record_size_exponent_idx+1])
+
+                remaining_record_size = \
+                    2**record_size_exponent - curr_size
+                
+                # read remainder of record (data section)
+                buf = fd.read(remaining_record_size)
+                if not buf:
+                    self.logger.warn("cannot read data section of record "\
+                        "%s" % record_idx)
+                    break
+                
+                record += buf
+
+                with self._lock:
+                    ofd.write(record)
+
+                size += len(record)
+                record_idx += 1
+
+            self.add_buffer_size(size)
+
+        # combine ()
+
+    def dump(self, fd, **kwargs):
+        # rename the temporary file to the file fd is pointing to
+        if (os.path.isfile(self.__path_tempfile) and
+                os.path.getsize(self.__path_tempfile)):
+            fd_name = fd.name
+            os.rename(self.__path_tempfile, fd_name)
+
+
+
+        """
+        if self.__path_pipe:
+            # send data from pipe to fd
+            with self._lock:
+                pfd = os.open(self.__path_pipe, os.O_RDWR)
+                offset = 0
+                chunksize = 10240 # 10 MiB
+                while True:
+#                    sent = sendfile(fd.fileno(), pfd, offset, chunksize)
+                    sent = os.read(pfd, chunksize)
+                    if 0 == sent:
+                        break # EOF
+                    offset += chunksize
+                os.close(pfd)
+        """
+    # dump ()
+
+# class MseedCombiner
+
+
 class JSONCombiner(Combiner):
-    def __init__(self):
-        super(JSONCombiner, self).__init__()
+
+    MIMETYPE = settings.MIMETYPE_JSON
+
+    def __init__(self, **kwargs):
+        path_pipe = kwargs.get('path_pipe')
+        super(JSONCombiner, self).__init__(path_pipe)
         self.__data = []
 
-    def combine(self, text):
-        json_data = json.loads(text)
-        self.__data.extend(json_data)
+    def combine(self, fd):
+        stream_data = ''
+        size = 0
+        while True:
+            buf = fd.readline()
+            
+            if not buf:
+                break
+            
+            stream_data = ''.join((stream_data, buf))
+            size += len(buf)
+
+        self.add_buffer_size(size)
+        self.__data.extend(json.loads(stream_data))
+
+    # combine ()
 
     def dump(self, fd, **kwargs):
         if self.__data:
@@ -109,29 +328,57 @@ class JSONCombiner(Combiner):
 
 
 class TextCombiner(Combiner):
-    def __init__(self):
-        super(TextCombiner, self).__init__()
+
+    MIMETYPE = settings.MIMETYPE_TEXT
+
+    def __init__(self, **kwargs):
+        path_pipe = kwargs.get('path_pipe')
+        super(TextCombiner, self).__init__(path_pipe)
         self.__text = ''
 
-    def combine(self, text):
-        if self.__text:
-            self.__text = ''.join((self.__text, text))
-        else:
-            self.__text = '\n'.join((STATION_RESPONSE_TEXT_HEADER, text))
-
-    def dump(self, fd):
-        if self.__text:
-            fd.write(self.__text)
+    def combine(self, fd):
+        # this is the station service in text format
+        stream_data = ''
+        size = 0
+        while True:
+            buf = fd.readline()
             
+            if not buf:
+                break
+            
+            # skip header lines that start with '#'
+            # NOTE: first header line is inserted in TextCombiner class
+            if buf.startswith('#'):
+                continue
+                
+            stream_data = ''.join((stream_data, buf))
+            size += len(buf)
+            
+        if self.__text:
+            self.__text = ''.join((self.__text, stream_data))
+        else:
+            self.__text = '\n'.join((settings.STATION_RESPONSE_TEXT_HEADER, 
+                stream_data))
+
+    # combine ()
+
+def dump(self, fd, **kwargs):
+    if self.__text:
+        fd.write(self.__text)
+        
 # class TextCombiner
 
 
 class XMLCombiner(Combiner):
-    def __init__(self, qp):
-        super(XMLCombiner, self).__init__()
+
+    MIMETYPE = settings.MIMETYPE_XML
+
+    def __init__(self, **kwargs):
+        path_pipe = kwargs.get('path_pipe')
+        super(XMLCombiner, self).__init__(path_pipe)
         self.__et = None
-        self.__qp = qp
-        self.__geometry_par_type = get_geometry_par_type(qp)
+        self.__qp = kwargs.get('qp')
+        self.__geometry_par_type = self._get_geometry_par_type(self.__qp)
 
     def __combine_element(self, one, other):
         mapping = {}
@@ -148,14 +395,14 @@ class XMLCombiner(Combiner):
             
             # skip Sender, Source, Module, ModuleURI, Created elements of 
             # subsequent trees
-            if el.tag in STATIONXML_RESOURCE_METADATA_ELEMENTS:
+            if el.tag in settings.STATIONXML_RESOURCE_METADATA_ELEMENTS:
                 continue
             
             # station coords: check lat-lon box, remove stations outside
             if self.__geometry_par_type is not None and \
-                el.tag == STATIONXML_NETWORK_ELEMENT:
+                el.tag == settings.STATIONXML_NETWORK_ELEMENT:
 
-                remove_stations_outside_box(
+                self._remove_stations_outside_box(
                     el, self.__qp, self.__geometry_par_type)
             
             try:
@@ -171,9 +418,83 @@ class XMLCombiner(Combiner):
             except KeyError:
                 one.append(el)
 
-    # FIXME(damb): correct iface such that it is matching with its parent class
-    # Combiner
-    def combine(self, fd):
+    # __combine_element ()
+
+    def _get_geometry_par_type(self, qp):
+
+        par_short_count = 0
+        par_long_count = 0
+        
+        for p, v in iteritems(qp):
+            
+            if p in settings.FDSNWS_GEOMETRY_PARAMS_SHORT:
+                try:
+                    _ = float(v)
+                    par_short_count += 1
+                except Exception:
+                    continue
+                
+            elif p in settings.FDSNWS_GEOMETRY_PARAMS_LONG:
+                try:
+                    _ = float(v)
+                    par_long_count += 1
+                except Exception:
+                    continue
+                
+        if par_long_count == len(settings.FDSNWS_GEOMETRY_PARAMS_LONG):
+            par_type = 'long'
+        elif par_short_count == len(settings.FDSNWS_GEOMETRY_PARAMS_SHORT):
+            par_type = 'short'
+        else:
+            par_type = None
+        
+        return par_type
+
+    # _get_geometry_par_type ()
+
+    def _is_within_box(self, lat, lon, qp, geometry_par_type):
+
+        if geometry_par_type == 'long':
+            return (lat >= float(qp['minlatitude']) and 
+                lat <= float(qp['maxlatitude']) and 
+                lon >= float(qp['minlongitude']) and 
+                lon <= float(qp['maxlongitude']))
+        
+        elif geometry_par_type == 'short':
+            return (lat >= float(qp['minlat']) and
+                    lat <= float(qp['maxlat']) and
+                    lon >= float(qp['minlon']) and 
+                    lon <= float(qp['maxlon']))
+        
+        else:
+            return False
+
+    # _is_within_box ()
+
+    def _remove_stations_outside_box(self, net, qp, geometry_par_type):
+                        
+        stations = net.findall(settings.STATIONXML_STATION_ELEMENT)
+                        
+        for st in stations:
+            lat = float(st.find(settings.STATIONXML_LATITUDE_ELEMENT).text)
+            lon = float(st.find(settings.STATIONXML_LONGITUDE_ELEMENT).text)
+                            
+            if not self._is_within_box(lat, lon, qp, geometry_par_type):
+                net.remove(st)
+
+    # _remove_stations_outside_box ()
+
+    def combine(self, fd, **kwargs):
+        fdread = fd.read
+        s = [0]
+
+        def read(self, *args, **kwargs):
+            buf = fdread(self, *args, **kwargs)
+            s[0] += len(buf)
+            return buf
+
+        fd.read = read
+        
         if self.__et:
             self.__combine_element(self.__et.getroot(), ET.parse(fd).getroot())
 
@@ -184,20 +505,22 @@ class XMLCombiner(Combiner):
             # Note: this assumes well-formed StationXML
             # first StationXML tree: modify Source, Created
             try:
-                source = root.find(STATIONXML_RESOURCE_METADATA_ELEMENTS[0])
+                source = root.find(
+                        settings.STATIONXML_RESOURCE_METADATA_ELEMENTS[0])
                 source.text = 'EIDA'
             except Exception:
                 pass
             
             try:
-                created = root.find(STATIONXML_RESOURCE_METADATA_ELEMENTS[1])
+                created = root.find(
+                        settings.STATIONXML_RESOURCE_METADATA_ELEMENTS[1])
                 created.text = datetime.datetime.utcnow().strftime(
                     '%Y-%m-%dT%H:%M:%S')
             except Exception:
                 pass
             
             # remove Sender, Module, ModuleURI
-            for tag in STATIONXML_RESOURCE_METADATA_ELEMENTS[2:]:
+            for tag in settings.STATIONXML_RESOURCE_METADATA_ELEMENTS[2:]:
                 el = root.find(tag)
                 if el is not None:
                     root.remove(el)
@@ -205,13 +528,16 @@ class XMLCombiner(Combiner):
             # station coords: check lat-lon box, remove stations outside
             if self.__geometry_par_type is not None:
                 
-                networks = root.findall(STATIONXML_NETWORK_ELEMENT)
+                networks = root.findall(settings.STATIONXML_NETWORK_ELEMENT)
                 for net in networks:
-                    remove_stations_outside_box(
+                    self._remove_stations_outside_box(
                         net, self.__qp, self.__geometry_par_type)
-           
 
-    def dump(self, fd):
+            self.add_buffer_size(s[0])
+
+    # combine ()
+
+    def dump(self, fd, **kwargs):
         if self.__et:
             self.__et.write(fd)
 

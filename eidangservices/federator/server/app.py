@@ -109,7 +109,7 @@ def main(args):
         ROUTING_TIMEOUT=args.timeout,
         ROUTING_RETRIES=args.retries,
         ROUTING_RETRY_WAIT=args.retry_wait,
-        TMPDIR=args.tmpdir
+        TMPDIR=tempfile.gettempdir()
     )
     
     app.run(threaded=True, debug=args.debug, port=args.port)

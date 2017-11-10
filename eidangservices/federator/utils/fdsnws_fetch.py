@@ -740,6 +740,7 @@ def fetch(url, cred, authdata, postlines, xc, tc, dest, timeout, retry_count,
                 postdata = postdata.encode('utf-8')
 
             try:
+                # TODO(damb): to be reimplemented
                 fd = retry(opener.open, query_url, postdata, timeout,
                            retry_count, retry_wait, verbose)
 
