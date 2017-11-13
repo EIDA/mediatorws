@@ -88,15 +88,11 @@ class WFCatalogResource(general_request.GeneralResource):
         # merge SNCL parameters
         sncls = misc.convert_sncl_dict_to_lines(sncl_args)
         self.logger.debug('SNCLs: %s' % sncls)
-
-        self.logger.debug('Writing SNCLs to temporary post file ...')
-        temp_postfile = misc.get_temp_filepath()
-        with open(temp_postfile, 'w') as ofd:
-            ofd.write('\n'.join(sncls))
+        sncls = '\n'.join(sncls) 
 
         return self._process_request(wfcatalog_args, 
                 settings.WFCATALOG_MIMETYPE, path_tempfile=self.path_tempfile,
-                path_postfile=temp_postfile)
+                postdata=sncls)
 
     # post ()
 

@@ -11,7 +11,7 @@ import os
 
 import flask
 from flask import current_app, request
-from flask_restful import abort, reqparse, Resource
+from flask_restful import Resource
 
 from federator import settings
 from federator.server import httperrors, route
@@ -40,29 +40,24 @@ class GeneralResource(Resource):
     def path_tempfile(self):
         return misc.get_temp_filepath() 
 
-    def _process_request(self, args, mimetype, path_tempfile, 
-            path_postfile=None):
+    def _process_request(self, args, mimetype, path_tempfile, postdata=None):
         """Process a request and send resulting file to client."""
         
         self.logger.debug(("Processing request: args={0}, path_tempfile={1}, "
-                + "path_postfile={2}, timout={3}, retries={4}, "
+                + "postdata={2}, timout={3}, retries={4}, "
                 + "retry_wait={5}, threads={6}").format(args, path_tempfile,
-                    path_postfile, current_app.config['ROUTING_TIMEOUT'], 
+                    bool(postdata), current_app.config['ROUTING_TIMEOUT'], 
                     current_app.config['ROUTING_RETRIES'],
                     current_app.config['ROUTING_RETRY_WAIT'], 
                     current_app.config['NUM_THREADS']))
 
         resource_path = process_request(args, 
                 path_tempfile=path_tempfile,
-                path_postfile=path_postfile,
+                postdata=postdata,
                 timeout=current_app.config['ROUTING_TIMEOUT'],
                 retries=current_app.config['ROUTING_RETRIES'],
                 retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
                 threads=current_app.config['NUM_THREADS'])
-
-        # remove POST temp file
-        if path_postfile and os.path.isfile(path_postfile):
-            os.unlink(path_postfile)
 
         if resource_path is None or os.path.getsize(resource_path) == 0:
             # TODO(fab): get user-supplied error code
@@ -84,7 +79,7 @@ class GeneralResource(Resource):
 # -----------------------------------------------------------------------------
 def process_request(query_params, 
         path_tempfile=None,
-        path_postfile=None,
+        postdata=None,
         timeout=settings.DEFAULT_ROUTING_TIMEOUT,
         retries=settings.DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
@@ -99,21 +94,16 @@ def process_request(query_params,
     # TODO(fab): capture log output
 
     try:
-        cred = {}
-        authdata = None
-        postdata = None
+       cred = {}
+       authdata = None
 
-        if path_postfile:
-            with open(path_postfile) as fd:
-                postdata = fd.read()
+       url = route.RoutingURL(urlparse.urlparse(get_routing_url(
+                   current_app.config['ROUTING_SERVICE'])),
+               query_params)
+       dest = open(path_tempfile, 'wb')
 
-        url = route.RoutingURL(urlparse.urlparse(get_routing_url(
-                    current_app.config['ROUTING_SERVICE'])),
-                query_params)
-        dest = open(path_tempfile, 'wb')
-
-        route.route(url, query_params, cred, authdata, postdata, dest, timeout,
-              retries, retry_wait, threads, verbose)
+       route.route(url, query_params, cred, authdata, postdata, dest, 
+               timeout, retries, retry_wait, threads, verbose)
     except Exception:
         return None
     

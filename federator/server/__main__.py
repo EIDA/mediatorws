@@ -12,7 +12,7 @@ import logging
 import logging.config
 import os
 import sys
-import traceback
+#import traceback
 
 from federator import settings
 from federator.server.app import main as start_app
@@ -40,7 +40,7 @@ def build_parser(parents=[]):
             description='Launch EIDA federator web service.', 
             parents=parents)
 
-    parser.add_argument('--port', type=int,
+    parser.add_argument('-p', '--port', type=int,
         default=settings.DEFAULT_SERVER_PORT, 
         help='server port')
     parser.add_argument('-R', '--routing', type=str, metavar='SERVICE_ID',
@@ -79,7 +79,7 @@ def main():
     logger_configured = False
 
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(sys.argv[1:])
 
     # configure logger
     if args.path_logging_conf:
