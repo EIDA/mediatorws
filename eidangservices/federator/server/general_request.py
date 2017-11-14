@@ -93,19 +93,22 @@ def process_request(query_params,
 
     # TODO(fab): capture log output
 
-    try:
-       cred = {}
-       authdata = None
+#    try:
+    cred = {}
+    authdata = None
 
-       url = route.RoutingURL(urlparse.urlparse(get_routing_url(
-                   current_app.config['ROUTING_SERVICE'])),
-               query_params)
-       dest = open(path_tempfile, 'wb')
+    url = route.RoutingURL(urlparse.urlparse(get_routing_url(
+                current_app.config['ROUTING_SERVICE'])),
+            query_params)
+    dest = open(path_tempfile, 'wb')
 
-       route.route(url, query_params, cred, authdata, postdata, dest, 
-               timeout, retries, retry_wait, threads, verbose)
-    except Exception:
-        return None
+    router = route.EIDAWSRouter(url, query_params, postdata,
+            dest, timeout, retries, retry_wait, threads)
+    router()
+#    route.route(url, query_params, cred, authdata, postdata, dest, 
+#            timeout, retries, retry_wait, threads, verbose)
+#    except Exception:
+#        return None
     
     # get contents of temp file
     if os.path.isfile(path_tempfile):

@@ -21,6 +21,8 @@ import sys
 import threading
 import time
 
+from multiprocessing.pool import ThreadPool
+
 from federator import settings
 from federator.server.combine import Combiner
 
@@ -171,7 +173,11 @@ def msg(s, verbose=True):
             sys.stderr.write(s + '\n')
             sys.stderr.flush()
 
-def retry(urlopen, url, data, timeout, count, wait, verbose):
+def retry(urlopen, url, data, timeout, count, wait, verbose=True):
+    """connect/open a URL and retry in case the URL is not reachable"""
+    # TODO(damb): verbose is deprecated: logging in use.
+
+    logger = logging.getLogger('federator.connect')
     n = 0
 
     while True:
@@ -186,8 +192,9 @@ def retry(urlopen, url, data, timeout, count, wait, verbose):
             if fd.getcode() == 200 or fd.getcode() == 204:
                 return fd
 
-            msg("retrying %s (%d) after %d seconds due to HTTP status code %d"
-                % (url, n, wait, fd.getcode()), verbose)
+            logger.info(
+                "retrying %s (%d) after %d seconds due to HTTP status code %d"
+                % (url, n, wait, fd.getcode()))
 
             fd.close()
             time.sleep(wait)
@@ -196,14 +203,14 @@ def retry(urlopen, url, data, timeout, count, wait, verbose):
             if e.code >= 400 and e.code < 500:
                 raise
 
-            msg("retrying %s (%d) after %d seconds due to %s"
-                % (url, n, wait, str(e)), verbose)
+            logger.warn("retrying %s (%d) after %d seconds due to %s"
+                % (url, n, wait, str(e)))
 
             time.sleep(wait)
 
         except (urllib2.URLError, socket.error) as e:
-            msg("retrying %s (%d) after %d seconds due to %s"
-                % (url, n, wait, str(e)), verbose)
+            logger.warn("retrying %s (%d) after %d seconds due to %s"
+                % (url, n, wait, str(e)))
 
             time.sleep(wait)
 
@@ -500,32 +507,50 @@ def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
 # route ()
 
 # -----------------------------------------------------------------------------
-class Router:
+class EIDAWSRouter:
     """
-    Implementation of the federator routing facility
+    Implementation of the federator routing facility using EIDAWS Routing.
+
+    ----
+    References:
+    https://www.orfeus-eu.org/data/eida/webservices/routing/
     """
 
-    LOGGER = 'federator.router'
+    LOGGER = 'federator.eidaws_router'
 
-    def __init__(self, url, query_params={}, post=False, dest=None, 
+    def __init__(self, url, query_params={}, postdata=None, dest=None, 
             timeout=settings.DEFAULT_ROUTING_TIMEOUT,
             num_retries=settings.DEFAULT_ROUTING_RETRIES,
             retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT,
             max_threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
+
         self.logger = logging.getLogger(self.LOGGER)
         
+        # TODO(damb): to be refactored
         self.url = url
         self.query_params = query_params
-        self.post = post
+        self.postdata = postdata
         self.dest = dest
         self._cred = None
         self._authdata = None
         self.timeout = timeout
         self.num_retries = num_retries
         self.retry_wait = retry_wait
-        self.max_threads = max_treads
+
+        # TODO(damb): To be removed.
+        self.max_threads = max_threads
+
 
         self.threads = []
+        query_format = query_params.get('format')
+        if not query_format:
+            # TODO(damb): raise a proper exception
+            raise
+        self._combiner = Combiner.create(query_format, qp=query_params)
+
+        self.__routing_table = []
+        self.__thread_pool = ThreadPool(processes=max_threads)
+
 
     @property
     def cred(self):
@@ -535,11 +560,131 @@ class Router:
     def cred(self, user, password):
         self._cred = (user, password)
 
+    @property
+    def authdata(self):
+        return self._authdata
+
     def _route(self, url, qp, cred, authdata, postdata, dest, timeout,
-            retry_count, retry_wait, maxthreads, verbose=True):
+            retry_count, retry_wait, maxthreads):
+        """creates the routing table"""
+
+        running = 0
+        finished = Queue.Queue()
+        lock = threading.Lock()
+
+        if postdata:
+            # NOTE(damb): Uses the post_params method of a RoutingURL.
+            query_url = url.post()
+            postdata = (''.join((p + '=' + v + '\n')
+                                for (p, v) in url.post_params()) +
+                        postdata)
+
+            if not isinstance(postdata, bytes):
+                postdata = postdata.encode('utf-8')
+
+        else:
+            query_url = url.get()
+
+        self.logger.info("getting routes from %s" % query_url)
+
+        try:
+            fd = retry(urllib2.urlopen, query_url, postdata, timeout,
+                    retry_count, retry_wait)
+
+            try:
+                if fd.getcode() == 204:
+                    # TODO(damb): Implement a proper error handling - raising a
+                    # simple error is not useful at all.
+                    raise Error("received no routes from %s" % query_url)
+
+                elif fd.getcode() != 200:
+                    raise Error("getting routes from %s failed with HTTP status "
+                                "code %d" % (query_url, fd.getcode()))
+
+                else:
+                    urlline = None
+                    postlines = []
+
+                    while True:
+                        line = fd.readline()
+
+                        if isinstance(line, bytes):
+                            line = line.decode('utf-8')
+
+                        if not urlline:
+                            urlline = line.strip()
+
+                        elif not line.strip():
+                            # TODO(damb): create tasks instead of directly
+                            # creating thread objects.
+                            if postlines:
+                                target_url = TargetURL(urlparse.urlparse(urlline),
+                                                       url.target_params())
+                                self.threads.append(threading.Thread(target=fetch,
+                                                                args=(target_url,
+                                                                      cred,
+                                                                      authdata,
+                                                                      postlines,
+                                                                      self._combiner,
+                                                                      dest,
+                                                                      timeout,
+                                                                      retry_count,
+                                                                      retry_wait,
+                                                                      finished,
+                                                                      lock,
+                                                                      True)))
+
+                            urlline = None
+                            postlines = []
+
+                            if not line:
+                                break
+
+                        else:
+                            postlines.append(line)
+
+            finally:
+                fd.close()
+
+        except (urllib2.URLError, socket.error) as e:
+            raise Error("getting routes from %s failed: %s" % (query_url, str(e)))
+
+        for t in self.threads:
+            if running >= maxthreads:
+                thr = finished.get(True)
+                thr.join()
+                running -= 1
+
+            t.start()
+            running += 1
+
+        while running:
+            thr = finished.get(True)
+            thr.join()
+            running -= 1
+
+        self._combiner.dump(dest)
+
+    # _route ()
+
+    def _fetch(self):
+        """fetches the results"""
+        # NOTE(damb): This _fetch method is used in another way than Andres
+        # fetch method. The _fetch function written by Andres is basically a
+        # task.
+
+        # apply tasks to the thread_pool
         pass
 
+    # _fetch ()
+
     def __call__(self):
-        pass
+        self._route(self.url, self.query_params, self.cred, self.authdata,
+                self.postdata, self.dest, self.timeout, self.num_retries,
+                self.retry_wait, self.max_threads)
+    
+    # __call__ ()
+
+# class EIDAWSRouter
 
 # ---- END OF <route.py> ----
