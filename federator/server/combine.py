@@ -21,7 +21,6 @@ import struct
 import tempfile
 import threading
 
-from flask import current_app
 from future.utils import iteritems
 
 from federator import settings
@@ -37,7 +36,10 @@ except ImportError:
 # -----------------------------------------------------------------------------
 class Combiner(object):
     """
-    Abstract interface for combiners
+    Abstract base class for combiners.
+
+    With :py:method:`Combiner.create()` a factory method is provided returning
+    concrete combiner implementations.
     """
 
     MIMETYPE = None
@@ -53,15 +55,22 @@ class Combiner(object):
     
     @staticmethod
     def create(format, **kwargs):
-        """factory method for combiners"""
+        """Factory method for combiners.
+
+        :param str format: A reponse format used by FDSN and EIDA webservices.
+        :param dict kwargs: A dictionary passed to the combiner constructors.
+        :return: A concrete :class:`Combiner` implementation
+        :rtype: :class:`Combiner`
+        :raises KeyError: if an invalid format string was passed
+        """
         if 'miniseed' == format:
             return MseedCombiner(**kwargs)
         elif 'text' == format:
-            return TextCombiner(**kwargs)
+            return StationTextCombiner(**kwargs)
         elif 'xml' == format: 
-            return XMLCombiner(**kwargs)
+            return StationXMLCombiner(**kwargs)
         elif  'json' == format:
-            return JSONCombiner(**kwargs)
+            return WFCatalogJSONCombiner(**kwargs)
         else:
             raise KeyError('Invalid combiner chosen.')
 
@@ -98,9 +107,17 @@ class Combiner(object):
         return self.MIMETYPE
 
     def combine(self, fd):
+        """Combines input data read.
+
+        :param fd: A file like object data is read from.
+        """
         raise NotImplementedError
 
     def dump(self, fd, **kwargs):
+        """Dump the combined data.
+
+        :param fd: Output file stream.
+        """
         raise NotImplementedError
 
 # class Combiner
@@ -110,8 +127,10 @@ class MseedCombiner(Combiner):
     """
     An implementation of a miniseed combiner.
 
-    NOTE: The combiner is using a temporary file. However, future versions will
-    write directly to an output file descriptor (ofd).
+    The input is merged record by record.
+
+    .. note: The combiner is using a temporary file. However, future versions
+    will write directly to an output file descriptor (ofd).
     """
 
     MIMETYPE = settings.MIMETYPE_MSEED
@@ -136,6 +155,14 @@ class MseedCombiner(Combiner):
     # __init__()
 
     def combine(self, fd):
+        """Thread safe combination of miniseed data.
+
+        The data is stored in a temporary file. Most of the code was taken from
+        `fdsnws_fetch.py
+        <https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnws_fetch.py>`_
+
+        :param fd: File like object data is read from
+        """
         with open(self.__path_tempfile, 'w') as ofd:
             record_idx = 1
             size = 0 
@@ -272,29 +299,15 @@ class MseedCombiner(Combiner):
             fd_name = fd.name
             os.rename(self.__path_tempfile, fd_name)
 
-
-
-        """
-        if self.__path_pipe:
-            # send data from pipe to fd
-            with self._lock:
-                pfd = os.open(self.__path_pipe, os.O_RDWR)
-                offset = 0
-                chunksize = 10240 # 10 MiB
-                while True:
-#                    sent = sendfile(fd.fileno(), pfd, offset, chunksize)
-                    sent = os.read(pfd, chunksize)
-                    if 0 == sent:
-                        break # EOF
-                    offset += chunksize
-                os.close(pfd)
-        """
     # dump ()
 
 # class MseedCombiner
 
 
-class JSONCombiner(Combiner):
+class WFCatalogJSONCombiner(Combiner):
+    """
+    An implementation of a JSON combiner combining *WFCatalog* data.
+    """
 
     MIMETYPE = settings.MIMETYPE_JSON
 
@@ -304,6 +317,12 @@ class JSONCombiner(Combiner):
         self.__data = []
 
     def combine(self, fd):
+        """
+        Combines WFCatalog JSON data.
+
+        .. note: The WFCatalog JSON objects are simply merged into a single
+        array.
+        """
         stream_data = ''
         size = 0
         while True:
@@ -324,10 +343,13 @@ class JSONCombiner(Combiner):
         if self.__data:
             json.dump(self.__data, fd, **kwargs)
 
-# class JSONCombiner
+# class WFCatalogJSONCombiner
 
 
-class TextCombiner(Combiner):
+class StationTextCombiner(Combiner):
+    """
+    An implementation of a text combiner combining *Station* data
+    """
 
     MIMETYPE = settings.MIMETYPE_TEXT
 
@@ -337,6 +359,11 @@ class TextCombiner(Combiner):
         self.__text = ''
 
     def combine(self, fd):
+        """Combines data.
+
+        .. note: The first header line is inserted into the output. Additional
+        header lines are skipped.
+        """
         # this is the station service in text format
         stream_data = ''
         size = 0
@@ -366,10 +393,16 @@ def dump(self, fd, **kwargs):
     if self.__text:
         fd.write(self.__text)
         
-# class TextCombiner
+# class StationTextCombiner
 
 
-class XMLCombiner(Combiner):
+class StationXMLCombiner(Combiner):
+    """
+    A concrete implementation of XML combiner combining *Station* data.
+
+    The resulting format is the `FDSN StationXML
+    <http://www.fdsn.org/xml/station/>`_ format.
+    """
 
     MIMETYPE = settings.MIMETYPE_XML
 
@@ -421,6 +454,7 @@ class XMLCombiner(Combiner):
     # __combine_element ()
 
     def _get_geometry_par_type(self, qp):
+        # TODO(damb): Is probably not relevant anymore.
 
         par_short_count = 0
         par_long_count = 0
@@ -541,6 +575,6 @@ class XMLCombiner(Combiner):
         if self.__et:
             self.__et.write(fd)
 
-# class XMLCombiner
+# class StationXMLCombiner
 
 # ---- END OF <combine.py> ----

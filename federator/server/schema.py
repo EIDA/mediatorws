@@ -88,8 +88,12 @@ FDSNWSBool = JSONBool
 
 class FDSNWSDateTime(fields.DateTime):
     """
-    Class extends marshmallow standart DateTime with a "fdsnws datetime"
+    Class extends marshmallow standard DateTime with a *FDSNWS datetime*
     format.
+
+    The *FDSNWS DateTime* format is described in the `FDSN Web Service
+    Specifications
+    <http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf>`_.
     """
 
     DATEFORMAT_SERIALIZATION_FUNCS = \
@@ -106,10 +110,11 @@ class FDSNWSDateTime(fields.DateTime):
 
 class RequestList(fields.List):
     """
-    A list providing a context dependent serialization.
-    """
-    #TODO(damb): Rewrite the deserialize method
+    A list providing a request context dependent serialization.
 
+    I.e. in case the list contains just a single value it serializes by means
+    of returning the values serialized result. 
+    """
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
@@ -124,7 +129,10 @@ class RequestList(fields.List):
 
 class DelimitedRequestList(webargs.fields.DelimitedList):
     """
-    A delimited list providing a context dependent serialization.
+    A delimited list providing a request context dependent serialization.
+
+    For *GET* requests the list serializes the same way as for :py:attr:
+    as_string.
     """
     def _serialize(self, value, attr, obj):
         ret = super(DelimitedRequestList, self)._serialize(value, attr, obj)
@@ -139,6 +147,12 @@ class DelimitedRequestList(webargs.fields.DelimitedList):
 
 # -----------------------------------------------------------------------------
 class SNCLSchema(Schema):
+    """
+    A SNCL Schema. SNCLs refer to the *FDSNWS* POST format. A SNCL is a line
+    consisting of::
+
+        network station location channel starttime endtime
+    """
     network = DelimitedRequestList(
         fields.Str(),
         load_from='net', 
@@ -188,7 +202,9 @@ class SNCLSchema(Schema):
 
     @validates_schema
     def validate(self, data):
-
+        """
+        SNCL schema validator
+        """
         def validate_datetimes(context, data):
             # NOTE(damb): context dependent validation
             invalid = []
@@ -245,7 +261,7 @@ class SNCLSchema(Schema):
 
 class ServiceOpts(SchemaOpts):
     """
-    Same as the default class Meta options, but adds the "service" option.
+    Same as the default class Meta options, but adds the *service* option.
     """
 
     def __init__(self, meta, **kwargs):
@@ -280,7 +296,7 @@ class DataselectSchema(ServiceSchema):
     Dataselect webservice schema definition
 
     The parameters defined correspond to the definition
-    (http://www.orfeus-eu.org/data/eida/webservices/dataselect/).
+    `<http://www.orfeus-eu.org/data/eida/webservices/dataselect/>`_.
     """
     format = fields.Str(
             missing='miniseed',
@@ -307,7 +323,7 @@ class StationSchema(ServiceSchema):
     Station webservice schema definition
 
     The parameters defined correspond to the definition
-    (http://www.orfeus-eu.org/data/eida/webservices/station/).
+    `<http://www.orfeus-eu.org/data/eida/webservices/station/>`_.
     """
     
     format = fields.Str(
@@ -373,7 +389,7 @@ class WFCatalogSchema(ServiceSchema):
     WFCatalog webservice schema definition
 
     The parameters defined correspond to the definition
-    (http://www.orfeus-eu.org/data/eida/webservices/wfcatalog/).
+    `<http://www.orfeus-eu.org/data/eida/webservices/wfcatalog/>`_ .
     """
     # TODO(damb): starttime and endtime are required for this schema; howto
     # implement a proper validator/ required=True

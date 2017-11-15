@@ -23,6 +23,10 @@ from federator.utils import misc
 
 
 class WFCatalogResource(general_request.GeneralResource):
+    """
+    Implementation of a `WFCatalog
+    <https://www.orfeus-eu.org/data/eida/webservices/wfcatalog/>`_ resource.
+    """
 
     LOGGER = 'federator.wfcatalog_resource'
 
@@ -36,6 +40,9 @@ class WFCatalogResource(general_request.GeneralResource):
     )
     @use_args(schema.WFCatalogSchema(), locations=('query',))
     def get(self, sncl_args, wfcatalog_args):
+        """
+        Process a *WFCatalog* GET request.
+        """
         # request.method == 'GET'
         _context = {'request': request}
         # sanity check - starttime and endtime must be specified
@@ -71,6 +78,9 @@ class WFCatalogResource(general_request.GeneralResource):
     )
     @misc.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
     def post(self, sncl_args, wfcatalog_args):
+        """
+        Process a *WFCatalog* POST request.
+        """
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"

@@ -41,8 +41,23 @@ class GeneralResource(Resource):
         return misc.get_temp_filepath() 
 
     def _process_request(self, args, mimetype, path_tempfile, postdata=None):
-        """Process a request and send resulting file to client."""
+        """Process a request and send resulting file to the client.
+
+        ..note: This method is a wrapper of .. py:function:process_request().
         
+        :param dict args: The requests query arguments
+        :param str mimetype: The mimetype identifier
+        :param path_tempfile: Path to a temporary file the combined output will
+        be dumped to
+        :param postdata: SNCLs formated in the *FDSNWS POST* format
+        :type postdata: str or None
+
+        :return: The combined response (Read from the temporary file)
+
+        If :param postdata: is set to None a *GET* request will be performed.
+        """
+        # TODO(damb): Improve mimetype handling.
+
         self.logger.debug(("Processing request: args={0}, path_tempfile={1}, "
                 + "postdata={2}, timout={3}, retries={4}, "
                 + "retry_wait={5}, threads={6}").format(args, path_tempfile,
@@ -84,13 +99,26 @@ def process_request(query_params,
         retries=settings.DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
         threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
-    """Route a 'new' request."""
+    """
+    Route a *new* request.
+   
+    Routing is delegated to the :py:class:`route.WebserviceRouter`.
+
+    :param dict query_params: The requests query arguments
+    :param path_tempfile: Path to a temporary file the combined output will be
+    dumped to
+    :param postdata: SNCLs formated in the *FDSNWS POST* format
+    :type postdata: str or None
+
+    :return: Path to the temporary file containing the combined output or None.
+    :rtype: str or None
+    """
 
     if path_tempfile is None:
         return None
 
     # TODO(fab): capture log output
-    # TODO(damb): ... and handla different type of exceptions
+    # TODO(damb): ... and handle different type of exceptions
 
 #    try:
     cred = {}
@@ -116,7 +144,16 @@ def process_request(query_params,
 # process_request ()
 
 def get_routing_url(routing_service):
-    """Get routing URL for routing service abbreviation."""
+    """
+    Utility function. Get routing URL for routing service abbreviation.
+   
+    :param str routing_service: Routing service identifier
+    :return: URL of the EIDA routing service
+    :rtype: str
+
+    In case an unknown identifier was passed the URL of a default EIDA routing
+    service is returned.
+    """
     
     try:
         server = settings.EIDA_NODES[routing_service]['services']['eida']\
