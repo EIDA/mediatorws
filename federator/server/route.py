@@ -165,17 +165,9 @@ class RoutingURL(object):
 # class RoutingURL
 
 # -----------------------------------------------------------------------------
-msglock = threading.Lock()
-
-def msg(s, verbose=True):
-    if verbose:
-        with msglock:
-            sys.stderr.write(s + '\n')
-            sys.stderr.flush()
-
-def retry(urlopen, url, data, timeout, count, wait, verbose=True):
+def connect(urlopen, url, data, timeout, count, wait):
     """connect/open a URL and retry in case the URL is not reachable"""
-    # TODO(damb): verbose is deprecated: logging in use.
+    # TODO(damb): Provide a global lock (.e. a lockfile) when retrying
 
     logger = logging.getLogger('federator.connect')
     n = 0
@@ -214,30 +206,83 @@ def retry(urlopen, url, data, timeout, count, wait, verbose=True):
 
             time.sleep(wait)
 
-# retry ()
+# connect ()
+
+# -----------------------------------------------------------------------------
+def start_thread():
+    # TODO(damb): use a logger @ module level
+    logger = logging.getLogger('federator.route')
+    logger.debug('Starting %s ...' % threading.current_thread().name)
+
+# start_thread ()
+
+# -----------------------------------------------------------------------------
+class TaskBase(object):
+
+    def __init__(self, logger):
+        self.logger = logging.getLogger(logger)
+
+    def __getstate__(self):
+        # prevent pickling errors for loggers
+        d = dict(self.__dict__)
+        if 'logger' in d.keys():
+            d['logger'] = d['logger'].name
+        return d
+
+    # __getstate__ ()
+
+    def __setstate__(self, d):
+        if 'logger' in d.keys():
+            d['logger'] = logging.getLogger(d['logger'])
+            self.__dict__.update(d)
+
+    # __setstate__ ()
+    
+    def __call__(self):
+        raise NotImplementedError
+
+# class TaskBase
 
 
-def fetch(url, cred, authdata, postlines, combiner, dest, timeout,
-        retry_count, retry_wait, finished, lock, verbose):
-    try:
+class DownloadTask(TaskBase):
+
+    LOGGER = 'federator.download'
+
+    def __init__(self, url, sncls=[], **kwargs):
+        super(DownloadTask, self).__init__(self.LOGGER)
+
+        self.url = url
+        self.sncls = sncls
+
+        self._cred = kwargs.get('cred')
+        self._authdata = kwargs.get('authdata')
+        self._combiner = kwargs.get('combiner')
+        self._timeout = kwargs.get('timeout')
+        self._num_retries = kwargs.get('num_retries')
+        self._retry_wait = kwargs.get('retry_wait')
+
+    # __init__ () 
+
+    def __call__(self):
         url_handlers = []
 
-        if cred and url.post_qa() in cred:  # use static credentials
-            query_url = url.post_qa()
-            (user, passwd) = cred[query_url]
+        if self._cred and self.url.post_qa() in self._cred:  
+            # use static credentials
+            query_url = self.url.post_qa()
+            (user, passwd) = self._cred[query_url]
             mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, query_url, user, passwd)
             h = urllib2.HTTPDigestAuthHandler(mgr)
             url_handlers.append(h)
 
-        elif authdata:  # use the pgp-based auth method if supported
-            wadl_url = url.wadl()
-            auth_url = url.auth()
-            query_url = url.post_qa()
+        elif self._authdata:  # use the pgp-based auth method if supported
+            wadl_url = self.url.wadl()
+            auth_url = self.url.auth()
+            query_url = self.url.post_qa()
 
             try:
-                fd = retry(urllib2.urlopen, wadl_url, None, timeout,
-                           retry_count, retry_wait, verbose)
+                fd = connect(urllib2.urlopen, wadl_url, None, self._timeout,
+                           self._num_retries, self._retry_wait, verbose)
 
                 try:
                     root = ET.parse(fd).getroot()
@@ -250,14 +295,14 @@ def fetch(url, cred, authdata, postlines, combiner, dest, timeout,
                 finally:
                     fd.close()
 
-                msg("authenticating at %s" % auth_url, verbose)
+                self.logger("authenticating at %s" % auth_url)
 
-                if not isinstance(authdata, bytes):
-                    authdata = authdata.encode('utf-8')
+                if not isinstance(self._authdata, bytes):
+                    self._authdata = self._authdata.encode('utf-8')
 
                 try:
-                    fd = retry(urllib2.urlopen, auth_url, authdata, timeout,
-                               retry_count, retry_wait, verbose)
+                    fd = connect(urllib2.urlopen, auth_url, self._authdata,
+                            self._timeout, self._num_retries, self._retry_wait)
 
                     try:
                         if fd.getcode() == 200:
@@ -274,77 +319,82 @@ def fetch(url, cred, authdata, postlines, combiner, dest, timeout,
                                 url_handlers.append(h)
 
                             except ValueError:
-                                msg("invalid auth response: %s" % up)
+                                self.logger.warn("invalid auth response: %s" %
+                                        up)
+                                # TODO(damb): raise a proper exception
                                 return
 
-                            msg("authentication at %s successful"
-                                % auth_url, verbose)
+                            self.logger.info(
+                                    "authentication at %s successful"
+                                    % auth_url)
 
                         else:
-                            msg("authentication at %s failed with HTTP "
-                                "status code %d" % (auth_url, fd.getcode()))
+                            self.logger.warn(
+                            "authentication at %s failed with HTTP "
+                            "status code %d" % (auth_url, fd.getcode()))
 
                     finally:
                         fd.close()
 
                 except (urllib2.URLError, socket.error) as e:
-                    msg("authentication at %s failed: %s" % (auth_url, str(e)))
-                    query_url = url.post()
+                    self.logger.warn("authentication at %s failed: %s" %
+                            (auth_url, str(e)))
+                    query_url = self.url.post()
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                msg("reading %s failed: %s" % (wadl_url, str(e)))
-                query_url = url.post()
+                self.logger.warn("reading %s failed: %s" % (wadl_url, str(e)))
+                query_url = self.url.post()
 
             except AuthNotSupported:
-                msg("authentication at %s is not supported"
-                    % auth_url, verbose)
+                self.logger.info("authentication at %s is not supported"
+                    % auth_url)
 
-                query_url = url.post()
+                query_url = self.url.post()
 
         else:  # fetch data anonymously
-            query_url = url.post()
+            query_url = self.url.post()
 
         opener = urllib2.build_opener(*url_handlers)
 
         i = 0
-        n = len(postlines)
-        print('postlines: %s' % postlines)
+        n = len(self.sncls)
 
-        while i < len(postlines):
-            if n == len(postlines):
-                msg("getting data from %s" % query_url, verbose)
+        while i < len(self.sncls):
+            if n == len(self.sncls):
+                self.logger.info("getting data from %s" % query_url)
 
             else:
-                msg("getting data from %s (%d%%..%d%%)"
+                self.logger.debug("getting data from %s (%d%%..%d%%)"
                     % (query_url,
-                       100*i/len(postlines),
-                       min(100, 100*(i+n)/len(postlines))),
-                    verbose)
+                       100*i/len(self.sncls),
+                       min(100, 100*(i+n)/len(self.sncls))))
 
-            print('URL post_params: %s' % url.post_params())
+            #print('URL post_params: %s' % self.url.post_params())
             postdata = (''.join((p + '=' + str(v) + '\n')
-                                for (p, v) in url.post_params()) +
-                        ''.join(postlines[i:i+n]))
+                                for (p, v) in self.url.post_params()) +
+                        ''.join(self.sncls[i:i+n]))
 
-            print(url)
-            print(postdata)
+            #print(url)
+            #print(postdata)
 
-            # msg("postdata:\n%s" % postdata, verbose)
+            self.logger.debug("postdata:\n%s" % postdata)
             
             if not isinstance(postdata, bytes):
                 postdata = postdata.encode('utf-8')
 
             try:
-                fd = retry(opener.open, query_url, postdata, timeout,
-                           retry_count, retry_wait, verbose)
+                fd = connect(opener.open, query_url, postdata, self._timeout,
+                           self._num_retries, self._retry_wait)
 
                 try:
                     if fd.getcode() == 204:
-                        msg("received no data from %s" % query_url, verbose)
+                        self.logger.info("received no data from %s" %
+                                query_url)
 
                     elif fd.getcode() != 200:
-                        msg("getting data from %s failed with HTTP status "
-                            "code %d" % (query_url, fd.getcode()))
+                        self.logger.warn(
+                                "getting data from %s failed with HTTP status "
+                                "code %d" % (query_url, fd.getcode()))
 
                         break
 
@@ -354,20 +404,21 @@ def fetch(url, cred, authdata, postlines, combiner, dest, timeout,
                         content_type = fd.info().get('Content-Type')
                         content_type = content_type.split(';')[0]
 
-                        if combiner and content_type == combiner.mimetype:
+                        if (self._combiner and 
+                                content_type == self._combiner.mimetype):
 
-                            combiner.combine(fd)
-                            size = combiner.buffer_size
+                            self._combiner.combine(fd)
+                            size = self._combiner.buffer_size
 
                         else:
-                            msg("getting data from %s failed: unsupported "
-                                "content type '%s'" % (query_url,
-                                                       content_type))
+                            self.logger.warn(
+                            "getting data from %s failed: unsupported "
+                            "content type '%s'" % (query_url, content_type))
 
                             break
 
-                        msg("got %d bytes (%s) from %s"
-                            % (size, content_type, query_url), verbose)
+                        self.logger.info("got %d bytes (%s) from %s"
+                            % (size, content_type, query_url))
 
                     i += n
 
@@ -376,147 +427,39 @@ def fetch(url, cred, authdata, postlines, combiner, dest, timeout,
 
             except urllib2.HTTPError as e:
                 if e.code == 413 and n > 1:
-                    msg("request too large for %s, splitting"
-                        % query_url, verbose)
+                    self.logger.warn("request too large for %s, splitting"
+                        % query_url)
 
                     n = -(n//-2)
 
                 else:
-                    msg("getting data from %s failed: %s"
+                    self.logger.warn("getting data from %s failed: %s"
                         % (query_url, str(e)))
 
                     break
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                msg("getting data from %s failed: %s"
+                self.logger.warn("getting data from %s failed: %s"
                     % (query_url, str(e)))
 
                 break
 
-    finally:
-        finished.put(threading.current_thread())
+    # __call__()
 
-# fetch ()
+# class DownloadTask
 
 
-def route(url, qp, cred, authdata, postdata, dest, timeout, retry_count,
-          retry_wait, maxthreads, verbose=True):
-    threads = []
-    running = 0
-    finished = Queue.Queue()
-    lock = threading.Lock()
-
-    query_format = qp.get('format')
-    if not query_format:
-        # TODO(damb): raise a proper exception
-        raise
-
-    combiner = Combiner.create(query_format, qp=qp)
-
-    if postdata:
-        # TODO(damb): To be refactored!
-        # NOTE: Uses the post_params method of a RoutingURL.
-        query_url = url.post()
-        postdata = (''.join((p + '=' + v + '\n')
-                            for (p, v) in url.post_params()) +
-                    postdata)
-
-        if not isinstance(postdata, bytes):
-            postdata = postdata.encode('utf-8')
-
-    else:
-        query_url = url.get()
-
-    msg("getting routes from %s" % query_url, verbose)
-
-    try:
-        fd = retry(urllib2.urlopen, query_url, postdata, timeout, retry_count,
-                   retry_wait, verbose)
-
-        try:
-            if fd.getcode() == 204:
-                raise Error("received no routes from %s" % query_url)
-
-            elif fd.getcode() != 200:
-                raise Error("getting routes from %s failed with HTTP status "
-                            "code %d" % (query_url, fd.getcode()))
-
-            else:
-                urlline = None
-                postlines = []
-
-                while True:
-                    line = fd.readline()
-                    print('Line: %s' % line)
-
-                    if isinstance(line, bytes):
-                        line = line.decode('utf-8')
-
-                    if not urlline:
-                        urlline = line.strip()
-
-                    elif not line.strip():
-                        if postlines:
-                            target_url = TargetURL(urlparse.urlparse(urlline),
-                                                   url.target_params())
-                            threads.append(threading.Thread(target=fetch,
-                                                            args=(target_url,
-                                                                  cred,
-                                                                  authdata,
-                                                                  postlines,
-                                                                  combiner,
-                                                                  dest,
-                                                                  timeout,
-                                                                  retry_count,
-                                                                  retry_wait,
-                                                                  finished,
-                                                                  lock,
-                                                                  verbose)))
-
-                        urlline = None
-                        postlines = []
-
-                        if not line:
-                            break
-
-                    else:
-                        postlines.append(line)
-
-        finally:
-            fd.close()
-
-    except (urllib2.URLError, socket.error) as e:
-        raise Error("getting routes from %s failed: %s" % (query_url, str(e)))
-
-    for t in threads:
-        if running >= maxthreads:
-            thr = finished.get(True)
-            thr.join()
-            running -= 1
-
-        t.start()
-        running += 1
-
-    while running:
-        thr = finished.get(True)
-        thr.join()
-        running -= 1
-
-    combiner.dump(dest)
-
-# route ()
-
-# -----------------------------------------------------------------------------
-class EIDAWSRouter:
+class WebserviceRouter:
     """
-    Implementation of the federator routing facility using EIDAWS Routing.
+    Implementation of the federator routing facility providing routing by means
+    of a routing webservice.
 
     ----
     References:
     https://www.orfeus-eu.org/data/eida/webservices/routing/
     """
 
-    LOGGER = 'federator.eidaws_router'
+    LOGGER = 'federator.webservice_router'
 
     def __init__(self, url, query_params={}, postdata=None, dest=None, 
             timeout=settings.DEFAULT_ROUTING_TIMEOUT,
@@ -537,9 +480,6 @@ class EIDAWSRouter:
         self.num_retries = num_retries
         self.retry_wait = retry_wait
 
-        # TODO(damb): To be removed.
-        self.max_threads = max_threads
-
 
         self.threads = []
         query_format = query_params.get('format')
@@ -548,9 +488,12 @@ class EIDAWSRouter:
             raise
         self._combiner = Combiner.create(query_format, qp=query_params)
 
+        self._lock = threading.Lock()
         self.__routing_table = []
-        self.__thread_pool = ThreadPool(processes=max_threads)
+        self.__thread_pool = ThreadPool(processes=max_threads,
+                initializer=start_thread)
 
+    # __init__ ()
 
     @property
     def cred(self):
@@ -564,32 +507,27 @@ class EIDAWSRouter:
     def authdata(self):
         return self._authdata
 
-    def _route(self, url, qp, cred, authdata, postdata, dest, timeout,
-            retry_count, retry_wait, maxthreads):
+    def _route(self):
         """creates the routing table"""
 
-        running = 0
-        finished = Queue.Queue()
-        lock = threading.Lock()
-
-        if postdata:
+        if self.postdata:
             # NOTE(damb): Uses the post_params method of a RoutingURL.
-            query_url = url.post()
-            postdata = (''.join((p + '=' + v + '\n')
-                                for (p, v) in url.post_params()) +
-                        postdata)
+            query_url = self.url.post()
+            self.postdata = (''.join((p + '=' + v + '\n')
+                                for (p, v) in self.url.post_params()) +
+                        self.postdata)
 
-            if not isinstance(postdata, bytes):
-                postdata = postdata.encode('utf-8')
+            if not isinstance(self.postdata, bytes):
+                self.postdata = self.postdata.encode('utf-8')
 
         else:
-            query_url = url.get()
+            query_url = self.url.get()
 
         self.logger.info("getting routes from %s" % query_url)
 
         try:
-            fd = retry(urllib2.urlopen, query_url, postdata, timeout,
-                    retry_count, retry_wait)
+            fd = connect(urllib2.urlopen, query_url, self.postdata,
+                    self.timeout, self.num_retries, self.retry_wait)
 
             try:
                 if fd.getcode() == 204:
@@ -602,8 +540,10 @@ class EIDAWSRouter:
                                 "code %d" % (query_url, fd.getcode()))
 
                 else:
+                    # parse routing service results and set up the routing
+                    # table
                     urlline = None
-                    postlines = []
+                    sncls = []
 
                     while True:
                         line = fd.readline()
@@ -615,74 +555,68 @@ class EIDAWSRouter:
                             urlline = line.strip()
 
                         elif not line.strip():
-                            # TODO(damb): create tasks instead of directly
-                            # creating thread objects.
-                            if postlines:
-                                target_url = TargetURL(urlparse.urlparse(urlline),
-                                                       url.target_params())
-                                self.threads.append(threading.Thread(target=fetch,
-                                                                args=(target_url,
-                                                                      cred,
-                                                                      authdata,
-                                                                      postlines,
-                                                                      self._combiner,
-                                                                      dest,
-                                                                      timeout,
-                                                                      retry_count,
-                                                                      retry_wait,
-                                                                      finished,
-                                                                      lock,
-                                                                      True)))
-
+                            # set up the routing table
+                            if sncls:
+                                self.__routing_table.append((urlline, sncls))
                             urlline = None
-                            postlines = []
+                            sncls = []
 
                             if not line:
                                 break
 
                         else:
-                            postlines.append(line)
+                            sncls.append(line)
 
             finally:
                 fd.close()
 
         except (urllib2.URLError, socket.error) as e:
-            raise Error("getting routes from %s failed: %s" % (query_url, str(e)))
-
-        for t in self.threads:
-            if running >= maxthreads:
-                thr = finished.get(True)
-                thr.join()
-                running -= 1
-
-            t.start()
-            running += 1
-
-        while running:
-            thr = finished.get(True)
-            thr.join()
-            running -= 1
-
-        self._combiner.dump(dest)
-
+            raise Error("getting routes from %s failed: %s" % (query_url,
+                str(e)))
+    
     # _route ()
 
     def _fetch(self):
         """fetches the results"""
-        # NOTE(damb): This _fetch method is used in another way than Andres
-        # fetch method. The _fetch function written by Andres is basically a
-        # task.
-
-        # apply tasks to the thread_pool
-        pass
+        # NOTE(damb): This _fetch method is used in a different way than Andres
+        # fetch method. The original _fetch function functionality is posponed
+        # to DownloadTask objects.
+        task_kwargs = {
+                'cred': self.cred,
+                'authdata': self.authdata,
+                'combiner': self._combiner,
+                'timeout': self.timeout,
+                'num_retries': self.num_retries,
+                'retry_wait': self.retry_wait
+                }
+        # create from the routing table content tasks
+        for url, sncls in self.__routing_table:
+            self.logger.debug(
+                    'Setting up DownloadTask for <url=%s, sncls=%s> ...'
+                    % (url, sncls))
+            # create a TargetURL
+            target_url = TargetURL(
+                    urlparse.urlparse(url), 
+                    self.url.target_params())
+            # apply tasks to the thread pool
+            self.__thread_pool.apply_async(DownloadTask(
+                target_url,
+                sncls,
+                **task_kwargs))
+        
+        self.__thread_pool.close()
+        self.__thread_pool.join()
 
     # _fetch ()
 
     def __call__(self):
-        self._route(self.url, self.query_params, self.cred, self.authdata,
-                self.postdata, self.dest, self.timeout, self.num_retries,
-                self.retry_wait, self.max_threads)
-    
+        # route
+        self._route()
+        # fetch
+        self._fetch()
+        # dump
+        self._combiner.dump(self.dest)
+
     # __call__ ()
 
 # class EIDAWSRouter
