@@ -28,13 +28,11 @@ from federator.server.combine import Combiner
 
 try:
     # Python 2.x
-    import Queue
     import urllib2
     import urlparse
     import urllib
 except ImportError:
     # Python 3.x
-    import queue as Queue
     import urllib.request as urllib2
     import urllib.parse as urlparse
     import urllib.parse as urllib
