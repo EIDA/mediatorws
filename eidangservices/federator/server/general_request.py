@@ -83,15 +83,14 @@ def process_request(query_params,
         timeout=settings.DEFAULT_ROUTING_TIMEOUT,
         retries=settings.DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
-        threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
-        # TODO(damb): Either use a logger or pass the log_level.
-        verbose=True):
+        threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
     """Route a 'new' request."""
 
     if path_tempfile is None:
         return None
 
     # TODO(fab): capture log output
+    # TODO(damb): ... and handla different type of exceptions
 
 #    try:
     cred = {}
@@ -102,11 +101,9 @@ def process_request(query_params,
             query_params)
     dest = open(path_tempfile, 'wb')
 
-    router = route.EIDAWSRouter(url, query_params, postdata,
+    router = route.WebserviceRouter(url, query_params, postdata,
             dest, timeout, retries, retry_wait, threads)
     router()
-#    route.route(url, query_params, cred, authdata, postdata, dest, 
-#            timeout, retries, retry_wait, threads, verbose)
 #    except Exception:
 #        return None
     

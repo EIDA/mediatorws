@@ -282,7 +282,7 @@ class DownloadTask(TaskBase):
 
             try:
                 fd = connect(urllib2.urlopen, wadl_url, None, self._timeout,
-                           self._num_retries, self._retry_wait, verbose)
+                           self._num_retries, self._retry_wait)
 
                 try:
                     root = ET.parse(fd).getroot()
