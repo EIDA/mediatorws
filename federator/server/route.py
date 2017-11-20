@@ -617,6 +617,6 @@ class WebserviceRouter:
 
     # __call__ ()
 
-# class EIDAWSRouter
+# class WebserviceRouter 
 
 # ---- END OF <route.py> ----

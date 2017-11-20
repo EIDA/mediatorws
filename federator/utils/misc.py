@@ -176,3 +176,7 @@ def convert_sncl_dict_to_lines(args):
     postfile lines
     """
     return [' '.join(sncl) for sncl in zip(*args.values())]
+
+# convert_sncl_dict_to_lines ()
+
+# ---- END OF <misc.py> ----
