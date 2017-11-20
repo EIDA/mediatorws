@@ -313,7 +313,7 @@ class WFCatalogJSONCombiner(Combiner):
 
     def __init__(self, **kwargs):
         path_pipe = kwargs.get('path_pipe')
-        super(JSONCombiner, self).__init__(path_pipe)
+        super(WFCatalogJSONCombiner, self).__init__(path_pipe)
         self.__data = []
 
     def combine(self, fd):
@@ -355,7 +355,7 @@ class StationTextCombiner(Combiner):
 
     def __init__(self, **kwargs):
         path_pipe = kwargs.get('path_pipe')
-        super(TextCombiner, self).__init__(path_pipe)
+        super(StationTextCombiner, self).__init__(path_pipe)
         self.__text = ''
 
     def combine(self, fd):
@@ -389,9 +389,9 @@ class StationTextCombiner(Combiner):
 
     # combine ()
 
-def dump(self, fd, **kwargs):
-    if self.__text:
-        fd.write(self.__text)
+    def dump(self, fd, **kwargs):
+        if self.__text:
+            fd.write(self.__text)
         
 # class StationTextCombiner
 
@@ -408,7 +408,7 @@ class StationXMLCombiner(Combiner):
 
     def __init__(self, **kwargs):
         path_pipe = kwargs.get('path_pipe')
-        super(XMLCombiner, self).__init__(path_pipe)
+        super(StationXMLCombiner, self).__init__(path_pipe)
         self.__et = None
         self.__qp = kwargs.get('qp')
         self.__geometry_par_type = self._get_geometry_par_type(self.__qp)
