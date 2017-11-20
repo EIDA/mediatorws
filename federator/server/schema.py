@@ -177,7 +177,6 @@ class SNCLSchema(Schema):
         delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
         missing = ['*']
     )
-    # TODO(damb): For GET requests fields are available even when empty
     starttime = RequestList(
         FDSNWSDateTime(format='fdsnws'),
         load_from='start',
@@ -210,8 +209,8 @@ class SNCLSchema(Schema):
             invalid = []
             if context.get('request'):
                 if context.get('request').method == 'GET':
-                    # for 'GET' requests only accept one datetime item in the
-                    # list
+                    # for request.method == 'GET' only accept one datetime item
+                    # in the list
                     starttime = data.get('starttime')
                     if not starttime:
                         starttime = []
@@ -222,6 +221,14 @@ class SNCLSchema(Schema):
 
                     if (len(starttime) > 1 or len(endtime) > 1):
                         raise ValidationError('invalid number of times passed')
+                    if ((len(starttime) == 1 and not starttime[0]) or
+                    (len(endtime) == 1 and not endtime[0])):
+                        raise ValidationError('invalid values passed')
+
+                    # reset endtime silently if in future
+                    if endtime[0] > datetime.datetime.utcnow():
+                        endtime = [datetime.datetime.utcnow()]
+                        data['endtime'] = endtime
 
                     if (len(starttime) == 1 and starttime[0] >= endtime[0]): 
                         invalid.append((starttime[0], endtime[0]))
@@ -231,6 +238,8 @@ class SNCLSchema(Schema):
                         invalid = [(s_time, e_time) for s_time, e_time in
                                 zip(data['starttime'], data['endtime']) 
                                 if s_time >= e_time]
+                    except TypeError:
+                        raise ValidationError('invalid temporal constraints')
                     except KeyError:
                         raise ValidationError('missing temporal constraints')
                 else:
@@ -375,7 +384,8 @@ class StationSchema(ServiceSchema):
             raise ValidationError(
                 'Bad Request: Both rectangular spatial and circular spatial' +
                 ' parameters defined.')
-
+            # TODO(damb): check if min values are smaller than max values;
+            # no default values are set
 
     class Meta:
         service = 'station'
