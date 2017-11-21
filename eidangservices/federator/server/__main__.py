@@ -16,7 +16,7 @@ import sys
 
 from eidangservices import settings
 from eidangservices.federator.server.app import main as start_app
-from eidangservices.federator.utils.misc import realpath, CustomParser
+from eidangservices.federator.server.misc import realpath, CustomParser
 
 def real_file_path(p):
     p = realpath(p)

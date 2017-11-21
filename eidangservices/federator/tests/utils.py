@@ -21,7 +21,7 @@ from werkzeug.exceptions import HTTPException
 
 from eidangservices.federator.server import schema
 from eidangservices.federator.tests.helpers import POSTRequest
-from eidangservices.federator.utils.misc import fdsnws_parser
+from eidangservices.federator.server.misc import fdsnws_parser
 
 
 # -----------------------------------------------------------------------------

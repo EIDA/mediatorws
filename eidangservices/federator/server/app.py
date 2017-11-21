@@ -22,10 +22,6 @@ from eidangservices.federator.server.routes.dataselect import DataselectResource
 from eidangservices.federator.server.routes.station import StationResource
 from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource 
 
-
-    
-
-
     
 def main(args):
     """Run Flask app."""

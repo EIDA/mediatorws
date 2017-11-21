@@ -15,7 +15,7 @@ from flask_restful import Resource
 
 from eidangservices import settings
 from eidangservices.federator.server import httperrors, route
-from eidangservices.federator.utils import misc
+from eidangservices.federator.server import misc
 
 try:
     # Python 2.x

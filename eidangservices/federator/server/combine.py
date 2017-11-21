@@ -24,7 +24,7 @@ import threading
 from future.utils import iteritems
 
 from eidangservices import settings
-from eidangservices.federator.utils import misc
+from eidangservices.federator.server import misc
 
 try:
     # Python 3.2 and earlier

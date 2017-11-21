@@ -19,7 +19,7 @@ from marshmallow import (Schema, SchemaOpts, fields, validate,
     ValidationError, post_load, post_dump, validates_schema)
 
 from eidangservices import settings
-from eidangservices.federator.utils.misc import \
+from eidangservices.federator.server.misc import \
         from_fdsnws_datetime, fdsnws_isoformat
 
 
