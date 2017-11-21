@@ -6,15 +6,13 @@ This file is part of the EIDA mediator/federator webservices.
 
 import datetime
 import logging
-# FIXME(damb): Check if 'import os' needed!
-import os
 
 from flask import request
 from webargs.flaskparser import use_args
 
-from federator import settings
-from federator.server import general_request, schema, httperrors
-from federator.utils import misc                                      
+from eidangservices import settings
+from eidangservices.federator.server import general_request, schema, httperrors
+from eidangservices.federator.utils import misc
 
 
 class StationResource(general_request.GeneralResource):

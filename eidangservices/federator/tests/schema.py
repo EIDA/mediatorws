@@ -15,10 +15,10 @@ import datetime
 import marshmallow as ma
 import unittest
 
-from federator.tests.helpers import GETRequest, POSTRequest
+from eidangservices.federator.tests.helpers import GETRequest, POSTRequest
 
-from federator.server import schema
-from federator.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
+from eidangservices.federator.server import schema
+from eidangservices.federator.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
 
 SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR 

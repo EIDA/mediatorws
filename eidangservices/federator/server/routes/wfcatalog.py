@@ -17,9 +17,9 @@ from future.utils import iteritems
 from flask import request
 from webargs.flaskparser import use_args
 
-from federator import settings
-from federator.server import general_request, schema, httperrors 
-from federator.utils import misc
+from eidangservices import settings
+from eidangservices.federator.server import general_request, schema, httperrors 
+from eidangservices.federator.utils import misc
 
 
 class WFCatalogResource(general_request.GeneralResource):

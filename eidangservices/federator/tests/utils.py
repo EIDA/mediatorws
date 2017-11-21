@@ -19,9 +19,9 @@ import marshmallow as ma
 
 from werkzeug.exceptions import HTTPException
 
-from federator.server import schema
-from federator.tests.helpers import POSTRequest
-from federator.utils.misc import fdsnws_parser
+from eidangservices.federator.server import schema
+from eidangservices.federator.tests.helpers import POSTRequest
+from eidangservices.federator.utils.misc import fdsnws_parser
 
 
 # -----------------------------------------------------------------------------

@@ -13,15 +13,14 @@ from flask import Flask
 from flask_restful import Api
 
 
-from federator import settings
-
-from federator.server.routes.dataselect import DataselectResource
-from federator.server.routes.misc import \
+from eidangservices import settings
+from eidangservices.federator.server.routes.misc import \
     DataselectVersionResource, StationVersionResource, \
     WFCatalogVersionResource, DataselectWadlResource,\
     StationWadlResource, WFCatalogWadlResource 
-from federator.server.routes.station import StationResource
-from federator.server.routes.wfcatalog import WFCatalogResource 
+from eidangservices.federator.server.routes.dataselect import DataselectResource
+from eidangservices.federator.server.routes.station import StationResource
+from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource 
 
 
     
@@ -83,7 +82,6 @@ def main(args):
         
     ## wfcatalog service endpoint
 
-    # TODO(damb): add query method
     api.add_resource(
         WFCatalogResource, "%s%s" % (settings.FDSN_WFCATALOG_PATH, 
             settings.FDSN_QUERY_METHOD_TOKEN))

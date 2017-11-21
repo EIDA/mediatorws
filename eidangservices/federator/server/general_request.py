@@ -13,9 +13,9 @@ import flask
 from flask import current_app, request
 from flask_restful import Resource
 
-from federator import settings
-from federator.server import httperrors, route
-from federator.utils import misc
+from eidangservices import settings
+from eidangservices.federator.server import httperrors, route
+from eidangservices.federator.utils import misc
 
 try:
     # Python 2.x

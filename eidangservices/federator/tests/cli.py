@@ -15,9 +15,9 @@ import os
 import tempfile
 import unittest
 
-from federator import settings
-from federator.server.__main__ import build_parser
-from federator.utils.misc import ExitCodes
+from eidangservices import settings
+from eidangservices.federator.server.__main__ import build_parser
+from eidangservices.federator.utils.misc import ExitCodes
 
 class CLITestCase(unittest.TestCase):
     def setUp(self):

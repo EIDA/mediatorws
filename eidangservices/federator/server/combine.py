@@ -23,8 +23,8 @@ import threading
 
 from future.utils import iteritems
 
-from federator import settings
-from federator.utils import misc
+from eidangservices import settings
+from eidangservices.federator.utils import misc
 
 try:
     # Python 3.2 and earlier

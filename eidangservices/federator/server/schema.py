@@ -18,8 +18,9 @@ import marshmallow as ma
 from marshmallow import (Schema, SchemaOpts, fields, validate,
     ValidationError, post_load, post_dump, validates_schema)
 
-from federator import settings
-from federator.utils.misc import from_fdsnws_datetime, fdsnws_isoformat
+from eidangservices import settings
+from eidangservices.federator.utils.misc import \
+        from_fdsnws_datetime, fdsnws_isoformat
 
 
 # TODO(damb): Improve error messages.

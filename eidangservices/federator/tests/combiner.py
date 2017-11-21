@@ -13,7 +13,7 @@ import json
 import os
 import unittest
 
-from federator.server import combine
+from eidangservices.federator.server import combine
 
 # -----------------------------------------------------------------------------
 # constants

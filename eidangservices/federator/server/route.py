@@ -23,8 +23,8 @@ import time
 
 from multiprocessing.pool import ThreadPool
 
-from federator import settings
-from federator.server.combine import Combiner
+from eidangservices import settings
+from eidangservices.federator.server.combine import Combiner
 
 try:
     # Python 2.x
