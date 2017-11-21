@@ -462,11 +462,19 @@ DEFAULT_EVENT_SERVICE = 'usgs'
 SERVER_NAME_MEDIATOR = 'EIDA Mediator (alpha)'
 SERVER_NAME_FEDERATOR = 'EIDA Federator (alpha)'
 
+DEFAULT_SERVER_PORT = 5000
+DEFAULT_ROUTING_TIMEOUT = 600
+DEFAULT_ROUTING_RETRIES = 10
+DEFAULT_ROUTING_RETRY_WAIT = 60
+DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS = 5
+
 VERSION = '0.9.1'
 SHARE_DIR = 'share'
 
+
 FDSN_STATION_PATH = '/fdsnws/station/1/'
 FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
+FDSN_WFCATALOG_PATH = '/eidaws/wfcatalog/1/'
 FDSN_EVENT_PATH = '/fdsnws/event/1/'
 
 EIDA_ROUTING_PATH = '/eidaws/routing/1/'
@@ -503,25 +511,51 @@ FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
+FDSN_WFCATALOG_VERSION = '1.0.0'
+
+FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
+FDSNWS_QUERY_LIST_SEPARATOR_CHAR = ','
 
 FDSN_WADL_DIR = SHARE_DIR
 FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
 FDSN_STATION_WADL_FILENAME = 'station.wadl'
+FDSN_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
 
-DATASELECT_MIMETYPE = 'application/vnd.fdsn.mseed'
-STATION_MIMETYPE_XML = 'application/xml'
-STATION_MIMETYPE_TEXT = 'text/plain'
-VERSION_MIMETYPE = 'text/plain'
-WADL_MIMETYPE = 'application/xml'
+MIMETYPE_MSEED = 'application/vnd.fdsn.mseed'
+MIMETYPE_TEXT = 'text/plain' 
+MIMETYPE_JSON = 'application/json'
+MIMETYPE_XML = 'application/xml'
 
-GENERAL_TEXT_MIMETYPE = 'text/plain'
-GENERAL_XML_MIMETYPE = 'application/xml'
+DATASELECT_MIMETYPE = MIMETYPE_MSEED
+STATION_MIMETYPE_XML = MIMETYPE_XML
+STATION_MIMETYPE_TEXT = MIMETYPE_TEXT
+WFCATALOG_MIMETYPE = MIMETYPE_JSON
+VERSION_MIMETYPE = MIMETYPE_TEXT
+WADL_MIMETYPE = MIMETYPE_XML
+
+
+STATION_RESPONSE_TEXT_HEADER = \
+    '#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime'
+
+STATIONXML_RESOURCE_METADATA_ELEMENTS = (
+    '{http://www.fdsn.org/xml/station/1}Source', 
+    '{http://www.fdsn.org/xml/station/1}Created',
+    '{http://www.fdsn.org/xml/station/1}Sender', 
+    '{http://www.fdsn.org/xml/station/1}Module', 
+    '{http://www.fdsn.org/xml/station/1}ModuleURI')
+STATIONXML_NETWORK_ELEMENT = '{http://www.fdsn.org/xml/station/1}Network'
+STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'
+STATIONXML_LATITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Latitude'
+STATIONXML_LONGITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Longitude'
 
 
 FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
 
 FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
 
+FDSNWS_GEOMETRY_PARAMS_LONG = (
+    'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
+FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 APP_SHARE = os.path.join(APP_ROOT, SHARE_DIR)
