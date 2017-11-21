@@ -41,24 +41,24 @@ def build_parser(parents=[]):
             parents=parents)
 
     parser.add_argument('-p', '--port', type=int,
-        default=settings.DEFAULT_SERVER_PORT, 
+        default=settings.EIDA_FEDERATOR_DEFAULT_SERVER_PORT, 
         help='server port')
     parser.add_argument('-R', '--routing', type=str, metavar='SERVICE_ID',
         default=settings.DEFAULT_ROUTING_SERVICE,
         choices=list(settings.EIDA_NODES),
         help='routing service identifier (choices: {%(choices)s})')
     parser.add_argument("-t", "--timeout", metavar='SECONDS', type=int,
-        default=settings.DEFAULT_ROUTING_TIMEOUT,
+        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
         help="routing service request timeout in seconds " +
         "(default: %(default)s)")
     parser.add_argument("-r", "--retries", type=int,
-        default=settings.DEFAULT_ROUTING_RETRIES,
+        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
         help="routing service number of retries (default: %(default)s)")
     parser.add_argument("-w", "--retry-wait", type=int,
-        default=settings.DEFAULT_ROUTING_RETRY_WAIT,
+        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
         help="seconds to wait before each retry  (defaults: %(default)s)")
     parser.add_argument("-n", "--threads", type=int,
-        default=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
+        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
         help="maximum number of download threads (default: %(default)s)")
     parser.add_argument(
         '--tmpdir', type=str, default='', 

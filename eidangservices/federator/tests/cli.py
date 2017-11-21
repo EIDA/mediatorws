@@ -29,7 +29,7 @@ class CLITestCase(unittest.TestCase):
     def test_port(self):
         # test default argument
         args = self.parser.parse_args([])
-        self.assertEqual(args.port, settings.DEFAULT_SERVER_PORT)
+        self.assertEqual(args.port, settings.EIDA_FEDERATOR_DEFAULT_SERVER_PORT)
         args = self.parser.parse_args(['-p', '5001'])
         self.assertEqual(args.port, 5001)
         args = self.parser.parse_args(['--port', '5001'])
@@ -54,7 +54,8 @@ class CLITestCase(unittest.TestCase):
 
     def test_retries(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.retries, settings.DEFAULT_ROUTING_RETRIES)
+        self.assertEqual(args.retries, 
+                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES)
         args = self.parser.parse_args(['-r', '12'])
         self.assertEqual(args.retries, 12)
         args = self.parser.parse_args(['--retries', '12'])
@@ -64,7 +65,8 @@ class CLITestCase(unittest.TestCase):
         
     def test_retry_wait(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.retry_wait, settings.DEFAULT_ROUTING_RETRY_WAIT)
+        self.assertEqual(args.retry_wait, 
+                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT)
         args = self.parser.parse_args(['-w', '30'])
         self.assertEqual(args.retry_wait, 30)
         args = self.parser.parse_args(['--retry-wait', '30'])
@@ -75,7 +77,7 @@ class CLITestCase(unittest.TestCase):
     def test_num_threads(self):
         args = self.parser.parse_args([])
         self.assertEqual(args.threads,
-                settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS)
+                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS)
         args = self.parser.parse_args(['-n', '2'])
         self.assertEqual(args.threads, 2)
         args = self.parser.parse_args(['--threads', '2'])

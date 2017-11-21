@@ -95,10 +95,10 @@ class GeneralResource(Resource):
 def process_request(query_params, 
         path_tempfile=None,
         postdata=None,
-        timeout=settings.DEFAULT_ROUTING_TIMEOUT,
-        retries=settings.DEFAULT_ROUTING_RETRIES,
-        retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT, 
-        threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
+        timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
+        retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
+        retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT, 
+        threads=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
     """
     Route a *new* request.
    

@@ -460,10 +460,11 @@ class WebserviceRouter:
     LOGGER = 'federator.webservice_router'
 
     def __init__(self, url, query_params={}, postdata=None, dest=None, 
-            timeout=settings.DEFAULT_ROUTING_TIMEOUT,
-            num_retries=settings.DEFAULT_ROUTING_RETRIES,
-            retry_wait=settings.DEFAULT_ROUTING_RETRY_WAIT,
-            max_threads=settings.DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
+            timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
+            num_retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
+            retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
+            max_threads= \
+                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
 
         self.logger = logging.getLogger(self.LOGGER)
         
