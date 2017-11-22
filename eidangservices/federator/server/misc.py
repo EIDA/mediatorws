@@ -65,6 +65,31 @@ _iso8601_re = re.compile(
 )
 
 # -----------------------------------------------------------------------------
+class SNCL(object):
+
+    def __init__(self, network, station, location, channel, starttime,
+            endtime):
+        self.network = network
+        self.station = station
+        self.location = location
+        self.channel = channel
+        self.starttime = starttime
+        self.endtime = endtime
+
+    # __init__ ()
+
+    def __repr__(self):
+        return ("SNCL(net=%r, sta=%r, loc=%r, cha=%r, start=%r, end=%r)" %
+            (self.network, self.station, self.location, self.channel,
+                self.starttime, self.endtime))
+
+    def __str__(self):
+        return "%s %s %s %s %s %s" % (self.network, self.station,
+                self.location, self.channel, self.starttime, self.endtime)
+
+# class SNCL
+
+
 class ExitCodes:
     """
     Enum for exit codes.
