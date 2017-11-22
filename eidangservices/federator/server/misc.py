@@ -67,8 +67,8 @@ _iso8601_re = re.compile(
 # -----------------------------------------------------------------------------
 class SNCL(object):
 
-    def __init__(self, network, station, location, channel, starttime,
-            endtime):
+    def __init__(self, network='*', station='*', location='*', channel='*',
+            starttime=None, endtime=None):
         self.network = network
         self.station = station
         self.location = location
