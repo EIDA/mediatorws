@@ -19,7 +19,7 @@ import marshmallow as ma
 from webargs import core
 from webargs.flaskparser import FlaskParser
 
-from federator import settings
+from eidangservices import settings
 
 dateutil_available = False
 try:
