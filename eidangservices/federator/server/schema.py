@@ -129,158 +129,63 @@ class FDSNWSDateTime(fields.DateTime):
 
 # class FDSNWSDateTime     
 
-
-class RequestList(fields.List):
-    """
-    A list providing a request context dependent serialization.
-
-    I.e. in case the list contains just a single value it serializes by means
-    of returning the values serialized result. 
-    """
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        if self.context.get('request'):
-            if self.context.get('request').method == 'GET' and 1 == len(value):
-                # flatten list content for a single value
-                return self.container._serialize(value[0], attr, obj)
-        return super(RequestList, self)._serialize(value, attr, obj)
-
-# class RequestList
-
-
-class DelimitedRequestList(webargs.fields.DelimitedList):
-    """
-    A delimited list providing a request context dependent serialization.
-
-    For *GET* requests the list serializes the same way as for :py:attr:
-    as_string.
-    """
-    def _serialize(self, value, attr, obj):
-        ret = super(DelimitedRequestList, self)._serialize(value, attr, obj)
-        if not 'request' in self.context:
-            return ret
-        if self.as_string or self.context.get('request').method == 'GET':
-            return self.delimiter.join(format(each) for each in value)
-        return ret
-
-# class DelimitedRequestList  
-
-
 # -----------------------------------------------------------------------------
 class SNCLSchema(Schema):
     """
-    A SNCL Schema. SNCLs refer to the *FDSNWS* POST format. A SNCL is a line
-    consisting of::
+    A SNCL Schema. The name *SNCL* refers to the *FDSNWS* POST format. A SNCL
+    is a line consisting of:
 
         network station location channel starttime endtime
     """
-    network = DelimitedRequestList(
-        fields.Str(),
-        load_from='net', 
-        delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
-        missing = ['*']
-    )
-    station = DelimitedRequestList(
-        fields.Str(),
-        load_from='sta', 
-        delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
-        missing = ['*']
-    )
-    location = DelimitedRequestList(
-        fields.Str(),
-        load_from='loc', 
-        delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
-        missing=['*']
-    )
-    channel = DelimitedRequestList(
-        fields.Str(),
-        load_from='cha', 
-        delimiter=settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR,
-        missing = ['*']
-    )
-    starttime = RequestList(
-        FDSNWSDateTime(format='fdsnws'),
-        load_from='start',
-        missing = []
-    )
-    endtime = RequestList(
-        FDSNWSDateTime(format='fdsnws'),
-        load_from='end',
-        missing = []
-    )
+    network = fields.Str(load_from='net', missing = '*' )
+    station = fields.Str(load_from='sta', missing = '*')
+    location = fields.Str(load_from='loc', missing = '*')
+    channel = fields.Str(load_from='cha', missing = '*')
+    starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
+    endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
+
+    @post_load
+    def make_sncl(self, data):
+        return SNCL(**data)
 
     @post_dump
     def skip_empty_datetimes(self, data):
         if (self.context.get('request') and 
                 self.context.get('request').method == 'GET'):
-            if not data.get('starttime'):
+            if data.get('starttime') is None:
                 del data['starttime']
-            if not data.get('endtime'):
+            if not data.get('endtime') is None:
                 del data['endtime']
             return data
 
-
     @validates_schema
-    def validate(self, data):
-        """
-        SNCL schema validator
-        """
-        def validate_datetimes(context, data):
-            # NOTE(damb): context dependent validation
-            invalid = []
-            if context.get('request'):
-                if context.get('request').method == 'GET':
-                    # for request.method == 'GET' only accept one datetime item
-                    # in the list
-                    starttime = data.get('starttime')
-                    if not starttime:
-                        starttime = []
+    def validate_temporal_constraints(self, data):
+        # NOTE(damb): context dependent validation
+        if self.context.get('request'):
 
-                    endtime = data.get('endtime')
-                    if not endtime:
-                        endtime = [datetime.datetime.utcnow()]
+            starttime = data.get('starttime')
+            endtime = data.get('endtime')
 
-                    if (len(starttime) > 1 or len(endtime) > 1):
-                        raise ValidationError('invalid number of times passed')
-                    if ((len(starttime) == 1 and not starttime[0]) or
-                    (len(endtime) == 1 and not endtime[0])):
-                        raise ValidationError('invalid values passed')
+            if self.context.get('request').method == 'GET':
+                if not endtime:
+                    endtime = datetime.datetime.utcnow()
 
-                    # reset endtime silently if in future
-                    if endtime[0] > datetime.datetime.utcnow():
-                        endtime = [datetime.datetime.utcnow()]
-                        data['endtime'] = endtime
+                if not starttime or not endtime:
+                    raise ValidationError('invalid values passed')
 
-                    if (len(starttime) == 1 and starttime[0] >= endtime[0]): 
-                        invalid.append((starttime[0], endtime[0]))
+                # reset endtime silently if in future
+                if endtime > datetime.datetime.utcnow():
+                    endtime = datetime.datetime.utcnow()
+                    data['endtime'] = endtime
 
-                elif context.get('request').method == 'POST':
-                    try:
-                        invalid = [(s_time, e_time) for s_time, e_time in
-                                zip(data['starttime'], data['endtime']) 
-                                if s_time >= e_time]
-                    except TypeError:
-                        raise ValidationError('invalid temporal constraints')
-                    except KeyError:
-                        raise ValidationError('missing temporal constraints')
-                else:
-                    pass
 
-            if invalid:
-                raise ValidationError('endtime must be greater than starttime')
+            elif self.context.get('request').method == 'POST':
+                if starttime is None or endtime is None:
+                    raise ValidationError('missing temporal constraints')
 
-        def validate_schema(context, data):
-            # at least one SNCL must be defined for request.method == 'POST'
-            if (context.get('request') and 
-                    context.get('request').method == 'POST'):
-                if [v for v in data.values() if len(v) < 1]:
-                    raise ValidationError('No SNCL defined.')
-                if 1 != len(set([len(v) for v in data.values()])):
-                    raise ValidationError('Invalid SNCL definition')
-       
-        validate_datetimes(self.context, data)
-        validate_schema(self.context, data)
+            if starttime and starttime >= endtime:
+                raise ValidationError(
+                            'endtime must be greater than starttime')
 
 
     class Meta:
@@ -288,6 +193,26 @@ class SNCLSchema(Schema):
         ordered = True
 
 # class SNCLSchema
+
+class NEWSNCLSchema(Schema):
+    """
+    A SNCL Schema. SNCLs refer to the *FDSNWS* POST format. A SNCL is a line
+    consisting of:
+
+        network station location channel starttime endtime
+    """
+    network = fields.Str(load_from='net', missing = '*' )
+    station = fields.Str(load_from='sta', missing = '*')
+    location = fields.Str(load_from='loc', missing = '*')
+    channel = fields.Str(load_from='cha', missing = '*')
+    starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
+    endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
+
+    class Meta:
+        strict = True
+        ordered = True
+
+# class NEWSNCLSchema
 
 
 class ServiceOpts(SchemaOpts):
