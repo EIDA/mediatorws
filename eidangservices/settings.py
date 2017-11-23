@@ -9,6 +9,9 @@ This file is part of the EIDA mediator/federator webservices.
 
 import os
 
+# ----
+# general purpose constants
+PATH_LOCKDIR = '/var/lock/mediatorws/'
 
 # NOTE: arclink servers/ports are from
 # http://eida.gfz-potsdam.de/eida/status/master_table.php
@@ -560,3 +563,5 @@ FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 APP_SHARE = os.path.join(APP_ROOT, SHARE_DIR)
+
+# ----

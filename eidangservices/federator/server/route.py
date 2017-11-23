@@ -24,6 +24,7 @@ import time
 from multiprocessing.pool import ThreadPool
 
 from eidangservices import settings
+from eidangservices.federator.server import misc
 from eidangservices.federator.server.combine import Combiner
 
 try:
@@ -35,7 +36,6 @@ except ImportError:
     # Python 3.x
     import urllib.request as urllib2
     import urllib.parse as urlparse
-    import urllib.parse as urllib
 
 try:
     # Python 3.2 and earlier
@@ -43,6 +43,8 @@ try:
 except ImportError:
     from xml.etree import ElementTree as ET  # NOQA
 
+
+logger = logging.getLogger('federator.route')
 
 # -----------------------------------------------------------------------------
 # TODO(damb): Provide a generic error class.
@@ -163,15 +165,57 @@ class RoutingURL(object):
 # class RoutingURL
 
 # -----------------------------------------------------------------------------
-def connect(urlopen, url, data, timeout, count, wait):
-    """connect/open a URL and retry in case the URL is not reachable"""
-    # TODO(damb): Provide a global lock (.e. a lockfile) when retrying
+def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
+    """
+    Connect/open an URL and retry in case the URL is not reachable.
+
+    :param urlopen: a function reference to the opener to be used
+    :param str url: the URL to be opened
+    :param data: additional data send to the server (if set the HTTP request
+    method will be POST instead)
+    :type data: str or None
+    :param int timeout: timeout in seconds for the connection attempt
+    :param int count: max number of retries
+    :param int wait: time in seconds to wait between every single retry
+    :param bool lock_url: when retrying acquire a global
+    :py:class:`fasteners.InterProcessLock` for the *url* passed
+
+    :return: a file-like object with methods depending on the *urlopen* function
+    reference
+    :raises urllib2.HTTPError: if the HTTP status code is 4?? 
+    """
+    def retry(retry_wait, lock_url=lock_url, sleep_func=time.sleep, 
+            logger=None):
+        """
+        Sleep.
+        """ 
+        if lock_url:
+            url_to_lock = urlparse.urlsplit(url).geturl()
+            url_lock = misc.URLConnectionLock(url_to_lock,
+                    path_lockdir=settings.PATH_LOCKDIR, logger=logger)
+
+        gotten = lock_url and url_lock.acquire(blocking=False)
+        try:
+            if gotten or not lock_url:
+                if gotten:
+                    logger.debug('Lock for URL(%s) acquired.' % url_to_lock)
+                sleep_func(retry_wait)
+            else:
+                # TODO(damb): improve exception handling
+                raise Error("Another process is already retrying.")
+        finally:
+            if gotten:
+                logger.debug('Lock for URL(%s) released.' % url_to_lock)
+                url_lock.release() 
+
+    # retry ()
 
     logger = logging.getLogger('federator.connect')
-    n = 0
 
+    n = 0
     while True:
         if n >= count:
+            # number of retries exceeded
             return urlopen(url, data, timeout)
 
         try:
@@ -182,34 +226,35 @@ def connect(urlopen, url, data, timeout, count, wait):
             if fd.getcode() == 200 or fd.getcode() == 204:
                 return fd
 
+            # handle 'successful' error codes else than [200,204]
             logger.info(
                 "retrying %s (%d) after %d seconds due to HTTP status code %d"
                 % (url, n, wait, fd.getcode()))
 
             fd.close()
-            time.sleep(wait)
-
+            retry(wait, logger=logger)
+        
+        # NOTE(damb): approach 
+        # https://docs.python.org/3.1/howto/urllib2.html#number-1 in use
         except urllib2.HTTPError as e:
             if e.code >= 400 and e.code < 500:
                 raise
 
+            # retrying for 5?? HTTP status codes
             logger.warn("retrying %s (%d) after %d seconds due to %s"
                 % (url, n, wait, str(e)))
-
-            time.sleep(wait)
+            retry(wait, logger=logger)
 
         except (urllib2.URLError, socket.error) as e:
+            # retrying for connection errors
             logger.warn("retrying %s (%d) after %d seconds due to %s"
                 % (url, n, wait, str(e)))
-
-            time.sleep(wait)
+            retry(wait, logger=logger)
 
 # connect ()
 
 # -----------------------------------------------------------------------------
 def start_thread():
-    # TODO(damb): use a logger @ module level
-    logger = logging.getLogger('federator.route')
     logger.debug('Starting %s ...' % threading.current_thread().name)
 
 # start_thread ()
@@ -319,7 +364,8 @@ class DownloadTask(TaskBase):
                             except ValueError:
                                 self.logger.warn("invalid auth response: %s" %
                                         up)
-                                # TODO(damb): raise a proper exception
+                                # TODO(damb): raise a proper exception and
+                                # inform the client
                                 return
 
                             self.logger.info(
@@ -334,6 +380,7 @@ class DownloadTask(TaskBase):
                     finally:
                         fd.close()
 
+                # TODO(damb): Howto inform the client about errors.
                 except (urllib2.URLError, socket.error) as e:
                     self.logger.warn("authentication at %s failed: %s" %
                             (auth_url, str(e)))
@@ -371,9 +418,6 @@ class DownloadTask(TaskBase):
             postdata = (''.join((p + '=' + str(v) + '\n')
                                 for (p, v) in self.url.post_params()) +
                         ''.join(self.sncls[i:i+n]))
-
-            #print(url)
-            #print(postdata)
 
             self.logger.debug("postdata:\n%s" % postdata)
             
@@ -433,13 +477,14 @@ class DownloadTask(TaskBase):
                 else:
                     self.logger.warn("getting data from %s failed: %s"
                         % (query_url, str(e)))
+                    # TODO(damb): send the response code to the user
 
                     break
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
                 self.logger.warn("getting data from %s failed: %s"
                     % (query_url, str(e)))
-
+                # TODO(damb): what kind of HTTP status code should be used?
                 break
 
     # __call__()
@@ -535,8 +580,9 @@ class WebserviceRouter:
                     raise Error("received no routes from %s" % query_url)
 
                 elif fd.getcode() != 200:
-                    raise Error("getting routes from %s failed with HTTP status "
-                                "code %d" % (query_url, fd.getcode()))
+                    raise Error(
+                            "getting routes from %s failed with HTTP status "
+                            "code %d" % (query_url, fd.getcode()))
 
                 else:
                     # parse routing service results and set up the routing

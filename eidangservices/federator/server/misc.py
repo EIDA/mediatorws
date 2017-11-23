@@ -8,12 +8,15 @@ This file is part of the EIDA mediator/federator webservices.
 
 import argparse
 import datetime
+import hashlib
 import os
 import random
 import re
 import sys
 import tempfile
+import time
 
+import fasteners
 import marshmallow as ma
 
 from webargs import core
@@ -41,13 +44,35 @@ _iso8601_re = re.compile(
 # -----------------------------------------------------------------------------
 class ExitCodes:
     """
-    Enum for exit code
+    Enum for exit codes.
     """
     EXIT_SUCCESS = 0
     EXIT_WARNING = 1
     EXIT_ERROR = 2
 
 # class ExitCodes
+
+
+class URLConnectionLock(fasteners.InterProcessLock):
+    """
+    A :py:class:`fasteners.InterProcessLock` wrapper encoding the URL passed by
+    means of an hash within the lockfile's filename.
+    """
+    def __init__(self, url, path_lockdir=settings.PATH_LOCKDIR, 
+            sleep_func=time.sleep, logger=None):
+        """
+        :param str url: url to be encoded within the lockfile's filename
+        :param str path_lockdir: lockfile directory path
+        :param sleep_func: reference to a sleep function
+        :param logging.Logger logger: logger instance
+        """
+        hashed_url = hashlib.sha224(url).hexdigest()
+        path = os.path.join(path_lockdir, hashed_url)
+        super(URLConnectionLock, self).__init__(path, sleep_func, logger)
+
+    # __init__ ()
+
+# class URLConnectionLock
 
 
 class CustomParser(argparse.ArgumentParser):
