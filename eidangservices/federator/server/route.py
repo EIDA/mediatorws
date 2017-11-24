@@ -303,6 +303,7 @@ class DownloadTask(TaskBase):
         self._timeout = kwargs.get('timeout')
         self._num_retries = kwargs.get('num_retries')
         self._retry_wait = kwargs.get('retry_wait')
+        self._retry_lock = kwargs.get('retry_lock')
 
     # __init__ () 
 
@@ -325,7 +326,8 @@ class DownloadTask(TaskBase):
 
             try:
                 fd = connect(urllib2.urlopen, wadl_url, None, self._timeout,
-                           self._num_retries, self._retry_wait)
+                           self._num_retries, self._retry_wait,
+                           lock_url=self._retry_lock)
 
                 try:
                     root = ET.parse(fd).getroot()
@@ -345,7 +347,8 @@ class DownloadTask(TaskBase):
 
                 try:
                     fd = connect(urllib2.urlopen, auth_url, self._authdata,
-                            self._timeout, self._num_retries, self._retry_wait)
+                            self._timeout, self._num_retries, self._retry_wait,
+                            lock_url=self._retry_lock)
 
                     try:
                         if fd.getcode() == 200:
@@ -426,7 +429,8 @@ class DownloadTask(TaskBase):
 
             try:
                 fd = connect(opener.open, query_url, postdata, self._timeout,
-                           self._num_retries, self._retry_wait)
+                           self._num_retries, self._retry_wait,
+                           lock_url=self._retry_lock)
 
                 try:
                     if fd.getcode() == 204:
@@ -508,6 +512,7 @@ class WebserviceRouter:
             timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
             num_retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
             retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
+            retry_lock=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
             max_threads= \
                 settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
 
@@ -523,6 +528,7 @@ class WebserviceRouter:
         self.timeout = timeout
         self.num_retries = num_retries
         self.retry_wait = retry_wait
+        self.retry_lock = retry_lock
 
 
         self.threads = []
@@ -571,7 +577,8 @@ class WebserviceRouter:
 
         try:
             fd = connect(urllib2.urlopen, query_url, self.postdata,
-                    self.timeout, self.num_retries, self.retry_wait)
+                    self.timeout, self.num_retries, self.retry_wait,
+                    lock_url=self.retry_lock)
 
             try:
                 if fd.getcode() == 204:

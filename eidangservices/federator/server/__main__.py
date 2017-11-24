@@ -56,7 +56,11 @@ def build_parser(parents=[]):
         help="routing service number of retries (default: %(default)s)")
     parser.add_argument("-w", "--retry-wait", type=int,
         default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
-        help="seconds to wait before each retry  (defaults: %(default)s)")
+        help="seconds to wait before each retry  (default: %(default)s)")
+    parser.add_argument("-L", "--retry-lock", action='store_true',
+        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
+        help="while retrying lock an URL for other federator instances " +
+        "(default: %(default)s)")
     parser.add_argument("-n", "--threads", type=int,
         default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
         help="maximum number of download threads (default: %(default)s)")

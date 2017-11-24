@@ -74,6 +74,17 @@ class CLITestCase(unittest.TestCase):
 
     # test_retry_wait ()
 
+    def test_retry_lock(self):
+        args = self.parser.parse_args([])
+        self.assertEqual(args.retry_lock, 
+                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK)
+        args = self.parser.parse_args(['-L'])
+        self.assertEqual(args.retry_lock, True)
+        args = self.parser.parse_args(['--retry-lock'])
+        self.assertEqual(args.retry_lock, True)
+
+    # test_retry_lock ()
+
     def test_num_threads(self):
         args = self.parser.parse_args([])
         self.assertEqual(args.threads,

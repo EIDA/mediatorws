@@ -60,10 +60,12 @@ class GeneralResource(Resource):
 
         self.logger.debug(("Processing request: args={0}, path_tempfile={1}, "
                 + "postdata={2}, timout={3}, retries={4}, "
-                + "retry_wait={5}, threads={6}").format(args, path_tempfile,
+                + "retry_wait={5}, retry_lock={6}, threads={7}").format(args,
+                    path_tempfile,
                     bool(postdata), current_app.config['ROUTING_TIMEOUT'], 
                     current_app.config['ROUTING_RETRIES'],
                     current_app.config['ROUTING_RETRY_WAIT'], 
+                    current_app.config['ROUTING_RETRY_LOCK'], 
                     current_app.config['NUM_THREADS']))
 
         resource_path = process_request(args, 
@@ -72,6 +74,7 @@ class GeneralResource(Resource):
                 timeout=current_app.config['ROUTING_TIMEOUT'],
                 retries=current_app.config['ROUTING_RETRIES'],
                 retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
+                retry_lock=current_app.config['ROUTING_RETRY_LOCK'],
                 threads=current_app.config['NUM_THREADS'])
 
         if resource_path is None or os.path.getsize(resource_path) == 0:
@@ -98,6 +101,7 @@ def process_request(query_params,
         timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
         retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
         retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT, 
+        retry_lock=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
         threads=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
     """
     Route a *new* request.
@@ -129,8 +133,9 @@ def process_request(query_params,
             query_params)
     dest = open(path_tempfile, 'wb')
 
-    router = route.WebserviceRouter(url, query_params, postdata,
-            dest, timeout, retries, retry_wait, threads)
+    router = route.WebserviceRouter(url, query_params=query_params, 
+            postdata=postdata, dest=dest, timeout=timeout, num_retries=retries,
+            retry_wait=retry_wait, retry_lock=retry_lock, max_threads=threads)
     router()
 #    except Exception:
 #        return None

@@ -103,6 +103,7 @@ def main(args):
         ROUTING_TIMEOUT=args.timeout,
         ROUTING_RETRIES=args.retries,
         ROUTING_RETRY_WAIT=args.retry_wait,
+        ROUTING_RETRY_LOCK=args.retry_lock,
         TMPDIR=tempfile.gettempdir()
     )
     
