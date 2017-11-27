@@ -71,12 +71,11 @@ setup(
     author = _author,
     author_email = _author_email,
     description = _description,
+    long_description='',
     license = "",
     keywords = "seismology waveforms federation mediation eida service",
     url = "https://github.com/EIDA/mediatorws",
     platforms=['Linux',],
-    packages=find_packages(include=_includes),
-    long_description='',
     classifiers=[
           "Development Status :: 3 - Alpha",
           "Framework :: Flask",
@@ -92,6 +91,8 @@ setup(
           "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
           "Topic :: Scientific/Engineering",
     ],
+    packages=find_packages(include=_includes),
+    include_package_data=True,
     install_requires = _deps,
     zip_safe=False
 )
