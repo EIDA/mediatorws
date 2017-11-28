@@ -12,6 +12,7 @@ import os
 # ----
 # general purpose constants
 PATH_LOCKDIR = '/var/lock/mediatorws/'
+PATH_EIDANGWS_CONF = '/var/www/mediatorws/config/eidangws_config'
 
 # NOTE: arclink servers/ports are from
 # http://eida.gfz-potsdam.de/eida/status/master_table.php
@@ -499,6 +500,8 @@ EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK = False
 EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS = 5
 
 EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
+
+EIDA_FEDERATOR_CONFIG_SECTION = 'CONFIG_FEDERATOR'
 
 # ----
 IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'

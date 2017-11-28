@@ -22,9 +22,14 @@ from eidangservices.federator.server.routes.dataselect import DataselectResource
 from eidangservices.federator.server.routes.station import StationResource
 from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource 
 
-    
-def main(args):
-    """Run Flask app."""
+
+def setup_app(args):
+    """
+    Build the Flask app.
+
+    :param dict args: app configuration arguments
+    :rtype :py:class:`flask.Flask`:
+    """
 
     errors = {
         'NODATA': {
@@ -106,9 +111,7 @@ def main(args):
         ROUTING_RETRY_LOCK=args.retry_lock,
         TMPDIR=tempfile.gettempdir()
     )
-    
-    app.run(threaded=True, debug=args.debug, port=args.port)
 
+    return app
 
-if __name__ == '__main__':
-    main()
+# setup_app()
