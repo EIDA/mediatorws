@@ -27,10 +27,15 @@ _deps = [
         'fasteners>=0.14.1',
         'Flask>=0.12.2',
         'Flask-RESTful>=0.3.6',
+        # TODO(damb): Seems not to work for Python 2.7
         #'mock:python_version<"3.3"',
         'marshmallow>=3.0.0b4',
         'webargs>=1.8.1',
         ]
+
+
+if sys.version_info[:2] < (3, 3):
+    _deps.append('mock')
 
 
 subsys = sys.argv[1]
@@ -49,10 +54,13 @@ if 'federator' == subsys:
             'fasteners>=0.14.1',
             'Flask>=0.12.2',
             'Flask-RESTful>=0.3.6',
+            # TODO(damb): Seems not to work for Python 2.7
             #'mock:python_version<"3.3"',
             'marshmallow>=3.0.0b4',
             'webargs>=1.8.1',
             ]
+    if sys.version_info[:2] < (3, 3):
+        _deps.append('mock')
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
