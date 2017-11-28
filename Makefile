@@ -38,6 +38,8 @@ SERVICES_ALL=federator
 SERVICES?=$(SERVICES_ALL)
 
 PATH_EIDANGSERVICES=eidangservices
+MANIFEST_IN=MANIFEST.in
+MANIFEST_ALL=MANIFEST.in.all
 
 # -----------------------------------------------------------------------------
 #
@@ -52,12 +54,12 @@ install: $(patsubst %,%.install,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
 
 # install services
-%.install: $(PATH_EIDANGSERVICES)/%/MANIFEST.in
-	cp $< .
+%.install: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
+	cat $^ > $(MANIFEST_IN)
 	python setup.py $(@:.install=) install
 	
-%.sdist: $(PATH_EIDANGSERVICES)/%/MANIFEST.in
-	cp $< .
+%.sdist: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
+	cat $^ > $(MANIFEST_IN)
 	python setup.py $(@:.sdist=) sdist
 
 

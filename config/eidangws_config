@@ -1,0 +1,60 @@
+# This is <eidangws_config>
+
+[CONFIG_FEDERATOR]
+# Configuration section for the EIDA NG Federator Webservice. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. The syntax for option setting is:
+# 
+# key=value
+#
+# You obtain additional information as well as default configuration values
+# when entering:
+#
+# $ python -m eidangservices.federator.server -h
+# 
+# See also the Python configparser module documentation:
+#   - https://docs.python.org/library/configparser.html
+#
+# -----------------------------------------------------------------------------
+# Start the application by means of the local Flask WSGI server. 
+# (default: False)
+#
+# start_local={True,False}
+# ----
+# Set the port number the local Flask WSGI server is serving. Note, that this
+# parameter is taken only into consideration if start_local=True.
+# 
+# port=PORT
+# ----
+# Set the routing service identifier. (default: gfz) (choices: gfz, odc, eth,
+# resif, ingv, bgr, lmu, ipgp, niep, koeri, noa)
+#
+# routing=SERVICE_ID
+# ----
+# Set the routing/federating service request timeout in seconds. 
+#
+# timeout=SECONDS
+# ----
+# Set the maximum number of retries for routing/federating services.
+#
+# retries=NUM_RETRIES
+# ----
+# Set the seconds to wait before each retry.
+#
+# retry_wait=SECONDS
+# ----
+# While retrying lock an URL for other federator instance.
+# 
+# retry_lock={True,False}
+# ----
+# Configure where temporary files will be located.
+# 
+# tmpdir=/path/to/tmpdir
+# ----
+# Set the path to a logging configuration file. For information on howto setup
+# a logging configuration file visit the official Python documentation:
+# https://docs.python.org/3/library/logging.config.html#configuration-file-format
+#
+# path_logging_conf=/path/to/logging.conf
+# 
+# ---- END OF <eidangws_config> ----
