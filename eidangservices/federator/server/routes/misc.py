@@ -48,13 +48,13 @@ class DataselectWadlResource(Resource):
     
     def get(self):
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_DATASELECT_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
 
     def post(self): 
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_DATASELECT_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
     
@@ -64,13 +64,13 @@ class StationWadlResource(Resource):
     
     def get(self):
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_STATION_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
 
     def post(self): 
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_STATION_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
             
@@ -80,13 +80,13 @@ class WFCatalogWadlResource(Resource):
     
     def get(self):
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_WFCATALOG_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
 
     def post(self): 
         return flask.send_file(
-            os.path.join(settings.APP_SHARE, 
+            os.path.join(settings.EIDA_FEDERATOR_APP_SHARE, 
                 settings.FDSN_WFCATALOG_WADL_FILENAME), 
             mimetype=settings.WADL_MIMETYPE)
 

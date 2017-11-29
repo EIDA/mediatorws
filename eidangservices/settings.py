@@ -469,6 +469,8 @@ SERVER_NAME_FEDERATOR = 'EIDA Federator (alpha)'
 VERSION = '0.9.1'
 SHARE_DIR = 'share'
 
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 
 FDSN_STATION_PATH = '/fdsnws/station/1/'
 FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
@@ -502,6 +504,8 @@ EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS = 5
 EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
 
 EIDA_FEDERATOR_CONFIG_SECTION = 'CONFIG_FEDERATOR'
+
+EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, 'federator', SHARE_DIR)
 
 # ----
 IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'
@@ -564,8 +568,5 @@ FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
 FDSNWS_GEOMETRY_PARAMS_LONG = (
     'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
 FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
-
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-APP_SHARE = os.path.join(APP_ROOT, SHARE_DIR)
 
 # ----
