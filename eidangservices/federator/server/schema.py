@@ -317,6 +317,7 @@ class DataselectSchema(ServiceSchema):
     quality = Quality()#missing='B')
     minimumlength = fields.Float(
             missing=0.,
+            as_string=True,
             validate=lambda n: 0. <= n
         )
     longestonly = FDSNWSBool(missing=u'false')

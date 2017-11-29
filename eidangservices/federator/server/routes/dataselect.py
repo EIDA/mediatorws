@@ -64,8 +64,12 @@ class DataselectResource(general_request.GeneralResource):
         s = schema.SNCLSchema()
         sncl_args = s.dump(sncl_args).data
         self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
-
+        
+        s = schema.DataselectSchema()
+        args = s.dump(args).data
+        self.logger.debug('DataselectSchema (serialized): %s' % args)
         self.logger.debug('Request args: %s' % args)
+
         # merge SNCL parameters
         sncls = misc.convert_sncl_dict_to_lines(sncl_args)
         self.logger.debug('SNCLs: %s' % sncls)
