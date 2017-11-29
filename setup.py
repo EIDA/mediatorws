@@ -22,6 +22,11 @@ _name = 'eidangservices'
 _author = "Fabian Euchner, Daniel Armbruster"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
+_entry_points = {
+    'console_scripts': [
+        'eida-federator = eidangservices.federator.server.app:main',
+    ]
+}
 _includes = ('*')
 _deps = [
         'fasteners>=0.14.1',
@@ -32,7 +37,6 @@ _deps = [
         'marshmallow>=3.0.0b4',
         'webargs>=1.8.1',
         ]
-
 
 if sys.version_info[:2] < (3, 3):
     _deps.append('mock')
@@ -48,6 +52,11 @@ if 'federator' == subsys:
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
         "fabian.euchner@sed.ethz.ch")
     _description = ("EIDA NG Federator webservice")
+    _entry_points = {
+        'console_scripts': [
+            'eida-federator = eidangservices.federator.server.app:main',
+        ]
+    }
     _includes = ('eidangservices',
             '*.federator', 'federator.*', '*.federator.*')
     _deps = [
@@ -61,6 +70,7 @@ if 'federator' == subsys:
             ]
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
+
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
@@ -102,6 +112,7 @@ setup(
     packages=find_packages(include=_includes),
     include_package_data=True,
     install_requires = _deps,
+    entry_points = _entry_points,
     zip_safe=False
 )
 
