@@ -7,6 +7,8 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
+from __future__ import print_function
+
 import argparse
 import logging
 import logging.config
@@ -17,7 +19,6 @@ import tempfile
 
 from flask import Flask
 from flask_restful import Api
-from __future__ import print_function
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import realpath, CustomParser
@@ -36,7 +37,8 @@ except ImportError:
     # Python 3:
     import configparser
 
-
+# TODO(damb): Fetch version string dynamically.
+__version__ = '0.9.1'
 
 def real_file_path(p):
     p = realpath(p)
@@ -56,10 +58,12 @@ def real_dir_path(p):
 
 def build_parser(parents=[]):
     parser = CustomParser(
-            prog="python -m federator.server",
+            prog="eida-federator",
             description='Launch EIDA federator web service.', 
             parents=parents)
-
+    
+    parser.add_argument('--version', '-V', action='version', \
+                  version='%(prog)s version ' + __version__)
     parser.add_argument(
         '--start-local', action='store_true', default=False, 
         help="start a local WSGI server (not for production)")
