@@ -11,10 +11,12 @@
 """
 Federator response combination facilities
 """
+# TODO(damb): Improve Py2 and Py3 portability using future
 from __future__ import (absolute_import, division, print_function,
         unicode_literals)
-from builtins import *
+#from builtins import *
 
+import codecs
 import datetime
 import json
 import logging
@@ -147,7 +149,6 @@ class MseedCombiner(Combiner):
     def __init__(self, **kwargs):
         path_pipe = kwargs.get('path_pipe')
         super(MseedCombiner, self).__init__(path_pipe)
-        self.__records = None
 
         self.__path_tempfile = os.path.join(tempfile.gettempdir(), 
                misc.choices(self._CHARS, k=10))
@@ -166,7 +167,7 @@ class MseedCombiner(Combiner):
 
         :param fd: File like object data is read from
         """
-        with open(self.__path_tempfile, 'w') as ofd:
+        with open(self.__path_tempfile, 'bw') as ofd:
             record_idx = 1
             size = 0 
             # NOTE: cannot use fixed chunk size, because
@@ -293,9 +294,12 @@ class MseedCombiner(Combiner):
 
             self.add_buffer_size(size)
 
+
         # combine ()
 
     def dump(self, fd, **kwargs):
+        # TODO(damb): This hack will be removed as soon as stationlite is in
+        # use.
         # rename the temporary file to the file fd is pointing to
         if (os.path.isfile(self.__path_tempfile) and
                 os.path.getsize(self.__path_tempfile)):
@@ -334,6 +338,9 @@ class WFCatalogJSONCombiner(Combiner):
             if not buf:
                 break
             
+            if isinstance(buf, bytes):
+                buf = buf.decode('utf-8')
+
             stream_data = ''.join((stream_data, buf))
             size += len(buf)
 
@@ -344,7 +351,7 @@ class WFCatalogJSONCombiner(Combiner):
 
     def dump(self, fd, **kwargs):
         if self.__data:
-            json.dump(self.__data, fd, **kwargs)
+            json.dump(self.__data, codecs.getwriter('utf-8')(fd), **kwargs)
 
 # class WFCatalogJSONCombiner
 
@@ -375,7 +382,10 @@ class StationTextCombiner(Combiner):
             
             if not buf:
                 break
-            
+
+            if isinstance(buf, bytes):
+                buf = buf.decode('utf-8')
+              
             # skip header lines that start with '#'
             # NOTE: first header line is inserted in TextCombiner class
             if buf.startswith('#'):
@@ -394,7 +404,7 @@ class StationTextCombiner(Combiner):
 
     def dump(self, fd, **kwargs):
         if self.__text:
-            fd.write(self.__text)
+            fd.write(self.__text.encode('ascii'))
         
 # class StationTextCombiner
 

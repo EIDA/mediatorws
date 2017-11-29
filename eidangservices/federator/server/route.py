@@ -36,6 +36,7 @@ except ImportError:
     # Python 3.x
     import urllib.request as urllib2
     import urllib.parse as urlparse
+    import urllib.parse as urllib
 
 try:
     # Python 3.2 and earlier
@@ -431,7 +432,6 @@ class DownloadTask(TaskBase):
                 fd = connect(opener.open, query_url, postdata, self._timeout,
                            self._num_retries, self._retry_wait,
                            lock_url=self._retry_lock)
-
                 try:
                     if fd.getcode() == 204:
                         self.logger.info("received no data from %s" %
@@ -449,6 +449,7 @@ class DownloadTask(TaskBase):
 
                         content_type = fd.info().get('Content-Type')
                         content_type = content_type.split(';')[0]
+
 
                         if (self._combiner and 
                                 content_type == self._combiner.mimetype):

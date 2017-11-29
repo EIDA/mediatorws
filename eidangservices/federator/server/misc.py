@@ -3,8 +3,9 @@
 Miscellaneous utils.
 
 This file is part of the EIDA mediator/federator webservices.
-
 """
+from __future__ import (absolute_import, division, print_function,
+        unicode_literals)
 
 import argparse
 import datetime
@@ -92,6 +93,9 @@ class FDSNWSParser(FlaskParser):
         buf = req.stream.read()
         if buf or req.stream.tell() == 0:
             req.data = buf
+        
+        if isinstance(req.data, bytes):
+            req.data = req.data.decode('utf-8')
 
         # convert buffer into list
         req_buffer = req.data.split("\n")
