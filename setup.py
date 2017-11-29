@@ -34,6 +34,7 @@ _deps = [
         'Flask-RESTful>=0.3.6',
         # TODO(damb): Seems not to work for Python 2.7
         #'mock:python_version<"3.3"',
+        'future>=0.16.0',
         'marshmallow>=3.0.0b4',
         'webargs>=1.8.1',
         ]
@@ -65,6 +66,7 @@ if 'federator' == subsys:
             'Flask-RESTful>=0.3.6',
             # TODO(damb): Seems not to work for Python 2.7
             #'mock:python_version<"3.3"',
+            'future>=0.16.0',
             'marshmallow>=3.0.0b4',
             'webargs>=1.8.1',
             ]

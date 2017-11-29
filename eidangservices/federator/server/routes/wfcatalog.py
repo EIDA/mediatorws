@@ -12,8 +12,6 @@ This file is part of the EIDA mediator/federator webservices.
 import datetime 
 import logging
 
-from future.utils import iteritems
-
 from flask import request
 from webargs.flaskparser import use_args
 
