@@ -27,6 +27,7 @@ except:
   with open(activate_this) as file_:
       exec(file_.read(), dict(__file__=activate_this))
 
-from eidangservice.federator.server import __main__ as application
+from eidangservice.federator.server.app import main
+application = main()
 
 # ---- END OF <federator.wsgi> ----
