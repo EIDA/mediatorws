@@ -27,7 +27,13 @@ except:
   with open(activate_this) as file_:
       exec(file_.read(), dict(__file__=activate_this))
 
-from eidangservice.federator.server.app import main
+# NOTE: In case you would like to place the eidangws_conf file on a custom
+# location comment out the two lines bellow. Also, adjust the path to the
+# configuration file.
+#import eidangservices.settings as settings
+#settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_conf'
+
+from eidangservices.federator.server.app import main
 application = main()
 
 # ---- END OF <federator.wsgi> ----
