@@ -1,2 +1,2 @@
-include eidangservices/federator/federator.wsgi
+include apache2/federator.*
 recursive-include eidangservices/federator/share *
