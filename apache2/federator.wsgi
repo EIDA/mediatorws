@@ -17,7 +17,7 @@ import sys
 
 
 # use a virtual environment
-activate_this = '/var/www/madiatorws/venv/bin/activate_this.py'
+activate_this = '/var/www/mediatorws/venv/bin/activate_this.py'
 
 try:
   # Python 2
