@@ -13,15 +13,16 @@
 #
 # USAGE:
 # ------
+# Display a list of EIDA NG webservices available to be installed:
+#
+# 	$ make ls
+#
 # To install a specific EIDA NG webservice invoke:
 #
 # 	$ make install \
 # 		SERVICES="whitespace separated list of EIDA NG services to install"
 #
-# Valid SERVICES parameter values are: 
-# 	federator
-# 
-# To install EIDA NG webservices invoke:
+# To install all EIDA NG webservices available invoke:
 # 	
 # 	$ make install
 #
@@ -52,6 +53,9 @@ $(call CHECKVARS, $(SERVICES))
 # -----------------------------------------------------------------------------
 install: $(patsubst %,%.install,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
+
+ls:
+	@echo "SERVICES available: \n$(SERVICES_ALL)"
 
 # install services
 %.install: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
