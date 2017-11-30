@@ -11,10 +11,9 @@
 """
 Federator response combination facilities
 """
-# TODO(damb): Improve Py2 and Py3 portability using future
 from __future__ import (absolute_import, division, print_function,
         unicode_literals)
-#from builtins import *
+from builtins import *
 
 import codecs
 import datetime
@@ -26,16 +25,12 @@ import struct
 import tempfile
 import threading
 
+from io import open
 from future.utils import iteritems
+from xml.etree import ElementTree as ET  # NOQA
 
 from eidangservices import settings
 from eidangservices.federator.server import misc
-
-try:
-    # Python 3.2 and earlier
-    from xml.etree import cElementTree as ET  # NOQA
-except ImportError:
-    from xml.etree import ElementTree as ET  # NOQA
 
 
 # -----------------------------------------------------------------------------
@@ -167,7 +162,7 @@ class MseedCombiner(Combiner):
 
         :param fd: File like object data is read from
         """
-        with open(self.__path_tempfile, 'bw') as ofd:
+        with open(self.__path_tempfile, 'wb') as ofd:
             record_idx = 1
             size = 0 
             # NOTE: cannot use fixed chunk size, because
