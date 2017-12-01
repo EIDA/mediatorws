@@ -27,7 +27,8 @@ from eidangservices.federator.server.routes.misc import \
     DataselectVersionResource, StationVersionResource, \
     WFCatalogVersionResource, DataselectWadlResource, \
     StationWadlResource, WFCatalogWadlResource
-from eidangservices.federator.server.routes.dataselect import DataselectResource
+from eidangservices.federator.server.routes.dataselect import \
+    DataselectResource
 from eidangservices.federator.server.routes.station import StationResource
 from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource
 
@@ -98,11 +99,13 @@ def build_parser(parents=[]):
                         help='routing service identifier ' +
                         '(choices: {%(choices)s})')
     parser.add_argument("-t", "--timeout", metavar='SECONDS', type=int,
-                        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
+                        default=\
+                        settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
                         help="routing/federating service request timeout " +
                         "in seconds (default: %(default)s)")
     parser.add_argument("-r", "--retries", type=int,
-                        default=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
+                        default=\
+                        settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
                         help="routing/federating service number of retries "
                         "(default: %(default)s)")
     parser.add_argument("-w", "--retry-wait", type=int,
