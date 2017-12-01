@@ -17,8 +17,15 @@ if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 4):
     raise RuntimeError("Python version 2.7 or >= 3.4 required.")
 
 
+def get_version(filename):
+    from re import findall
+    with open(filename) as f:
+        metadata = dict(findall("__([a-z]+)__ = '([^']+)'", f.read()))
+    return metadata['version']
+
 
 _name = 'eidangservices'
+_version = '0.9.1'
 _author = "Fabian Euchner, Daniel Armbruster"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
@@ -49,6 +56,7 @@ if 'federator' == subsys:
     sys.argv.pop(1)
 
     _name = 'federator'
+    _version = get_version('eidangservices/federator/__init__.py')
     _author = "Daniel Armbruster, Fabian Euchner"
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
         "fabian.euchner@sed.ethz.ch")
@@ -87,7 +95,7 @@ else:
 
 setup(
     name = _name,
-    version = "0.9.1",
+    version = _version,
     author = _author,
     author_email = _author_email,
     description = _description,

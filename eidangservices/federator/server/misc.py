@@ -11,6 +11,7 @@ import argparse
 import datetime
 import hashlib
 import os
+import pkg_resources
 import random
 import re
 import sys
@@ -146,6 +147,24 @@ fdsnws_parser = FDSNWSParser()
 use_fdsnws_args = fdsnws_parser.use_args
 
 # -----------------------------------------------------------------------------
+def get_version(namespace_pkg_name=None):
+    """
+    fetch version string
+
+    :param str namespace_pkg_name: distribution name of the namespace package
+    :returns: version string
+    :rtype: str
+    """
+    try:
+        # distributed as namespace package
+        if namespace_pkg_name:
+            return pkg_resources.get_distribution(namespace_pkg_name).version
+        raise
+    except:
+        return pkg_resources.get_distribution("eidangservices").version
+
+# get_version ()
+
 def get_temp_filepath():
     """Return path of temporary file."""
     
