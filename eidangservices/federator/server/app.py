@@ -289,12 +289,14 @@ def main():
 
     if args.start_local:
         # run local Flask WSGI server (not for production)
-        logger.info('Serving with local WSGI server.')
+        if logger_configured:
+            logger.info('Serving with local WSGI server.')
         app.run(threaded=True, debug=args.debug, port=args.port)
     else:
         try:
             from mod_wsgi import version
-            logger.info('Serving with mod_wsgi.')
+            if logger_configured:
+                logger.info('Serving with mod_wsgi.')
         except:
             pass
         return app
