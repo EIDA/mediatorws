@@ -44,7 +44,7 @@ class Combiner(object):
     """
 
     MIMETYPE = None
-    LOGGER = 'federator.combiner'
+    LOGGER = 'flask.app.federator.combiner'
 
 
     def __init__(self, path_pipe):

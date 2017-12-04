@@ -12,10 +12,10 @@ from __future__ import print_function
 import argparse
 import logging
 import logging.config
+import logging.handlers # needed for handlers defined in logging.conf
 import os
 import sys
 import tempfile
-#import traceback
 
 from flask import Flask
 from flask_restful import Api
@@ -41,6 +41,8 @@ except ImportError:
 
 
 __version__ = get_version("federator")
+
+logger_configured = False
 
 # -----------------------------------------------------------------------------
 def real_file_path(path):
@@ -125,10 +127,6 @@ def build_parser(parents=[]):
                         "(default: %(default)s)")
     parser.add_argument('--tmpdir', type=str, default='',
                         help='directory for temp files')
-    # TODO(damb): verify functionality - perhaps its better to use the logger
-    # instead
-    parser.add_argument('--debug', action='store_true', default=False,
-                        help="run in debug mode")
     parser.add_argument('--logging-conf', dest='path_logging_conf',
                         metavar='LOGGING_CONF', type=real_file_path,
                         help="path to a logging configuration file")
@@ -233,7 +231,7 @@ def main():
     """
     main for EIDA federator webservice
     """
-    logger_configured = False
+    global logger_configured
 
     c_parser = argparse.ArgumentParser(formatter_class=\
                                         argparse.RawDescriptionHelpFormatter,
@@ -279,11 +277,24 @@ def main():
         except Exception as err:
             print('WARNING: Setup logging failed for "%s" with "%s".' %
                   (args.path_logging_conf, err), file=sys.stderr)
-            # TODO(damb): Provide a fallback mechanism
+            # NOTE(damb): Provide fallback syslog logger.
+            logger = logging.getLogger()
+            fallback_handler = logging.handlers.SysLogHandler('/dev/log',
+                                                              'local0')
+            fallback_handler.setLevel(logging.WARN)
+            fallback_formatter = logging.Formatter(
+                fmt=("<FED> %(asctime)s %(levelname)s %(name)s %(process)d "
+                     "%(filename)s:%(lineno)d - %(message)s"),
+                datefmt="%Y-%m-%dT%H:%M:%S%z")
+            fallback_handler.setFormatter(fallback_formatter)
+            logger.addHandler(fallback_handler)
+            logger_configured = True
+            logger.warn('Setup logging failed with %s. '
+                        'Using fallback logging configuration.' % err)
 
     app = setup_app(args)
 
-    if defaults:
+    if defaults and logger_configured:
         logger.debug("Default configuration from '%s': %s.",
                      args.config_file, defaults)
 
@@ -291,7 +302,7 @@ def main():
         # run local Flask WSGI server (not for production)
         if logger_configured:
             logger.info('Serving with local WSGI server.')
-        app.run(threaded=True, debug=args.debug, port=args.port)
+        app.run(threaded=True, debug=True, port=args.port)
     else:
         try:
             from mod_wsgi import version

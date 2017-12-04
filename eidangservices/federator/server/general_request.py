@@ -29,7 +29,7 @@ except ImportError:
 class GeneralResource(Resource):
     """Handler for general resource."""
 
-    LOGGER = "federator.general_resource"
+    LOGGER = "flask.app.federator.general_resource"
 
     def __init__(self):
         self.logger = logging.getLogger(self.LOGGER)

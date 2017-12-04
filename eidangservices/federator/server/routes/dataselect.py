@@ -21,7 +21,7 @@ class DataselectResource(general_request.GeneralResource):
     Handler for dataselect service route.
     
     """
-    LOGGER = 'federator.dataselect_resource'
+    LOGGER = 'flask.app.federator.dataselect_resource'
 
     def __init__(self):
         super(DataselectResource, self).__init__()

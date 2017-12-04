@@ -26,7 +26,7 @@ class WFCatalogResource(general_request.GeneralResource):
     <https://www.orfeus-eu.org/data/eida/webservices/wfcatalog/>`_ resource.
     """
 
-    LOGGER = 'federator.wfcatalog_resource'
+    LOGGER = 'flask.app.federator.wfcatalog_resource'
 
     def __init__(self):
         super(WFCatalogResource, self).__init__()

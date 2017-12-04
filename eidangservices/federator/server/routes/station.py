@@ -17,7 +17,7 @@ from eidangservices.federator.server import \
 
 class StationResource(general_request.GeneralResource):
 
-    LOGGER = 'federator.station_resource'
+    LOGGER = 'flask.app.federator.station_resource'
 
     def __init__(self):
         super(StationResource, self).__init__()

@@ -46,7 +46,7 @@ except ImportError:
     from xml.etree import ElementTree as ET  # NOQA
 
 
-logger = logging.getLogger('federator.route')
+logger = logging.getLogger('flask.app.federator.route')
 
 # -----------------------------------------------------------------------------
 # TODO(damb): Provide a generic error class.
@@ -212,7 +212,7 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
 
     # retry ()
 
-    logger = logging.getLogger('federator.connect')
+    logger = logging.getLogger('flask.app.federator.connect')
 
     n = 0
     while True:
@@ -291,7 +291,7 @@ class TaskBase(object):
 
 class DownloadTask(TaskBase):
 
-    LOGGER = 'federator.download'
+    LOGGER = 'flask.app.federator.download'
 
     def __init__(self, url, sncls=[], **kwargs):
         super(DownloadTask, self).__init__(self.LOGGER)
@@ -508,7 +508,7 @@ class WebserviceRouter:
     https://www.orfeus-eu.org/data/eida/webservices/routing/
     """
 
-    LOGGER = 'federator.webservice_router'
+    LOGGER = 'flask.app.federator.webservice_router'
 
     def __init__(self, url, query_params={}, postdata=None, dest=None, 
             timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
