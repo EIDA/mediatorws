@@ -5,20 +5,21 @@ EIDA NG Mediator/Federator webservices
 This repository is intended to contain the source code for two of the web
 services of EIDA NG: (i) the *federator*, and (ii) the *mediator*.
 
-**Federator**: Federate `fdsnws-station`, `fdsnws-dataselect`, and 
-`eidaws-wfcatalog`requests across all EIDA nodes. This means, a user can issue 
+**Federator**: Federate *fdsnws-station*, *fdsnws-dataselect*, and 
+*eidaws-wfcatalog* requests across all EIDA nodes. This means, a user can issue 
 a request against a federator endpoint without having to know where the data is 
-hosted. In order to discover the information location, the `eidaws-routing` web 
+hosted. In order to discover the information location, the *eidaws-routing* web 
 service is used.
 
 **Mediator**: This service allows queries across different web service domains, 
-e.g., `fdsnws-station` and `fdsnws-dataselect`. Example: Retrieve waveform data
+e.g., *fdsnws-station* and *fdsnws-dataselect*. Example: Retrieve waveform data
 for all stations within a lat-lon box.
 
 Currently, we provide an alpha version of the federator service for
-`fdsnws-station`, `fdsnws-dataselect` and `eidaws-wfcatalog`. The federator is
+*fdsnws-station*, *fdsnws-dataselect* and *eidaws-wfcatalog*. The federator is
 largely based on the `fdsnws_fetch
 <https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnws_fetch.py>`_ tool by GFZ.
+
 
 Installation
 ============
@@ -48,7 +49,6 @@ the *mediatorws* source code:
 
   $ cd $PATH_INSTALLATION_DIRECTORY
   $ git clone https://github.com/EIDA/mediatorws
-
 
 Installing *virtualenv*
 -----------------------
