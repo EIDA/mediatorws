@@ -226,20 +226,17 @@ find a documented version of this file under
 :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/eidangws_config`.
 
 The default location of the configuration file is
-:code:`/var/www/mediatorws/config/eidangws_config`. To load this file from a
+:code:`/var/www/mediatorws/config/eidangws_config`. To load this file from your
 custom location comment out the lines 
 
 .. code:: python
 
   #import eidangservices.settings as settings
-  #settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_conf'
+  #settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_config'
 
 in your :code:`*.wsgi` file. Also, adjust the path. Finally, restart the
 Apache2 server.
 
-.. todo:
-  
-  (damb): To be tested.
 
 Test WSGI servers
 =================

@@ -31,7 +31,7 @@ except:
 # location comment out the two lines bellow. Also, adjust the path to the
 # configuration file.
 #import eidangservices.settings as settings
-#settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_conf'
+#settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_config'
 
 from eidangservices.federator.server.app import main
 application = main()
