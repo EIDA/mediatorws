@@ -424,7 +424,7 @@ class DownloadTask(TaskBase):
                                 for (p, v) in self.url.post_params()) +
                         ''.join(self.sncls[i:i+n]))
 
-            self.logger.debug("postdata:\n%s" % postdata)
+            self.logger.debug("postdata: %r" % postdata)
             
             if not isinstance(postdata, bytes):
                 postdata = postdata.encode('utf-8')
