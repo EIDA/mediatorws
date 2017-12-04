@@ -293,6 +293,46 @@ It is recommended to purge this directory regularly, e.g., using a tool like
 tmpreaper.
 
 
+Logging (application level)
+===========================
+
+.. note::
+
+  EIDA NG Federator webservice only.
+
+For debugging purposes EIDA NG webservices also provide logging facilities.
+Simply configure your webservice with a logging configuration file. Use the INI
+`logging configuration file format
+<https://docs.python.org/library/logging.config.html#configuration-file-format>`_.
+In case initialzation failed a fallback `SysLogHandler
+<https://docs.python.org/3/library/logging.handlers.html#sysloghandler>`_ is
+set up:
+
+.. code:: python
+
+  fallback_handler = logging.handlers.SysLogHandler('/dev/log',
+                                                    'local0')
+  fallback_handler.setLevel(logging.WARN)
+  fallback_formatter = logging.Formatter(
+      fmt=("<FED> %(asctime)s %(levelname)s %(name)s %(process)d "
+           "%(filename)s:%(lineno)d - %(message)s"),
+      datefmt="%Y-%m-%dT%H:%M:%S%z")
+  fallback_handler.setFormatter(fallback_formatter)
+
+An exemplary logging configuration using a SysLogHandler is located at
+:code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/syslog.conf`. At :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/logging.config` a
+`StreamHandler
+<https://docs.python.org/library/logging.handlers.html#streamhandler>`_ is
+configured.
+
+
+.. note::
+
+  In order to keep the WSGI application portable you should avoid setting up a
+  logger writing to :code:`sys.stdout`. See also:
+  http://modwsgi.readthedocs.io/en/develop/user-guides/debugging-techniques.html
+
+
 Missing features and limitations
 ================================
 
