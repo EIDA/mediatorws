@@ -23,6 +23,6 @@
 # ----------------------------------------------------------------------------
 
 $template FederatorTemplate,"%syslogtag%%msg%\n" 
-if $syslogfacility-text == 'local0' and $syslogtag == "<FED>" then j/var/log/eidangws/eida-federator.log;FederatorTemplate
+if $syslogfacility-text == 'local0' and $syslogtag == "<FED>" then /var/log/eidangws/eida-federator.log;FederatorTemplate
 
 # ---- END OF <eida-federator.conf.rsyslog> ----
