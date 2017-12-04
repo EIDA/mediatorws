@@ -12,6 +12,7 @@ Federator routing test facilities.
 """
 
 import functools
+import logging
 import time
 import unittest
 
@@ -71,12 +72,15 @@ class ConnectionTestCase(unittest.TestCase):
         self.timeout = settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT
         self.num_retries = 3
         self.retry_wait = 0.1
+        self.logger = logging.getLogger()
+        self.logger.addHandler(logging.NullHandler())
 
     def tearDown(self):
         self.url = None
         self.timeout = None
         self.num_retries = None
         self.retry_wait = None
+        self.logger = None
 
     @mock.patch('urllib2.urlopen')
     def test_status_code_200(self, mock_urlopen):

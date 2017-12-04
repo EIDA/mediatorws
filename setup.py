@@ -49,6 +49,8 @@ _deps = [
 if sys.version_info[:2] < (3, 3):
     _deps.append('mock')
 
+_test_suites = 'eidangservices.federator.tests'
+
 
 subsys = sys.argv[1]
 if 'federator' == subsys:
@@ -81,6 +83,7 @@ if 'federator' == subsys:
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
+    _test_suites = 'eidangservices.federator.tests.federator_testsuite'
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
@@ -123,7 +126,8 @@ setup(
     include_package_data=True,
     install_requires = _deps,
     entry_points = _entry_points,
-    zip_safe=False
+    zip_safe=False,
+    test_suite = _test_suites
 )
 
 # ---- END OF <setup.py> ----

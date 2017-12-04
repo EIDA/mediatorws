@@ -12,11 +12,12 @@ Federator CLI tests.
 """
 
 import os
+import mock
 import tempfile
 import unittest
 
 from eidangservices import settings
-from eidangservices.federator.server.__main__ import build_parser
+from eidangservices.federator.server.app import build_parser
 from eidangservices.federator.server.misc import ExitCodes
 
 class CLITestCase(unittest.TestCase):
@@ -25,6 +26,15 @@ class CLITestCase(unittest.TestCase):
 
     def tearDown(self):
         self.parser = None
+
+    def test_start_local(self):
+        # test default argument
+        args = self.parser.parse_args([])
+        self.assertEqual(args.start_local, False)
+        args = self.parser.parse_args(['--start-local'])
+        self.assertEqual(args.start_local, True)
+
+    # test_start_local ()
 
     def test_port(self):
         # test default argument
@@ -37,6 +47,7 @@ class CLITestCase(unittest.TestCase):
 
     # test_port ()
     
+    @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_routing(self):
         args = self.parser.parse_args([])
         self.assertEqual(args.routing, settings.DEFAULT_ROUTING_SERVICE)
@@ -108,11 +119,14 @@ class CLITestCase(unittest.TestCase):
 
     # test_tempdir ()
 
+    @mock.patch('sys.stderr', open(os.devnull, 'w'))
+    @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_logging_conf(self):
         fd, path_logging_conf = tempfile.mkstemp()
 
         args = self.parser.parse_args(['--logging-conf', path_logging_conf])
         self.assertEqual(args.path_logging_conf, path_logging_conf)
+        # TODO
         with self.assertRaises(SystemExit) as cm:
             args = self.parser.parse_args(['--logging-conf', ''])
         self.assertEqual(cm.exception.code, ExitCodes.EXIT_ERROR)
