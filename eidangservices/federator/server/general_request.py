@@ -124,21 +124,29 @@ def process_request(query_params,
     # TODO(fab): capture log output
     # TODO(damb): ... and handle different type of exceptions
 
-#    try:
-    cred = {}
-    authdata = None
+    try:
+        cred = {}
+        authdata = None
 
-    url = route.RoutingURL(urlparse.urlparse(get_routing_url(
-                current_app.config['ROUTING_SERVICE'])),
-            query_params)
-    dest = open(path_tempfile, 'wb')
+        url = route.RoutingURL(urlparse.urlparse(get_routing_url(
+                    current_app.config['ROUTING_SERVICE'])),
+                query_params)
+        dest = open(path_tempfile, 'wb')
 
-    router = route.WebserviceRouter(url, query_params=query_params, 
-            postdata=postdata, dest=dest, timeout=timeout, num_retries=retries,
-            retry_wait=retry_wait, retry_lock=retry_lock, max_threads=threads)
-    router()
-#    except Exception:
-#        return None
+        router = route.WebserviceRouter(
+                    url,
+                    query_params=query_params,
+                    postdata=postdata,
+                    dest=dest,
+                    timeout=timeout,
+                    num_retries=retries,
+                    retry_wait=retry_wait,
+                    retry_lock=retry_lock,
+                    max_threads=threads)
+        router()
+
+    except Exception:
+        return None
     
     # get contents of temp file
     if os.path.isfile(path_tempfile):
