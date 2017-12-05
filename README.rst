@@ -170,17 +170,17 @@ It is also assumed, that you install the EIDA NG webservices to
 
   $ export PATH_INSTALLATION_DIRECTORY=/var/www
 
-Then, proceed as described for a *test* installation from the `Download the
+Next, proceed as described for a *test* installation from the `Download the
 EIDA NG webservices`_ section on.
 
 When you installed the webservices successfully return to this point.
 
 .. note::
 
-  In order to adjust for a webserver deployment the value of
-  :code:`$PATH_INSTALLATION_DIRECTORY` absolut path configurations in the files
-  :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/apache2/YOUR_SERVICE.{conf,wsgi}`
-  must be adjusted manually.
+  In case you would like to install the webservices to a different location
+  i.e. :code:`PATH_INSTALLATION_DIRECTORY=/path/to/my/eida/webservices` make
+  sure to adjust the configuration in the files
+  :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/apache2/YOUR_SERVICE.{conf,wsgi}` manually.
 
 Install *mod_wsgi*
 ------------------
@@ -305,7 +305,7 @@ Simply configure your webservice with a logging configuration file. Use the INI
 `logging configuration file format
 <https://docs.python.org/library/logging.config.html#configuration-file-format>`_.
 In case initialzation failed a fallback `SysLogHandler
-<https://docs.python.org/3/library/logging.handlers.html#sysloghandler>`_ is
+<https://docs.python.org/library/logging.handlers.html#sysloghandler>`_ is
 set up:
 
 .. code:: python
@@ -328,9 +328,17 @@ configured.
 
 .. note::
 
-  In order to keep the WSGI application portable you should avoid setting up a
-  logger writing to :code:`sys.stdout`. See also:
+  1. In order to keep the WSGI application portable you should avoid setting up
+  a logger writing to :code:`sys.stdout`. See also:
   http://modwsgi.readthedocs.io/en/develop/user-guides/debugging-techniques.html
+
+  2. When using an EIDA NG webservice *mod_wsgi* configuration with multiple
+  processes `logging to a single file 
+  <https://docs.python.org/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes>`_
+  is not supported. Instead initialize your logger with a handler which
+  guarantees log message to be serialized (e.g. `SysLogHandler`_,
+  `SocketHandler
+  <https://docs.python.org/library/logging.handlers.html#sockethandler>`_).
 
 
 Missing features and limitations
