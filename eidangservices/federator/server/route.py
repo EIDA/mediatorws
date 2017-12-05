@@ -48,6 +48,9 @@ except ImportError:
 
 logger = logging.getLogger('flask.app.federator.route')
 
+
+FDSN_NODATA_CODES = (settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE, 404)
+
 # -----------------------------------------------------------------------------
 # TODO(damb): Provide a generic error class.
 class Error(Exception):
@@ -225,10 +228,10 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
 
             fd = urlopen(url, data, timeout)
 
-            if fd.getcode() == 200 or fd.getcode() == 204:
+            if fd.getcode() == 200 or fd.getcode() in FDSN_NODATA_CODES:
                 return fd
 
-            # handle 'successful' error codes else than [200,204]
+            # handle 'successful' error codes else than [200,(204,404)]
             logger.info(
                 "retrying %s (%d) after %d seconds due to HTTP status code %d"
                 % (url, n, wait, fd.getcode()))
@@ -424,7 +427,7 @@ class DownloadTask(TaskBase):
                                 for (p, v) in self.url.post_params()) +
                         ''.join(self.sncls[i:i+n]))
 
-            self.logger.debug("postdata: %r" % postdata)
+            self.logger.debug("postdata (%s): %r" % (query_url, postdata))
             
             if not isinstance(postdata, bytes):
                 postdata = postdata.encode('utf-8')
@@ -434,9 +437,10 @@ class DownloadTask(TaskBase):
                            self._num_retries, self._retry_wait,
                            lock_url=self._retry_lock)
                 try:
-                    if fd.getcode() == 204:
-                        self.logger.info("received no data from %s" %
-                                query_url)
+                    if fd.getcode() in FDSN_NODATA_CODES:
+                        self.logger.info(
+                            "received no data from %s (HTTP status code: %d)" %
+                            (query_url, fd.getcode()))
 
                     elif fd.getcode() != 200:
                         self.logger.warn(
@@ -583,7 +587,7 @@ class WebserviceRouter:
                     lock_url=self.retry_lock)
 
             try:
-                if fd.getcode() == 204:
+                if fd.getcode() in FDSN_NODATA_CODES:
                     # TODO(damb): Implement a proper error handling - raising a
                     # simple error is not useful at all.
                     raise Error("received no routes from %s" % query_url)
