@@ -48,8 +48,10 @@ Radius = functools.partial(Degree, validate=validate_radius)
 
 NoData = functools.partial(
         fields.Int,
-        as_string=True, 
-        missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+        as_string=True,
+        # TODO(damb): RESIF does not accept the nodata parameter for
+        # service=dataselect
+        #missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
         validate=validate.OneOf([
             settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
             404
