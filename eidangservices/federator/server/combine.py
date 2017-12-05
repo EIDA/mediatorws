@@ -172,7 +172,7 @@ class MseedCombiner(Combiner):
         `fdsnws_fetch.py
         <https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnws_fetch.py>`_
 
-        :param fd: File like object data is read from
+        :param ifd: File like object data is read from
         """
         with open(self.__path_tempfile, 'wb') as ofd:
             record_idx = 1
@@ -197,7 +197,7 @@ class MseedCombiner(Combiner):
                 # 2 bytes, unsigned short)
                 data_offset_idx = self.FIXED_DATA_HEADER_SIZE - 4
                 data_offset, = struct.unpack(
-                    '!H',
+                    b'!H',
                     buf[data_offset_idx:data_offset_idx+2])
 
                 if data_offset >= self.FIXED_DATA_HEADER_SIZE:
@@ -242,13 +242,13 @@ class MseedCombiner(Combiner):
 
                     # 2 bytes, unsigned short
                     blockette_id, = struct.unpack(
-                        '!H',
+                        b'!H',
                         buf[blockette_start:blockette_start+2])
 
                     # get start of next blockette (second
                     # value, 2 bytes, unsigned short)
                     next_blockette_start, = struct.unpack(
-                        '!H',
+                        b'!H',
                         buf[blockette_start+2:blockette_start+4])
 
                     if blockette_id == self.DATA_ONLY_BLOCKETTE_NUMBER:
@@ -260,8 +260,7 @@ class MseedCombiner(Combiner):
                         # no blockettes follow
                         self.logger.debug("record %s: no blockettes follow "\
                             "after blockette %s at pos %s" % (
-                                record_idx, blockette_id,
-                                blockette_start))
+                                record_idx, blockette_id, blockette_start))
                         break
 
                     else:
@@ -276,7 +275,7 @@ class MseedCombiner(Combiner):
                 # get record size (1 byte, unsigned char)
                 record_size_exponent_idx = blockette_start + 6
                 record_size_exponent, = struct.unpack(
-                    '!B',
+                    b'!B',
                     buf[record_size_exponent_idx:\
                     record_size_exponent_idx+1])
 
