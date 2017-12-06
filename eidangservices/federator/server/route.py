@@ -313,6 +313,12 @@ class DownloadTask(TaskBase):
     # __init__ () 
 
     def __call__(self):
+        """
+        Download and combine data.
+
+        :retval: the bytes downloaded and combined
+        :rtype: int
+        """
         url_handlers = []
 
         if self._cred and self.url.post_qa() in self._cred:  
