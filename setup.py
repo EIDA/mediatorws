@@ -102,7 +102,7 @@ setup(
     author = _author,
     author_email = _author_email,
     description = _description,
-    long_description='',
+    long_description = open('README.rst').read(),
     license = "GPLv3",
     keywords = "seismology waveforms federation mediation eida service",
     url = "https://github.com/EIDA/mediatorws",
