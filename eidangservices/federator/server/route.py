@@ -637,8 +637,8 @@ class WebserviceRouter:
     def _fetch(self):
         """fetches the results"""
         # NOTE(damb): This _fetch method is used in a different way than Andres
-        # fetch method. The original _fetch function functionality is posponed
-        # to DownloadTask objects.
+        # H. fetch method. The original _fetch function functionality is
+        # postponed to DownloadTask objects.
         task_kwargs = {
                 'cred': self.cred,
                 'authdata': self.authdata,
