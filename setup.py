@@ -26,7 +26,7 @@ def get_version(filename):
 
 _name = 'eidangservices'
 _version = '0.9.1'
-_author = "Fabian Euchner, Daniel Armbruster"
+_author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
 _entry_points = {
@@ -59,7 +59,7 @@ if 'federator' == subsys:
 
     _name = 'federator'
     _version = get_version('eidangservices/federator/__init__.py')
-    _author = "Daniel Armbruster, Fabian Euchner"
+    _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
         "fabian.euchner@sed.ethz.ch")
     _description = ("EIDA NG Federator webservice")
