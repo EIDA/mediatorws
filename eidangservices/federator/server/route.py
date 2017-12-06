@@ -536,15 +536,12 @@ class WebserviceRouter:
         self.retry_wait = retry_wait
         self.retry_lock = retry_lock
 
-
-        self.threads = []
         query_format = query_params.get('format')
         if not query_format:
             # TODO(damb): raise a proper exception
             raise
         self._combiner = Combiner.create(query_format, qp=query_params)
 
-        self._lock = threading.Lock()
         self.__routing_table = []
         self.__thread_pool = ThreadPool(processes=max_threads,
                 initializer=start_thread)
