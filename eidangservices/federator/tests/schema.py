@@ -536,8 +536,12 @@ class StationSchemaTestCase(unittest.TestCase):
                 'matchtimeseries': False, 
                 'nodata': 204,
                 'includeavailability': False}
-        test_datasets = [{'minlatitude': 0., 'maxlatitude': 45.}, 
-                {'minlat': 0., 'maxlat': 45.}]
+        test_datasets = [{'minlatitude': 0., 
+                          'maxlatitude': 45.,
+                          'nodata': 204}, 
+                         {'minlat': 0.,
+                          'maxlat': 45.,
+                          'nodata': 204}]
 
         for dataset in test_datasets:
             result = self.schema.load(dataset).data
