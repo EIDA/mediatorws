@@ -26,7 +26,6 @@ import struct
 import tempfile
 import threading
 
-from io import open
 from xml.etree import ElementTree as ET
 from future.utils import iteritems
 
