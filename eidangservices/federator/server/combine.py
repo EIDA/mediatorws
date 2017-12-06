@@ -297,8 +297,9 @@ class MseedCombiner(Combiner):
             record_idx += 1
 
         self.add_buffer_size(size)
-        self.logger.info("combined %d bytes (%s) from %s" %
-                         (size, self.mimetype, ifd.geturl()))
+        if hasattr(ifd, 'geturl'):
+            self.logger.info("combined %d bytes (%s) from %s" %
+                             (size, self.mimetype, ifd.geturl()))
 
         return size
 
@@ -354,8 +355,9 @@ class WFCatalogJSONCombiner(Combiner):
 
         self.__data.extend(json.loads(stream_data))
         self.add_buffer_size(size)
-        self.logger.info("combined %d bytes (%s) from %s" %
-                         (size, self.mimetype, ifd.geturl()))
+        if hasattr(ifd, 'geturl'):
+            self.logger.info("combined %d bytes (%s) from %s" %
+                             (size, self.mimetype, ifd.geturl()))
 
         return size
 
@@ -416,8 +418,9 @@ class StationTextCombiner(Combiner):
                                      stream_data))
 
         self.add_buffer_size(size)
-        self.logger.info("combined %d bytes (%s) from %s" %
-                         (size, self.mimetype, ifd.geturl()))
+        if hasattr(ifd, 'geturl'):
+            self.logger.info("combined %d bytes (%s) from %s" %
+                             (size, self.mimetype, ifd.geturl()))
 
         return size
 
@@ -608,8 +611,10 @@ class StationXMLCombiner(Combiner):
                         net, self.__qp, self.__geometry_par_type)
 
         self.add_buffer_size(s[0])
-        self.logger.info("combined %d bytes (%s) from %s" %
-                         (s[0], self.mimetype, ifd.geturl()))
+
+        if hasattr(ifd, 'geturl'):
+            self.logger.info("combined %d bytes (%s) from %s" %
+                             (s[0], self.mimetype, ifd.geturl()))
 
         return s[0]
 
