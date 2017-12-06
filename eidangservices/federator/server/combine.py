@@ -162,6 +162,7 @@ class MseedCombiner(Combiner):
             self.__path_tempfile = os.path.join(tempfile.gettempdir(),
                                                 misc.choices(self._CHARS,
                                                              k=10))
+        self.tempfile_ofd = open(self.__path_tempfile, 'wb')
 
     # __init__()
 
@@ -171,140 +172,143 @@ class MseedCombiner(Combiner):
         The data is stored in a temporary file. Most of the code was taken from
         `fdsnws_fetch.py
         <https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnws_fetch.py>`_
-
         :param ifd: File like object data is read from
         """
-        with open(self.__path_tempfile, 'wb') as ofd:
-            record_idx = 1
-            size = 0
-            # NOTE: cannot use fixed chunk size, because
-            # response from single node mixes mseed record
-            # sizes. E.g., a 4096 byte chunk could contain 7
-            # 512 byte records and the first 512 bytes of a
-            # 4096 byte record, which would not be completed
-            # in the same write operation
-            while True:
+        size = 0
 
-                # read fixed header
-                buf = ifd.read(self.FIXED_DATA_HEADER_SIZE)
-                if not buf:
-                    break
+        record_idx = 1
+        # NOTE: cannot use fixed chunk size, because
+        # response from single node mixes mseed record
+        # sizes. E.g., a 4096 byte chunk could contain 7
+        # 512 byte records and the first 512 bytes of a
+        # 4096 byte record, which would not be completed
+        # in the same write operation
+        while True:
 
-                record = buf
-                curr_size = len(buf)
+            # read fixed header
+            buf = ifd.read(self.FIXED_DATA_HEADER_SIZE)
+            if not buf:
+                break
 
-                # get offset of data (value before last,
-                # 2 bytes, unsigned short)
-                data_offset_idx = self.FIXED_DATA_HEADER_SIZE - 4
-                data_offset, = struct.unpack(
-                    b'!H',
-                    buf[data_offset_idx:data_offset_idx+2])
+            record = buf
+            curr_size = len(buf)
 
-                if data_offset >= self.FIXED_DATA_HEADER_SIZE:
-                    remaining_header_size = data_offset - \
+            # get offset of data (value before last,
+            # 2 bytes, unsigned short)
+            data_offset_idx = self.FIXED_DATA_HEADER_SIZE - 4
+            data_offset, = struct.unpack(
+                b'!H',
+                buf[data_offset_idx:data_offset_idx+2])
+
+            if data_offset >= self.FIXED_DATA_HEADER_SIZE:
+                remaining_header_size = data_offset - \
+                    self.FIXED_DATA_HEADER_SIZE
+
+            elif data_offset == 0:
+                self.logger.debug("record %s: zero data offset" % (
+                    record_idx))
+
+                # This means that blockettes can follow,
+                # but no data samples. Use minimum record
+                # size to read following blockettes. This
+                # can still fail if blockette 1000 is after
+                # position 256
+                remaining_header_size = \
+                    self.MINIMUM_RECORD_LENGTH - \
                         self.FIXED_DATA_HEADER_SIZE
 
-                elif data_offset == 0:
-                    self.logger.debug("record %s: zero data offset" % (
-                        record_idx))
+            else:
+                # Full header size cannot be smaller than
+                # fixed header size. This is an error.
+                self.logger.warn("record %s: data offset smaller than "\
+                    "fixed header length: %s, bailing "\
+                    "out" % (record_idx, data_offset))
+                break
 
-                    # This means that blockettes can follow,
-                    # but no data samples. Use minimum record
-                    # size to read following blockettes. This
-                    # can still fail if blockette 1000 is after
-                    # position 256
-                    remaining_header_size = \
-                        self.MINIMUM_RECORD_LENGTH - \
-                            self.FIXED_DATA_HEADER_SIZE
+            buf = ifd.read(remaining_header_size)
+            if not buf:
+                self.logger.warn("remaining header corrupt in record "\
+                    "%s" % record_idx)
+                break
+
+            record += buf
+            curr_size += len(buf)
+
+            # scan variable header for blockette 1000
+            blockette_start = 0
+            b1000_found = False
+
+            while blockette_start < remaining_header_size:
+
+                # 2 bytes, unsigned short
+                blockette_id, = struct.unpack(
+                    b'!H',
+                    buf[blockette_start:blockette_start+2])
+
+                # get start of next blockette (second
+                # value, 2 bytes, unsigned short)
+                next_blockette_start, = struct.unpack(
+                    b'!H',
+                    buf[blockette_start+2:blockette_start+4])
+
+                if blockette_id == self.DATA_ONLY_BLOCKETTE_NUMBER:
+
+                    b1000_found = True
+                    break
+
+                elif next_blockette_start == 0:
+                    # no blockettes follow
+                    self.logger.debug("record %s: no blockettes follow "\
+                        "after blockette %s at pos %s" % (
+                            record_idx, blockette_id, blockette_start))
+                    break
 
                 else:
-                    # Full header size cannot be smaller than
-                    # fixed header size. This is an error.
-                    self.logger.warn("record %s: data offset smaller than "\
-                        "fixed header length: %s, bailing "\
-                        "out" % (record_idx, data_offset))
-                    break
+                    blockette_start = next_blockette_start
 
-                buf = ifd.read(remaining_header_size)
-                if not buf:
-                    self.logger.warn("remaining header corrupt in record "\
-                        "%s" % record_idx)
-                    break
+            # blockette 1000 not found
+            if not b1000_found:
+                self.logger.debug("record %s: blockette 1000 not found,"\
+                    " stop reading" % record_idx)
+                break
 
-                record += buf
-                curr_size += len(buf)
+            # get record size (1 byte, unsigned char)
+            record_size_exponent_idx = blockette_start + 6
+            record_size_exponent, = struct.unpack(
+                b'!B',
+                buf[record_size_exponent_idx:\
+                record_size_exponent_idx+1])
 
-                # scan variable header for blockette 1000
-                blockette_start = 0
-                b1000_found = False
+            remaining_record_size = \
+                2**record_size_exponent - curr_size
 
-                while blockette_start < remaining_header_size:
+            # read remainder of record (data section)
+            buf = ifd.read(remaining_record_size)
+            if not buf:
+                self.logger.warn("cannot read data section of record "\
+                    "%s" % record_idx)
+                break
 
-                    # 2 bytes, unsigned short
-                    blockette_id, = struct.unpack(
-                        b'!H',
-                        buf[blockette_start:blockette_start+2])
+            record += buf
 
-                    # get start of next blockette (second
-                    # value, 2 bytes, unsigned short)
-                    next_blockette_start, = struct.unpack(
-                        b'!H',
-                        buf[blockette_start+2:blockette_start+4])
+            with self._lock:
+                self.tempfile_ofd.write(record)
 
-                    if blockette_id == self.DATA_ONLY_BLOCKETTE_NUMBER:
+            size += len(record)
+            record_idx += 1
 
-                        b1000_found = True
-                        break
+        self.add_buffer_size(size)
+        self.logger.info("combined %d bytes (%s) from %s" %
+                         (size, self.mimetype, ifd.geturl()))
 
-                    elif next_blockette_start == 0:
-                        # no blockettes follow
-                        self.logger.debug("record %s: no blockettes follow "\
-                            "after blockette %s at pos %s" % (
-                                record_idx, blockette_id, blockette_start))
-                        break
+        return size
 
-                    else:
-                        blockette_start = next_blockette_start
-
-                # blockette 1000 not found
-                if not b1000_found:
-                    self.logger.debug("record %s: blockette 1000 not found,"\
-                        " stop reading" % record_idx)
-                    break
-
-                # get record size (1 byte, unsigned char)
-                record_size_exponent_idx = blockette_start + 6
-                record_size_exponent, = struct.unpack(
-                    b'!B',
-                    buf[record_size_exponent_idx:\
-                    record_size_exponent_idx+1])
-
-                remaining_record_size = \
-                    2**record_size_exponent - curr_size
-
-                # read remainder of record (data section)
-                buf = ifd.read(remaining_record_size)
-                if not buf:
-                    self.logger.warn("cannot read data section of record "\
-                        "%s" % record_idx)
-                    break
-
-                record += buf
-
-                with self._lock:
-                    ofd.write(record)
-
-                size += len(record)
-                record_idx += 1
-
-            self.add_buffer_size(size)
-
-
-        # combine ()
+    # combine ()
 
     def dump(self, ofd, **kwargs):
         # TODO(damb): This hack will be removed as soon as stationlite is in
         # use.
+        self.tempfile_ofd.close()
         # rename the temporary file to the file fd is pointing to
         if (os.path.isfile(self.__path_tempfile) and
                 os.path.getsize(self.__path_tempfile)):
