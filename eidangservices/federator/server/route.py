@@ -450,17 +450,14 @@ class DownloadTask(TaskBase):
                         break
 
                     else:
-                        size = 0
-
+                        # HTTP status code == 200
                         content_type = fd.info().get('Content-Type')
                         content_type = content_type.split(';')[0]
-
 
                         if (self._combiner and 
                                 content_type == self._combiner.mimetype):
 
-                            self._combiner.combine(fd)
-                            size = self._combiner.buffer_size
+                            return self._combiner.combine(fd)
 
                         else:
                             self.logger.warn(
@@ -468,9 +465,6 @@ class DownloadTask(TaskBase):
                             "content type '%s'" % (query_url, content_type))
 
                             break
-
-                        self.logger.info("got %d bytes (%s) from %s"
-                            % (size, content_type, query_url))
 
                     i += n
 
@@ -487,16 +481,19 @@ class DownloadTask(TaskBase):
                 else:
                     self.logger.warn("getting data from %s failed: %s"
                         % (query_url, str(e)))
-                    # TODO(damb): send the response code to the user
-
+                    # TODO(damb): send the response code to the user: must be
+                    # implemented for a detailed logging
                     break
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
                 self.logger.warn("getting data from %s failed: %s"
                     % (query_url, str(e)))
-                # TODO(damb): what kind of HTTP status code should be used?
+                # TODO(damb): send the response code to the user: must be
+                # implemented for a detailed logging
                 break
 
+        return 0
+    
     # __call__()
 
 # class DownloadTask
@@ -644,7 +641,8 @@ class WebserviceRouter:
                 'num_retries': self.num_retries,
                 'retry_wait': self.retry_wait
                 }
-        # create from the routing table content tasks
+        # create tasks from the routing table content
+        bytes_fetched = []
         for url, sncls in self.__routing_table:
             self.logger.debug(
                     'Setting up DownloadTask for <url=%s, sncls=%s> ...'
@@ -653,14 +651,19 @@ class WebserviceRouter:
             target_url = TargetURL(
                     urlparse.urlparse(url), 
                     self.url.target_params())
-            # apply tasks to the thread pool
-            self.__thread_pool.apply_async(DownloadTask(
-                target_url,
-                sncls,
-                **task_kwargs))
+            # apply task to the thread pool
+            self.__thread_pool.apply_async(
+                DownloadTask(target_url, sncls, **task_kwargs),
+                callback=bytes_fetched.append)
         
         self.__thread_pool.close()
         self.__thread_pool.join()
+
+        self.logger.debug('Bytes fetched: %s' % bytes_fetched)
+        self.logger.info('Totally received and combined %d bytes.' %
+                         self._combiner.buffer_size)
+
+        return bytes_fetched
 
     # _fetch ()
 

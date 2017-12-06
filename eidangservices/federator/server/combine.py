@@ -353,8 +353,12 @@ class WFCatalogJSONCombiner(Combiner):
             stream_data = ''.join((stream_data, buf))
             size += len(buf)
 
-        self.add_buffer_size(size)
         self.__data.extend(json.loads(stream_data))
+        self.add_buffer_size(size)
+        self.logger.info("combined %d bytes (%s) from %s" %
+                         (size, self.mimetype, ifd.geturl()))
+
+        return size
 
     # combine ()
 
@@ -411,6 +415,12 @@ class StationTextCombiner(Combiner):
         else:
             self.__text = '\n'.join((settings.STATION_RESPONSE_TEXT_HEADER,
                                      stream_data))
+
+        self.add_buffer_size(size)
+        self.logger.info("combined %d bytes (%s) from %s" %
+                         (size, self.mimetype, ifd.geturl()))
+
+        return size
 
     # combine ()
 
@@ -598,7 +608,11 @@ class StationXMLCombiner(Combiner):
                     self._remove_stations_outside_box(
                         net, self.__qp, self.__geometry_par_type)
 
-            self.add_buffer_size(s[0])
+        self.add_buffer_size(s[0])
+        self.logger.info("combined %d bytes (%s) from %s" %
+                         (s[0], self.mimetype, ifd.geturl()))
+
+        return s[0]
 
     # combine ()
 
