@@ -22,6 +22,7 @@ import sys
 import threading
 import time
 
+from contextlib import closing
 from multiprocessing.pool import ThreadPool
 
 from eidangservices import settings
@@ -336,11 +337,11 @@ class DownloadTask(TaskBase):
             query_url = self.url.post_qa()
 
             try:
-                fd = connect(urllib2.urlopen, wadl_url, None, self._timeout,
-                           self._num_retries, self._retry_wait,
-                           lock_url=self._retry_lock)
+                with closing(connect(urllib2.urlopen, wadl_url, None,
+                                     self._timeout, self._num_retries,
+                                     self._retry_wait, 
+                                     lock_url=self._retry_lock)) as fd:
 
-                try:
                     root = ET.parse(fd).getroot()
                     ns = "{http://wadl.dev.java.net/2009/02}"
                     el = "resource[@path='auth']"
@@ -348,20 +349,17 @@ class DownloadTask(TaskBase):
                     if root.find(".//" + ns + el) is None:
                         raise AuthNotSupported
 
-                finally:
-                    fd.close()
-
                 self.logger("authenticating at %s" % auth_url)
 
                 if not isinstance(self._authdata, bytes):
                     self._authdata = self._authdata.encode('utf-8')
 
                 try:
-                    fd = connect(urllib2.urlopen, auth_url, self._authdata,
-                            self._timeout, self._num_retries, self._retry_wait,
-                            lock_url=self._retry_lock)
+                    with closing(connect(urllib2.urlopen, auth_url, 
+                                         self._authdata, self._timeout,
+                                         self._num_retries, self._retry_wait,
+                                         lock_url=self._retry_lock)) as fd:
 
-                    try:
                         if fd.getcode() == 200:
                             up = fd.read()
 
@@ -390,9 +388,6 @@ class DownloadTask(TaskBase):
                             self.logger.warn(
                             "authentication at %s failed with HTTP "
                             "status code %d" % (auth_url, fd.getcode()))
-
-                    finally:
-                        fd.close()
 
                 # TODO(damb): Howto inform the client about errors.
                 except (urllib2.URLError, socket.error) as e:
@@ -439,10 +434,11 @@ class DownloadTask(TaskBase):
                 postdata = postdata.encode('utf-8')
 
             try:
-                fd = connect(opener.open, query_url, postdata, self._timeout,
-                           self._num_retries, self._retry_wait,
-                           lock_url=self._retry_lock)
-                try:
+                with closing(connect(opener.open, query_url, postdata,
+                                     self._timeout, self._num_retries,
+                                     self._retry_wait,
+                                     lock_url=self._retry_lock)) as fd:
+
                     if fd.getcode() in FDSN_NODATA_CODES:
                         self.logger.info(
                             "received no data from %s (HTTP status code: %d)" %
@@ -473,9 +469,6 @@ class DownloadTask(TaskBase):
                             break
 
                     i += n
-
-                finally:
-                    fd.close()
 
             except urllib2.HTTPError as e:
                 if e.code == 413 and n > 1:
@@ -582,11 +575,11 @@ class WebserviceRouter:
         self.logger.info("getting routes from %s" % query_url)
 
         try:
-            fd = connect(urllib2.urlopen, query_url, self.postdata,
-                    self.timeout, self.num_retries, self.retry_wait,
-                    lock_url=self.retry_lock)
+            with closing(connect(urllib2.urlopen, query_url, self.postdata,
+                                 self.timeout, self.num_retries,
+                                 self.retry_wait,
+                                 lock_url=self.retry_lock)) as fd:
 
-            try:
                 if fd.getcode() in FDSN_NODATA_CODES:
                     # TODO(damb): Implement a proper error handling - raising a
                     # simple error is not useful at all.
@@ -624,9 +617,6 @@ class WebserviceRouter:
 
                         else:
                             sncls.append(line)
-
-            finally:
-                fd.close()
 
         except (urllib2.URLError, socket.error) as e:
             raise Error("getting routes from %s failed: %s" % (query_url,
