@@ -28,9 +28,12 @@ This file is part of the EIDA mediator/federator webservices.
 from __future__ import (absolute_import, division, print_function,
         unicode_literals)
 
+from builtins import *
+
 import argparse
 import datetime
 import hashlib
+import itertools
 import os
 import pkg_resources
 import random
@@ -41,8 +44,8 @@ import time
 
 import fasteners
 import marshmallow as ma
+import webargs
 
-from webargs import core
 from webargs.flaskparser import FlaskParser
 
 from eidangservices import settings
@@ -134,8 +137,78 @@ class CustomParser(argparse.ArgumentParser):
 
 
 class FDSNWSParser(FlaskParser):
+    """
+    FDSNWS parser with enhanced SNCL parsing.
+    """
+
+    def parse_querystring(self, req, name, field):
+        """
+        Parse SNCL arguments from req.args.
+        """
+        def _get_values(keys, raw=False):
+            """
+            löok up keys in req.args
+            :param keys: an iterable with keys to look up
+            :param bool raw: return the raw value if True - else the value is
+            splitted
+            """
+            for key in keys:
+                val = req.args.get(key)
+                if val:
+                    if not raw:
+                        return val.split(
+                                    settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR)
+                    return val
+            return None
+
+        # _get_values ()
+
+        # preprocess the req.args multidict regarding SNCL parameters
+        networks = _get_values(('net', 'networks')) or ['*']
+        stations = _get_values(('sta', 'stations')) or ['*']
+        locations = _get_values(('loc', 'locations')) or ['*']
+        channels = _get_values(('cha', 'channels')) or ['*']
+
+        sncls = []
+        for prod in itertools.product(networks, stations, locations, channels):
+            sncls.append({'net': prod[0],
+                          'sta': prod[1],
+                          'loc': prod[2],
+                          'cha': prod[3]})
+        # add times
+        starttime = _get_values(('start', 'starttime'), raw=True)
+        if starttime:
+            for sncl_dict in sncls:
+                sncl_dict['start'] = starttime
+        endtime = _get_values(('end', 'endtime'), raw=True)
+        if endtime:
+            for sncl_dict in sncls:
+                sncl_dict['end'] = endtime
+
+        args = req.args.copy()
+        args.setlist('sncls', sncls)
+
+        # remove former scnl related values
+        for key in ('net', 'network',
+                     'sta', 'station',
+                     'loc', 'location',
+                     'cha', 'channel',
+                     'start', 'starttime'
+                     'end', 'endtime'):
+            try:
+                del args[key]
+            except KeyError:
+                pass
+
+        return webargs.core.get_value(args, name, field)
+
+    # parse_querystring ()
 
     def parse_form(self, req, name, field):
+        """
+        Intended to emulate parsing SNCL arguments from FDSNWS formatted
+        postfiles.
+        """
 
         buf = req.stream.read()
         if buf or req.stream.tell() == 0:
@@ -147,16 +220,11 @@ class FDSNWSParser(FlaskParser):
         # convert buffer into list
         req_buffer = req.data.split("\n")
 
-        param_dict = {}
-        networks = []
-        stations = []
-        locations = []
-        channels = []
-        starttimes = []
-        endtimes = []
+        param_dict = {'sncls': []}
 
         for line in req_buffer:
-            check_param = line.split(settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
+            check_param = line.split(
+                                settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
             if len(check_param) == 2:
                 
                 # add query params
@@ -166,24 +234,20 @@ class FDSNWSParser(FlaskParser):
                 # parse SNCL
                 sncl = line.split()
                 if len(sncl) == 6:
-                    networks.append(sncl[0])
-                    stations.append(sncl[1])
-                    locations.append(sncl[2])
-                    channels.append(sncl[3])
-                    starttimes.append(sncl[4])
-                    endtimes.append(sncl[5])
+                    sncl = {
+                            'net': sncl[0],
+                            'sta': sncl[1],
+                            'loc': sncl[2],
+                            'cha': sncl[3],
+                            'start': sncl[4],
+                            'end': sncl[5]
+                            }
+                    param_dict['sncls'].append(sncl)
             else:
                 #self.logger.warn("Ignoring illegal POST line: %s" % line)
                 continue
 
-            param_dict['network'] = networks
-            param_dict['station'] = stations
-            param_dict['location'] = locations
-            param_dict['channel'] = channels
-            param_dict['starttime'] = starttimes
-            param_dict['endtime'] = endtimes
-
-        return core.get_value(param_dict, name, field)
+        return webargs.core.get_value(param_dict, name, field)
 
     # parse_form ()
 
@@ -191,6 +255,7 @@ class FDSNWSParser(FlaskParser):
 
 fdsnws_parser = FDSNWSParser()
 use_fdsnws_args = fdsnws_parser.use_args
+use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 
 # -----------------------------------------------------------------------------
 def get_version(namespace_pkg_name=None):
