@@ -39,7 +39,7 @@ from marshmallow import (Schema, SchemaOpts, fields, validate,
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import \
-        from_fdsnws_datetime, fdsnws_isoformat
+        from_fdsnws_datetime, fdsnws_isoformat, SNCL
 
 
 # TODO(damb): Improve error messages.
@@ -194,25 +194,28 @@ class SNCLSchema(Schema):
 
 # class SNCLSchema
 
-class NEWSNCLSchema(Schema):
-    """
-    A SNCL Schema. SNCLs refer to the *FDSNWS* POST format. A SNCL is a line
-    consisting of:
 
-        network station location channel starttime endtime
+class ManySNCLSchema(Schema):
     """
-    network = fields.Str(load_from='net', missing = '*' )
-    station = fields.Str(load_from='sta', missing = '*')
-    location = fields.Str(load_from='loc', missing = '*')
-    channel = fields.Str(load_from='cha', missing = '*')
-    starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
-    endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
+    A schema class intended to provide a :code:`many=True` replacement for
+    webargs locations different from *json*. This way we are able to treat
+    SNCLs like json bulk type arguments.
+    """
+    sncls = fields.List(fields.Nested(SNCLSchema))
+
+    @validates_schema
+    def validate_schema(self, data):
+        # at least one SNCL must be defined for request.method == 'POST'
+        if (self.context.get('request') and
+            self.context.get('request').method == 'POST'):
+            if [v for v in data.values() if len(v) < 1]:
+                raise ValidationError('No SNCL defined.')
+    # TODO(damb): for POST requests at least one sncl must be defined
 
     class Meta:
         strict = True
-        ordered = True
 
-# class NEWSNCLSchema
+# class ManySNCLSchema
 
 
 class ServiceOpts(SchemaOpts):
