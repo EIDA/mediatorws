@@ -53,6 +53,8 @@ validate_percentage = validate.Range(min=0, max=100)
 validate_latitude = validate.Range(min=-90., max=90)
 validate_longitude = validate.Range(min=-180., max=180.)
 validate_radius = validate.Range(min=0., max=180.)
+validate_net_sta_cha = validate.Regexp(r'[A-Z_*?]*$')
+
 
 not_empty = validate.NoneOf([None, ''])
 
@@ -141,10 +143,14 @@ class SNCLSchema(Schema):
 
         network station location channel starttime endtime
     """
-    network = fields.Str(load_from='net', missing = '*' )
-    station = fields.Str(load_from='sta', missing = '*')
-    location = fields.Str(load_from='loc', missing = '*')
-    channel = fields.Str(load_from='cha', missing = '*')
+    network = fields.Str(load_from='net', missing = '*',
+                         validate=validate_net_sta_cha)
+    station = fields.Str(load_from='sta', missing = '*',
+                         validate=validate_net_sta_cha)
+    location = fields.Str(load_from='loc', missing = '*',
+                          validate=validate.Regexp(r'[A-Z_*?\b\-]*$'))
+    channel = fields.Str(load_from='cha', missing = '*',
+                         validate=validate_net_sta_cha)
     starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
     endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
 
