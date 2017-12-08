@@ -35,8 +35,7 @@ from flask import current_app, request
 from flask_restful import Resource
 
 from eidangservices import settings
-from eidangservices.federator.server import httperrors, route
-from eidangservices.federator.server import misc
+from eidangservices.federator.server import httperrors, route, misc, schema
 
 try:
     # Python 2.x
@@ -61,27 +60,39 @@ class GeneralResource(Resource):
     def path_tempfile(self):
         return misc.get_temp_filepath() 
 
-    def _process_request(self, args, mimetype, path_tempfile, postdata=None):
-        """Process a request and send resulting file to the client.
-
-        ..note: This method is a wrapper of .. py:function:process_request().
-        
-        :param dict args: The requests query arguments
-        :param str mimetype: The mimetype identifier
-        :param path_tempfile: Path to a temporary file the combined output will
-        be dumped to
-        :param postdata: SNCLs formated in the *FDSNWS POST* format
-        :type postdata: str or None
-
-        :return: The combined response (Read from the temporary file)
-
-        If :param postdata: is set to None a *GET* request will be performed.
+    def _process_request(self, query_params, sncls, mimetype, path_tempfile,
+            post=False):
         """
-        # TODO(damb): Improve mimetype handling.
+        Process a GET request and send the resulting file to the client.
 
-        self.logger.debug(("Processing request: args={0}, path_tempfile={1}, "
-                + "postdata={2}, timout={3}, retries={4}, "
-                + "retry_wait={5}, retry_lock={6}, threads={7}").format(args,
+        :param dict query_params: Dictionary of query parameters
+        :param list sncls: List of SNCL objects
+        :param str mimetype: The responses's mimetype
+        :param path_tempfile: Path to the temporary file the combined output
+        will be stored
+        :param bool post: Process a POST request if set to True
+        :return: The combined response (read from the temporary file)
+        """
+        postdata = None
+        sncl_schema = schema.SNCLSchema(many=True,
+                                        context={'request': request})
+        sncls = sncl_schema.dump(sncls).data
+        self.logger.debug('SNCLs (serialized): %s' % sncls)
+
+        if post:
+            # convert to postlines
+            postdata = '\n'.join([' '.join(sncl.values()) for sncl in sncls])
+        else:
+            # merge SNCLs back to query parameters
+            sncls = misc.convert_scnl_dicts_to_query_params(sncls)
+            query_params.update(sncls)
+
+        # TODO(damb): Improve mimetype handling.
+        self.logger.debug((
+            "Processing request: query_params={0}, path_tempfile={1}, "
+            "post={2}, timout={3}, retries={4}, "
+            "retry_wait={5}, retry_lock={6}, threads={7}").format(
+                    query_params,
                     path_tempfile,
                     bool(postdata), current_app.config['ROUTING_TIMEOUT'], 
                     current_app.config['ROUTING_RETRIES'],
@@ -89,7 +100,7 @@ class GeneralResource(Resource):
                     current_app.config['ROUTING_RETRY_LOCK'], 
                     current_app.config['NUM_THREADS']))
 
-        resource_path = process_request(args, 
+        resource_path = process_request(query_params,
                 path_tempfile=path_tempfile,
                 postdata=postdata,
                 timeout=current_app.config['ROUTING_TIMEOUT'],

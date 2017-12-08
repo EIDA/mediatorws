@@ -48,56 +48,45 @@ class DataselectResource(general_request.GeneralResource):
         super(DataselectResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.SNCLSchema(
-        context={'request': request}), 
+    @use_args(schema.DataselectSchema(), locations=('query',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
         locations=('query',)
     )
-    @use_args(schema.DataselectSchema())
-    def get(self, sncl_args, args):
+    def get(self, args, sncls):
         # request.method == 'GET'
-        _context = {'request': request}
+
+        self.logger.debug('SNCLs: %s' % sncls)
 
         # serialize objects
-        s = schema.SNCLSchema(context=_context)
-        args.update(s.dump(sncl_args).data)
-        self.logger.debug('SNCLSchema (serialized): %s' % 
-                s.dump(sncl_args).data)
+        s = schema.DataselectSchema()
+        args = s.dump(args).data
+        self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
-        self.logger.debug('Request args: %s' % args)
-        return self._process_request(args, settings.DATASELECT_MIMETYPE,
-            path_tempfile=self.path_tempfile)
+        return self._process_request(args, sncls, settings.DATASELECT_MIMETYPE,
+                                     path_tempfile=self.path_tempfile)
 
     # get ()
 
         
-    @misc.use_fdsnws_args(schema.SNCLSchema(
-        context={'request': request}), 
+    @misc.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
         locations=('form',)
     )
-    @misc.use_fdsnws_args(schema.DataselectSchema())
-    def post(self, sncl_args, args):
+    def post(self, args, sncls):
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
 
-        # serialize objects
-        s = schema.SNCLSchema()
-        sncl_args = s.dump(sncl_args).data
-        self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
-        
         s = schema.DataselectSchema()
         args = s.dump(args).data
         self.logger.debug('DataselectSchema (serialized): %s' % args)
-        self.logger.debug('Request args: %s' % args)
 
-        # merge SNCL parameters
-        sncls = misc.convert_sncl_dict_to_lines(sncl_args)
-        self.logger.debug('SNCLs: %s' % sncls)
-        sncls = '\n'.join(sncls) 
-
-        return self._process_request(args, settings.DATASELECT_MIMETYPE, 
-            path_tempfile=self.path_tempfile, postdata=sncls)
+        return self._process_request(args, sncls, settings.DATASELECT_MIMETYPE,
+                                     path_tempfile=self.path_tempfile,
+                                     post=True)
 
     # post ()
 

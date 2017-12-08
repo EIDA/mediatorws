@@ -44,61 +44,45 @@ class StationResource(general_request.GeneralResource):
         super(StationResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.SNCLSchema(
-        context={'request': request}), 
+    @use_args(schema.StationSchema(), locations=('query',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
         locations=('query',)
     )
-    @use_args(schema.StationSchema(), locations=('query',))
-    def get(self, sncl_args, station_args):
+    def get(self, station_args, sncls):
         # request.method == 'GET'
-        _context = {'request': request}
+        self.logger.debug('SNCLs: %s' % sncls)
 
-        args = {}
-        # serialize objects
-        s = schema.SNCLSchema(context=_context)
-        args.update(s.dump(sncl_args).data)
-        self.logger.debug('SNCLSchema (serialized): %s' % 
-                s.dump(sncl_args).data)
-
-        s = schema.StationSchema(context=_context)
-        args.update(s.dump(station_args).data)
-        self.logger.debug('StationSchema (serialized): %s' % 
-                s.dump(station_args).data)
-
-        # process request
-        self.logger.debug('Request args: %s' % args)
-        return self._process_request(args, self._get_result_mimetype(args), 
-            path_tempfile=self.path_tempfile)
-
-    # get ()
-
-    @misc.use_fdsnws_args(schema.SNCLSchema(
-        context={'request': request}), 
-        locations=('form',)
-    )
-    @misc.use_fdsnws_args(schema.StationSchema(), locations=('form',))
-    def post(self, sncl_args, station_args):
-        # request.method == 'POST'
-
-        # serialize objects
-        s = schema.SNCLSchema()
-        sncl_args = s.dump(sncl_args).data
-        self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
-        
         s = schema.StationSchema()
         station_args = s.dump(station_args).data
         self.logger.debug('StationSchema (serialized): %s' % station_args)
-        self.logger.debug('Request args: %s' % station_args)
 
-        # merge SNCL parameters
-        sncls = misc.convert_sncl_dict_to_lines(sncl_args)
+        # process request
+        return self._process_request(station_args, sncls,
+                                     self._get_result_mimetype(station_args),
+                                     path_tempfile=self.path_tempfile)
+
+    # get ()
+
+    @misc.use_fdsnws_args(schema.StationSchema(), locations=('form',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
+        locations=('form',)
+    )
+    def post(self, station_args, sncls):
+        # request.method == 'POST'
+
         self.logger.debug('SNCLs: %s' % sncls)
-        sncls = '\n'.join(sncls) 
+        
+        # serialize objects
+        s = schema.StationSchema()
+        station_args = s.dump(station_args).data
+        self.logger.debug('StationSchema (serialized): %s' % station_args)
 
-        return self._process_request(station_args,
-                self._get_result_mimetype(station_args), 
-                path_tempfile=self.path_tempfile,
-                postdata=sncls)
+        return self._process_request(station_args, sncls,
+                                     self._get_result_mimetype(station_args),
+                                     path_tempfile=self.path_tempfile,
+                                     post=True)
 
     # post ()
     

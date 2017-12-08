@@ -51,50 +51,45 @@ class WFCatalogResource(general_request.GeneralResource):
         super(WFCatalogResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.SNCLSchema(
-        context={'request': request}), 
+    @use_args(schema.WFCatalogSchema(), locations=('query',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
         locations=('query',)
     )
-    @use_args(schema.WFCatalogSchema(), locations=('query',))
-    def get(self, sncl_args, wfcatalog_args):
+    def get(self, wfcatalog_args, sncls):
         """
         Process a *WFCatalog* GET request.
         """
         # request.method == 'GET'
-        _context = {'request': request}
+
         # sanity check - starttime and endtime must be specified
-        if not sncl_args or not all(len(sncl_args[t]) == 1 for t in
-            ('starttime', 'endtime')):
+        if not sncls or sncls[0].starttime is None or sncls[0].endtime is None:
             raise httperrors.BadRequestError(
                     settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
                     datetime.datetime.utcnow()
             )
 
-        args = {}
-        # serialize objects
-        s = schema.SNCLSchema(context=_context)
-        args.update(s.dump(sncl_args).data)
-        self.logger.debug('SNCLSchema (serialized): %s' % 
-                s.dump(sncl_args).data)
+        self.logger.debug('SNCLs: %s' % sncls)
 
-        s = schema.WFCatalogSchema(context=_context)
-        args.update(s.dump(wfcatalog_args).data)
-        self.logger.debug('WFCatalogSchema (serialized): %s' % 
-                s.dump(wfcatalog_args).data)
+        # serialize objects
+        s = schema.WFCatalogSchema()
+        wfcatalog_args = s.dump(wfcatalog_args).data
+        self.logger.debug('WFCatalogSchema (serialized): %s' %
+                          wfcatalog_args)
 
         # process request
-        self.logger.debug('Request args: %s' % args)
-        return self._process_request(args, settings.WFCATALOG_MIMETYPE,
-            path_tempfile=self.path_tempfile)
+        return self._process_request(wfcatalog_args, sncls,
+                                     settings.WFCATALOG_MIMETYPE,
+                                     path_tempfile=self.path_tempfile)
 
     # get ()
 
-    @misc.use_fdsnws_args(schema.SNCLSchema(
-        context={'request': request}), 
+    @misc.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
+    @misc.use_fdsnws_kwargs(
+        schema.ManySNCLSchema(context={'request': request}),
         locations=('form',)
     )
-    @misc.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
-    def post(self, sncl_args, wfcatalog_args):
+    def post(self, wfcatalog_args, sncls):
         """
         Process a *WFCatalog* POST request.
         """
@@ -102,24 +97,17 @@ class WFCatalogResource(general_request.GeneralResource):
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
 
-        # serialize objects
-        s = schema.SNCLSchema()
-        sncl_args = s.dump(sncl_args).data
-        self.logger.debug('SNCLSchema (serialized): %s' % sncl_args)
+        self.logger.debug('SNCLs: %s' % sncls)
 
+        # serialize objects
         s = schema.WFCatalogSchema()
         wfcatalog_args = s.dump(wfcatalog_args).data
         self.logger.debug('WFCatalogSchema (serialized): %s' % wfcatalog_args)
-        self.logger.debug('Request args: %s' % wfcatalog_args)
 
-        # merge SNCL parameters
-        sncls = misc.convert_sncl_dict_to_lines(sncl_args)
-        self.logger.debug('SNCLs: %s' % sncls)
-        sncls = '\n'.join(sncls) 
-
-        return self._process_request(wfcatalog_args, 
-                settings.WFCATALOG_MIMETYPE, path_tempfile=self.path_tempfile,
-                postdata=sncls)
+        return self._process_request(wfcatalog_args, sncls,
+                                     settings.WFCATALOG_MIMETYPE,
+                                     path_tempfile=self.path_tempfile,
+                                     post=True)
 
     # post ()
 
