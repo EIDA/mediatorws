@@ -269,55 +269,11 @@ class FDSNWSDateTimeFieldTestCase(FieldTestCase):
 # class FDSNWSDateTimeFieldTestCase
 
 
-class RequestListFieldTestCase(FieldTestCase):
-
-    class TestSchema(ma.Schema):
-        f = schema.RequestList(ma.fields.Str())
-
-        class Meta:
-            strict = True
-
-    def test_one_el_serialize(self):
-        self.schema.context['request'] = GETRequest
-        # test single element
-        reference_result = {'f': 'foo'}
-        valid = dict(f=['foo'])
-        self.assertEqual(reference_result, dict(self.schema.dump(valid).data))
-
-    def test_multi_el_serialize(self):
-        reference_result = {'f': ['foo', 'bar']}
-        valid = dict(f=['foo', 'bar'])
-        self.assertEqual(reference_result, dict(self.schema.dump(valid).data))
-
-# class RequestListFieldTestCase
-
-
-class DelimitedRequestListTestCase(FieldTestCase):
-
-    class TestSchema(ma.Schema):
-        f = schema.DelimitedRequestList(ma.fields.Str())
-
-        class Meta:
-            strict = True
-
-    def test_one_el_serialize(self):
-        self.schema.context['request'] = GETRequest
-        # test single element
-        reference_result = {'f': 'foo'}
-        valid = dict(f=['foo'])
-        self.assertEqual(reference_result, dict(self.schema.dump(valid).data))
-
-    def test_multi_el_serialize(self):
-        self.schema.context['request'] = GETRequest
-        reference_result = {'f': 'foo'+SEP+'bar'}
-        valid = dict(f=['foo', 'bar'])
-        self.assertEqual(reference_result, dict(self.schema.dump(valid).data))
-
-# class DelimitedRequestListTestCase
-
 # -----------------------------------------------------------------------------
 # schema related test cases
+# TODO (damb): Write tests for ManySNCLSchema
 
+# TODO (damb): To be refactorred
 class SNCLSchemaTestCase(unittest.TestCase):
     def setUp(self):
         self.schema = schema.SNCLSchema()
@@ -571,11 +527,6 @@ class StationSchemaTestCase(unittest.TestCase):
             result = self.schema.load(test_data).data
             
 # class StationSchemaTestCase 
-
-
-#suite = unittest.TestLoader().loadTestsFromNames([
-#    'PercentageFieldTestCase'
-#    ])
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
