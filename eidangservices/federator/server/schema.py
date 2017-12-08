@@ -28,6 +28,10 @@
 """
 Federator schema definitions
 """
+from __future__ import (absolute_import, division, print_function,
+        unicode_literals)
+
+from builtins import *
 
 import datetime
 import functools
@@ -88,9 +92,9 @@ class JSONBool(fields.Bool):
     """
     #: Values that will (de)serialize to `True`. If an empty set, any non-falsy
     #  value will deserialize to `true`.
-    truthy = set((u'true', True))
+    truthy = set(('true', True))
     #: Values that will (de)serialize to `False`.
-    falsy = set((u'false', False))
+    falsy = set(('false', False))
 
     def _serialize(self, value, attr, obj):
 
@@ -269,7 +273,7 @@ class DataselectSchema(ServiceSchema):
             as_string=True,
             validate=lambda n: 0. <= n
         )
-    longestonly = FDSNWSBool(missing=u'false')
+    longestonly = FDSNWSBool(missing='false')
 
     class Meta:
         service = 'dataselect'
@@ -317,10 +321,10 @@ class StationSchema(ServiceSchema):
                 ['network', 'station', 'channel', 'response']
             )
         )
-    includerestricted = FDSNWSBool(missing=u'true')
-    includeavailability = FDSNWSBool(missing=u'false')
+    includerestricted = FDSNWSBool(missing='true')
+    includeavailability = FDSNWSBool(missing='false')
     updateafter = FDSNWSDateTime(format='fdsnws')
-    matchtimeseries = FDSNWSBool(missing=u'false')
+    matchtimeseries = FDSNWSBool(missing='false')
 
 
     @validates_schema
@@ -355,7 +359,7 @@ class WFCatalogSchema(ServiceSchema):
     # TODO(damb): starttime and endtime are required for this schema; howto
     # implement a proper validator/ required=True
 
-    csegments = FDSNWSBool(missing=u'false')
+    csegments = FDSNWSBool(missing='false')
     format = fields.Str(
             missing='json',
             validate=validate.OneOf(['json'])
@@ -365,7 +369,7 @@ class WFCatalogSchema(ServiceSchema):
         missing='default',
         validate=validate.OneOf(['default', 'sample', 'header', 'all'])
     )
-    longestonly = FDSNWSBool(missing=u'false')
+    longestonly = FDSNWSBool(missing='false')
     #minimumlength = fields.Float(missing=0.)
     minimumlength = NotEmptyFloat()
 
