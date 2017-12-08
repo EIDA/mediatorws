@@ -158,7 +158,7 @@ class SNCLSchema(Schema):
                 self.context.get('request').method == 'GET'):
             if data.get('starttime') is None:
                 del data['starttime']
-            if not data.get('endtime') is None:
+            if data.get('endtime') is None:
                 del data['endtime']
             return data
 
