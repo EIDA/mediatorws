@@ -103,9 +103,9 @@ class JSONBool(fields.Bool):
         if value is None:
             return None
         elif value in self.truthy:
-            return u'true'
+            return 'true'
         elif value in self.falsy:
-            return u'false'
+            return 'false'
 
         return bool(value)
 
