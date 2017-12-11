@@ -28,6 +28,10 @@
 """
 Field and schema related test facilities.
 """
+from __future__ import (absolute_import, division, print_function,
+        unicode_literals)
+
+from builtins import *
 
 import datetime
 import marshmallow as ma
@@ -36,7 +40,7 @@ import unittest
 from eidangservices.federator.tests.helpers import GETRequest, POSTRequest
 
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
-from eidangservices.federator.server import schema
+from eidangservices.federator.server import schema, misc
 
 
 SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR 
@@ -282,7 +286,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
         self.schema = None
 
     def _load(self, dataset):
-        return dict(self.schema.load(dataset).data) 
+        return self.schema.load(dataset).data
 
     def _dump(self, dataset):
         return dict(self.schema.dump(dataset).data)
@@ -290,51 +294,70 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get(self):
         # request.method == 'GET'
         self.schema.context['request'] = GETRequest
-        # no delimited list definitions + no time definitions
+        # no time definitions
         reference_result = {
-                'network': 'CH', 
-                'station': 'DAVOX',
-                'location': '*',
-                'channel': '*'}
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX'}
+                'network': 'CH?*', 
+                'station': 'DAVOX?*',
+                'location': '*?ABC',
+                'channel': 'AZ?*'}
+        test_dataset = {'net': 'CH?*', 'sta': 'DAVOX?*', 'loc': '*?ABC',
+                        'cha': 'AZ?*'}
         test_dataset = self._load(test_dataset)
         result = self._dump(test_dataset)
         self.assertEqual(result, reference_result)
 
-        # define multiple networks
-        reference_result = {
-                'network': 'CH,II', 
-                'station': 'DAVOX',
-                'location': '*',
-                'channel': '*'}
-        test_dataset = {'net': 'CH,II', 'sta': 'DAVOX'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
-        self.assertEqual(result, reference_result)
+    def test_sncl_get_invalid_net(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
+        test_dataset = {'net': 'C-', 'sta': 'DAVO?'}
+        with self.assertRaises(ma.ValidationError):
+            test_dataset = self._load(test_dataset)
        
-        # define multiple stations
-        reference_result = {
-                'network': 'CH', 
-                'station': 'DAVOX,BALST',
-                'location': '*',
-                'channel': '*'}
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX,BALST'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
-        self.assertEqual(result, reference_result)
+    def test_sncl_get_invalid_sta(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
+        test_dataset = {'net': '?*', 'sta': 'DAVO,', 'loc': '--'}
+        with self.assertRaises(ma.ValidationError):
+            test_dataset = self._load(test_dataset)
 
+    def test_sncl_get_invalid_cha(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'cha': 'BH,'}
+        with self.assertRaises(ma.ValidationError):
+            test_dataset = self._load(test_dataset)
+
+    def test_sncl_get_valid_loc_minus(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define multiple channels
         reference_result = {
-                'network': 'CH', 
-                'station': 'DAVOX',
-                'location': '*',
-                'channel': 'BH?,LHZ'}
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'channel': 'BH?,LHZ'}
+                'network': '*', 
+                'station': '*',
+                'location': '--',
+                'channel': '*'}
+        test_dataset = {'loc': '--'}
         test_dataset = self._load(test_dataset)
         result = self._dump(test_dataset)
         self.assertEqual(result, reference_result)
 
+    def test_sncl_get_valid_loc_space(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
+        # define multiple channels
+        reference_result = {
+                'network': '*', 
+                'station': '*',
+                'location': '  ',
+                'channel': '*'}
+        test_dataset = {'loc': '  '}
+        test_dataset = self._load(test_dataset)
+        result = self._dump(test_dataset)
+        self.assertEqual(result, reference_result)
 
+    def test_sncl_get_start(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # only starttime definition
         reference_result = {
                 'network': 'CH', 
@@ -343,11 +366,14 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'channel': '*',
                 'starttime': '2017-01-01T00:00:00'}
 
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': ['2017-01-01']}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': '2017-01-01'}
         test_dataset = self._load(test_dataset)
         result = self._dump(test_dataset)
         self.assertEqual(result, reference_result)
 
+    def test_sncl_get_start(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # only endtime definition
         reference_result = {
                 'network': 'CH', 
@@ -356,11 +382,14 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'channel': '*',
                 'endtime': '2017-01-01T00:00:00'}
 
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': ['2017-01-01']}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': '2017-01-01'}
         test_dataset = self._load(test_dataset)
         result = self._dump(test_dataset)
         self.assertEqual(result, reference_result)
 
+    def test_sncl_get_start_end(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define both starttime and endtime
         reference_result = {
                 'network': 'CH', 
@@ -370,42 +399,54 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'starttime': '2017-01-01T00:00:00',
                 'endtime': '2017-02-01T00:00:00'}
 
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': ['2017-01-01'], 
-                'end': ['2017-02-01']}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': '2017-01-01',
+                        'end': '2017-02-01'}
         test_dataset = self._load(test_dataset)
         result = self._dump(test_dataset)
         self.assertEqual(result, reference_result)
 
+    def test_sncl_get_starts(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define multiple times
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 
-                'start': ['2017-01-01', '2017-01-02'], 
-                'end': ['2017-02-01']}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX',
+                        'start': '2017-01-01,2017-01-02',
+                        'end': '2017-02-01'}
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(test_dataset)
 
+    def test_sncl_get_start_future(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define starttime in future
         future = datetime.datetime.now() + datetime.timedelta(1)
         future = future.isoformat()
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 
-                'start': [future]}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX',
+                         'start': future}
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(test_dataset)
 
+    def test_sncl_get_end_future(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define endtime in future
         now = datetime.datetime.utcnow() 
         tomorrow = now + datetime.timedelta(1)
         tomorrow_str = tomorrow.isoformat()
 
 
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 
-                'end': [tomorrow_str]}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX',
+                        'end': tomorrow_str}
         result = self._load(test_dataset)
-        self.assertAlmostEqual(result['endtime'][0], now,
-                delta=datetime.timedelta(seconds=1))
+        self.assertAlmostEqual(result.endtime, now,
+                               delta=datetime.timedelta(seconds=1))
 
+    def test_sncl_get_end_lt_start(self):
+        # request.method == 'GET'
+        self.schema.context['request'] = GETRequest
         # define endtime <= starttime
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': ['2017-01-01'], 
-                'start': ['2017-02-01']}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': '2017-01-01',
+                        'start': '2017-02-01'}
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(test_dataset)
 
@@ -413,83 +454,115 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_post(self):
         # request.method == 'POST'
         self.schema.context['request'] = POSTRequest
-        
         # valid values - single SNCL line
-        reference_result = {
-                'network': ['CH'], 
-                'station': ['DAVOX'],
-                'location': ['*'],
-                'channel': ['*'],
-                'starttime': [datetime.datetime(2017,01,01)],
-                'endtime': [datetime.datetime(2017,01,02)]}
+        reference_result = misc.SNCL(network='CH',
+                                     station='DAVOX',
+                                     location='*',
+                                     channel='*',
+                                     starttime=datetime.datetime(2017,01,01),
+                                     endtime=datetime.datetime(2017,01,02))
         
         test_dataset = {
                 'net': 'CH', 
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
-                'start': ['2017-01-01'],
-                'end': ['2017-01-02']}
+                'start': '2017-01-01',
+                'end': '2017-01-02'}
         result = self._load(test_dataset)
         self.assertEqual(result, reference_result)
 
+    def test_sncl_post_missing_time(self):
+        # request.method == 'POST
+        self.schema.context['request'] = POSTRequest
         # define a invalid SNCL
-        test_dataset = {
-                'net': 'CH,II', 
-                'sta': 'DAVOX,BFO',
-                'loc': '*,*',
-                'cha': '*,*',
-                'start': ['2017-01-01', '2017-01-01'],
-                'end': ['2017-01-02']}
-        with self.assertRaises(ma.ValidationError):
-            result = self._load(test_dataset)
-
-        # missing time definition
         test_dataset = {
                 'net': 'CH', 
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
-                'start': [],
-                'end': []}
+                'start': '2017-01-01'}
         with self.assertRaises(ma.ValidationError):
-            self._load(test_dataset)
+            result = self._load(test_dataset)
 
+    def test_sncl_post_start_lt_end(self):
+        # request.method == 'POST'
+        self.schema.context['request'] = POSTRequest
         # invalid time definition
         test_dataset = {
                 'net': 'CH', 
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
-                'start': [None],
-                'end': ['2017-01-01']}
+                'start': '2017-01-02',
+                'end': '2017-01-01'}
         with self.assertRaises(ma.ValidationError):
             self._load(test_dataset)
 
+    def test_sncl_post_start_end_future(self):
+        # request.method == 'POST'
+        self.schema.context['request'] = POSTRequest
         # both starttime and endtime in future (not caught)
         today = datetime.datetime.now()
         tomorrow = today + datetime.timedelta(1)
         tomorrow_str = tomorrow.isoformat()
         dat = today + datetime.timedelta(2)
         dat_str = dat.isoformat()
-        reference_result = {
-                'network': ['CH'], 
-                'station': ['DAVOX'],
-                'location': ['*'],
-                'channel': ['*'],
-                'starttime': [tomorrow],
-                'endtime': [dat]}
-        test_dataset = {
-                'net': 'CH', 
-                'sta': 'DAVOX',
-                'loc': '*',
-                'cha': '*',
-                'start': [tomorrow_str],
-                'end': [dat_str]}
+        reference_result = misc.SNCL(network='CH',
+                                     station='DAVOX',
+                                     location='*',
+                                     channel='*',
+                                     starttime=tomorrow,
+                                     endtime=dat)
+        test_dataset = {'net': 'CH',
+                        'sta': 'DAVOX',
+                        'loc': '*',
+                        'cha': '*',
+                        'start': tomorrow_str,
+                        'end': dat_str}
         result = self._load(test_dataset)
         self.assertEqual(result, reference_result)
 
 # class SNCLSchemaTestCase
+
+
+class ManySNCLSchemaTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.schema = schema.ManySNCLSchema()
+
+    def tearDown(self):
+        self.schema = None
+
+    def test_many_sncls(self):
+        # request.method == 'POST'
+        self.schema.context['request'] = POSTRequest
+        reference_result = [misc.SNCL(network='CH',
+                                      station='DAVOX',
+                                      starttime=datetime.datetime(2017,01,01),
+                                      endtime=datetime.datetime(2017,01,31)),
+                            misc.SNCL(network='GR',
+                                      station='BFO',
+                                      channel='BH?',
+                                      starttime=datetime.datetime(2017,01,01),
+                                      endtime=datetime.datetime(2017,01,31))]
+        test_dataset = {'sncls': [
+                        {'net': 'CH', 'sta': 'DAVOX',
+                         'start': '2017-01-01', 'end': '2017-01-31'},
+                        {'net': 'GR', 'sta': 'BFO', 'cha': 'BH?',
+                         'start': '2017-01-01', 'end': '2017-01-31'}
+                        ]}
+        result = self.schema.load(test_dataset).data['sncls']
+        self.assertEqual(result, reference_result)
+
+    def test_post_missing_sncl(self):
+        # request.method == 'POST'
+        self.schema.context['request'] = POSTRequest
+        test_dataset = []
+        with self.assertRaises(ma.ValidationError):
+            self.schema.load(test_dataset)
+
+# class ManySNCLSchemaTestCase
 
 
 class StationSchemaTestCase(unittest.TestCase):
