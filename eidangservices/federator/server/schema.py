@@ -53,7 +53,7 @@ validate_percentage = validate.Range(min=0, max=100)
 validate_latitude = validate.Range(min=-90., max=90)
 validate_longitude = validate.Range(min=-180., max=180.)
 validate_radius = validate.Range(min=0., max=180.)
-validate_net_sta_cha = validate.Regexp(r'[A-Z_*?]*$')
+validate_net_sta_cha = validate.Regexp(r'[A-Z0-9_*?]*$')
 
 
 not_empty = validate.NoneOf([None, ''])
@@ -148,7 +148,7 @@ class SNCLSchema(Schema):
     station = fields.Str(load_from='sta', missing = '*',
                          validate=validate_net_sta_cha)
     location = fields.Str(load_from='loc', missing = '*',
-                          validate=validate.Regexp(r'[A-Z_*?]*$|--|\s\s'))
+                          validate=validate.Regexp(r'[A-Z0-9_*?]*$|--|\s\s'))
     channel = fields.Str(load_from='cha', missing = '*',
                          validate=validate_net_sta_cha)
     starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
