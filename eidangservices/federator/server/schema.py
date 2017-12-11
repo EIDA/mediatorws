@@ -361,8 +361,8 @@ class WFCatalogSchema(ServiceSchema):
     The parameters defined correspond to the definition
     `<http://www.orfeus-eu.org/data/eida/webservices/wfcatalog/>`_ .
     """
-    # TODO(damb): starttime and endtime are required for this schema; howto
-    # implement a proper validator/ required=True
+    # NOTE(damb): starttime and endtime are required for this schema; for GET
+    # requests the extistance of these parameters must be verified, manually
 
     csegments = FDSNWSBool(missing='false')
     format = fields.Str(
@@ -375,6 +375,7 @@ class WFCatalogSchema(ServiceSchema):
         validate=validate.OneOf(['default', 'sample', 'header', 'all'])
     )
     longestonly = FDSNWSBool(missing='false')
+    # TODO(damb): check with a current WFCatalog webservice
     #minimumlength = fields.Float(missing=0.)
     minimumlength = NotEmptyFloat()
 
