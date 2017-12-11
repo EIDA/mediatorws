@@ -148,7 +148,7 @@ class SNCLSchema(Schema):
     station = fields.Str(load_from='sta', missing = '*',
                          validate=validate_net_sta_cha)
     location = fields.Str(load_from='loc', missing = '*',
-                          validate=validate.Regexp(r'[A-Z_*?\b\-]*$'))
+                          validate=validate.Regexp(r'[A-Z_*?]*$|--|\s\s'))
     channel = fields.Str(load_from='cha', missing = '*',
                          validate=validate_net_sta_cha)
     starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
@@ -179,9 +179,6 @@ class SNCLSchema(Schema):
             if self.context.get('request').method == 'GET':
                 if not endtime:
                     endtime = datetime.datetime.utcnow()
-
-                if not starttime or not endtime:
-                    raise ValidationError('invalid values passed')
 
                 # reset endtime silently if in future
                 if endtime > datetime.datetime.utcnow():
@@ -218,9 +215,11 @@ class ManySNCLSchema(Schema):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
             self.context.get('request').method == 'POST'):
-            if [v for v in data.values() if len(v) < 1]:
+            if 'sncls' not in data:
                 raise ValidationError('No SNCL defined.')
-    # TODO(damb): for POST requests at least one sncl must be defined
+            if [v for v in data['sncls'] if v is None]:
+                raise ValidationError('Invalid SNCL defined.')
+
 
     class Meta:
         strict = True
