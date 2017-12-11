@@ -81,6 +81,22 @@ class SNCL(object):
 
     # __init__ ()
 
+    def __eq__(self, other):
+        """
+        allows comparing SNCLs
+        """
+        if other.__class__ is self.__class__:
+            return (other.network == self.network and
+                    other.station == self.station and
+                    other.location == self.location and
+                    other.channel == self.channel and
+                    other.starttime == self.starttime and
+                    other.endtime == self.endtime)
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __repr__(self):
         return ("<SNCL(net=%r, sta=%r, loc=%r, cha=%r, start=%r, end=%r)>" %
                 (self.network, self.station, self.location, self.channel,
