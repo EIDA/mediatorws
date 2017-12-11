@@ -28,19 +28,25 @@
 """
 Federator utility test facilities.
 """
+from __future__ import (absolute_import, division, print_function,
+        unicode_literals)
+
+from builtins import *
 
 import datetime
 import io
+import mock
 import unittest
 
+import flask
 import marshmallow as ma
 
 from werkzeug.exceptions import HTTPException
+from werkzeug.datastructures import MultiDict
+from webargs.flaskparser import parser
 
-from eidangservices.federator.server import schema
+from eidangservices.federator.server import schema, misc
 from eidangservices.federator.tests.helpers import POSTRequest
-from eidangservices.federator.server.misc import fdsnws_parser
-
 
 # -----------------------------------------------------------------------------
 class FDSNWSParserTestCase(unittest.TestCase):
@@ -65,91 +71,184 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
 
     def setUp(self):
-        self.sncl_schema = schema.SNCLSchema(context={'request': POSTRequest()})
+        self.sncls_schema = schema.ManySNCLSchema()
 
     def tearDown(self):
-        self.sncl_schema = None
+        self.sncls_schema = None
 
-    def test_parser(self):
-        reference_sncl = {
-                'network': [u'NL'],
-                'station': [u'HGN'],
-                'location': [u'??'],
-                'channel': [u'*'],
-                'starttime': [datetime.datetime(2013, 10, 10)],
-                'endtime': [datetime.datetime(2013, 10, 11)]
-                }
-        test_request = self.TestRequest(
-                u"f=value\nNL HGN ?? * 2013-10-10 2013-10-11")
-        
-        test_args = fdsnws_parser.parse(self.TestSchema(), test_request,
-                locations=('form',))
-        self.assertEqual(dict(test_args), {'f': u'value'})
-        sncl_args = fdsnws_parser.parse(self.sncl_schema, test_request,
-                locations=('form',))
-        self.assertEqual(dict(sncl_args), reference_sncl)
+    @mock.patch('flask.Request')
+    def test_get_single(self, mock_request):
+        mock_request.args = MultiDict({'f': 'value',
+                                       'net': 'CH',
+                                       'sta': 'DAVOX',
+                                       'start': '2017-01-01',
+                                       'end': '2017-01-07'})
+        reference_sncls = [misc.SNCL(network='CH',
+                                    station='DAVOX',
+                                    location='*',
+                                    channel='*',
+                                    starttime=datetime.datetime(2017, 01, 01),
+                                    endtime=datetime.datetime(2017, 01, 07))]
 
-    # test_parser () 
+        test_args = parser.parse(self.TestSchema(), mock_request,
+                                 locations=('query',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
 
-    def test_missing_sncls(self):
-        test_request = self.TestRequest(
-                u"f=value\n")
-        test_args = fdsnws_parser.parse(self.TestSchema(), test_request,
-                locations=('form',))
-        self.assertEqual(dict(test_args), {'f': u'value'})
+        sncls = misc.fdsnws_parser.parse(self.sncls_schema, mock_request,
+                                         locations=('query',))['sncls']
+        self.assertEqual(sncls, reference_sncls)
+
+    # test_get_single ()
+
+    @mock.patch('flask.Request')
+    def test_get_multiple(self, mock_request):
+        mock_request.args = MultiDict({'f': 'value',
+                                       'net': 'CH',
+                                       'sta': 'DAVOX,BALST',
+                                       'start': '2017-01-01',
+                                       'end': '2017-01-07'})
+        reference_sncls = [misc.SNCL(network='CH',
+                                     station='DAVOX',
+                                     location='*',
+                                     channel='*',
+                                     starttime=datetime.datetime(2017, 01, 01),
+                                     endtime=datetime.datetime(2017, 01, 07)),
+                           misc.SNCL(network='CH',
+                                     station='BALST',
+                                     location='*',
+                                     channel='*',
+                                     starttime=datetime.datetime(2017, 01, 01),
+                                     endtime=datetime.datetime(2017, 01, 07))]
+
+        test_args = parser.parse(self.TestSchema(), mock_request,
+                                 locations=('query',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+
+        sncls = misc.fdsnws_parser.parse(self.sncls_schema, mock_request,
+                                         locations=('query',))['sncls']
+        self.assertEqual(sncls, reference_sncls)
+
+    # test_get_multiple () 
+
+    @mock.patch('flask.Request')
+    def test_get_missing(self, mock_request):
+        mock_request.args = MultiDict({'f': 'value'})
+        reference_sncls = [misc.SNCL(network='*',
+                                     station='*',
+                                     location='*',
+                                     channel='*',
+                                     starttime=None,
+                                     endtime=None)]
+
+        test_args = parser.parse(self.TestSchema(), mock_request,
+                                 locations=('query',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+
+        sncls = misc.fdsnws_parser.parse(self.sncls_schema, mock_request,
+                                         locations=('query',))['sncls']
+        self.assertEqual(sncls, reference_sncls)
+
+    # test_get_missing ()
+
+    @mock.patch('flask.Request')
+    def test_get_invalid(self, mock_request):
+        mock_request.args = MultiDict({'f': 'value',
+                                       'net': 'CH!, GR'})
+
+        test_args = parser.parse(self.TestSchema(), mock_request,
+                                 locations=('query',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
 
         with self.assertRaises(HTTPException):
-            sncl_args = fdsnws_parser.parse(self.sncl_schema, test_request,
-                    locations=('form',))
+            misc.fdsnws_parser.parse(self.sncls_schema, mock_request,
+                                     locations=('query',))['sncls']
 
-    # test_missing_sncls () 
+    # test_get_invalid 
 
-    def test_empty_request(self):
-        test_request = self.TestRequest(u"")
+    def test_post_single(self):
+        self.sncls_schema.context = {'request': POSTRequest()}
+
+        reference_sncls = [misc.SNCL(network='NL',
+                                    station='HGN',
+                                    location='??',
+                                    channel='*',
+                                    starttime=datetime.datetime(2013, 10, 10),
+                                    endtime=datetime.datetime(2013, 10, 11))]
+        test_request = self.TestRequest(
+                "f=value\nNL HGN ?? * 2013-10-10 2013-10-11")
+        test_args = misc.fdsnws_parser.parse(self.TestSchema(), test_request,
+                                             locations=('form',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+        sncls = misc.fdsnws_parser.parse(self.sncls_schema, test_request,
+                                         locations=('form',))['sncls']
+        self.assertEqual(sncls, reference_sncls)
+
+    # test_post_single ()
+
+    def test_post_multiple(self):
+        self.sncls_schema.context = {'request': POSTRequest()}
+
+        reference_sncls = [misc.SNCL(network='NL',
+                                    station='HGN',
+                                    location='??',
+                                    channel='*',
+                                    starttime=datetime.datetime(2013, 10, 10),
+                                    endtime=datetime.datetime(2013, 10, 11)),
+                           misc.SNCL(network='GR',
+                                    station='BFO',
+                                    location='*',
+                                    channel='*',
+                                    starttime=datetime.datetime(2017, 01, 01),
+                                    endtime=datetime.datetime(2017, 01, 31))]
+
+        test_request = self.TestRequest(
+                "f=value\nNL HGN ?? * 2013-10-10 2013-10-11\n"
+                "GR BFO * * 2017-01-01 2017-01-31")
+        test_args = misc.fdsnws_parser.parse(self.TestSchema(), test_request,
+                                             locations=('form',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+        sncls = misc.fdsnws_parser.parse(self.sncls_schema, test_request,
+                                         locations=('form',))['sncls']
+        self.assertEqual(sncls, reference_sncls)
+
+    # test_post_multiple ()
+
+    def test_post_empty(self):
+        self.sncls_schema.context = {'request': POSTRequest()}
+
+        test_request = self.TestRequest("")
         with self.assertRaises(HTTPException):
-            sncl_args = fdsnws_parser.parse(self.sncl_schema, test_request,
-                    locations=('form',))
+            sncls = misc.fdsnws_parser.parse(self.sncls_schema, test_request,
+                                             locations=('form',))['sncls']
 
-    # test_empty_request () 
+    # test_post_empty ()
 
-    def test_single_sncl(self):
-        reference_sncl = {
-                'network': [u'NL'],
-                'station': [u'HGN'],
-                'location': [u'??'],
-                'channel': [u'*'],
-                'starttime': [datetime.datetime(2013, 10, 10)],
-                'endtime': [datetime.datetime(2013, 10, 11)]
-                }
+    def test_post_missing(self):
+        self.sncls_schema.context = {'request': POSTRequest()}
+
+        test_request = self.TestRequest("f=value\n")
+        test_args = misc.fdsnws_parser.parse(self.TestSchema(), test_request,
+                                             locations=('form',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+        with self.assertRaises(HTTPException):
+            misc.fdsnws_parser.parse(self.sncls_schema, test_request,
+                                     locations=('form',))
+
+    # test_post_missing ()
+
+    def test_post_invalid(self):
+        self.sncls_schema.context = {'request': POSTRequest()}
+
         test_request = self.TestRequest(
-                u"NL HGN ?? * 2013-10-10 2013-10-11")
-        sncl_args = fdsnws_parser.parse(self.sncl_schema, test_request,
-                locations=('form',))
-        self.assertEqual(dict(sncl_args), reference_sncl)
+                "f=value\nNL HGN * 2013-10-10 2013-10-11")
+        test_args = misc.fdsnws_parser.parse(self.TestSchema(), test_request,
+                                             locations=('form',))
+        self.assertEqual(dict(test_args), {'f': 'value'})
+        with self.assertRaises(HTTPException):
+            sncls = misc.fdsnws_parser.parse(self.sncls_schema, test_request,
+                                             locations=('form',))['sncls']
 
-    # test_single_sncl () 
-
-    def test_multiple_sncls(self):
-        reference_result = {
-                'network': [u'NL', u'CH'],
-                'station': [u'HGN', u'DAVOX'],
-                'location': [u'??', u'??'],
-                'channel': [u'*', u'*'],
-                'starttime': [
-                    datetime.datetime(2013, 10, 10),
-                    datetime.datetime(2017, 10, 10)],
-                'endtime': [
-                    datetime.datetime(2013, 10, 11),
-                    datetime.datetime(2017, 10, 11)]
-                }
-        test_request = self.TestRequest(
-                u"NL HGN ?? * 2013-10-10 2013-10-11\n" +
-                u"CH DAVOX ?? * 2017-10-10 2017-10-11")
-        sncl_args = fdsnws_parser.parse(self.sncl_schema, test_request,
-                locations=('form',))
-        self.assertEqual(dict(sncl_args), reference_result)
-
-    # test_multiple_sncls () 
+    # test_post_invalid ()
 
 # class FDSNWSParserTestCase
 
