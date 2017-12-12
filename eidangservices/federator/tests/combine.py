@@ -25,6 +25,13 @@
 # 2017/11/15        V0.1    Daniel Armbruster
 #
 # =============================================================================
+"""
+Federator combiner test facilities.
+"""
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import *
 
 import io
 import json
@@ -41,6 +48,10 @@ PATH_TESTDATA = os.path.join(os.path.dirname(__file__), "data")
 class CombinerTestCase(unittest.TestCase):
     def test_combiner_factory(self):
         c = combine.Combiner.create('miniseed', qp={})
+        # NOTE(damb): The solution with the temporary file is just a temporary
+        # workaround.
+        # XXX(damb): workaround: close the temporary file manually;
+        c.tempfile_ofd.close()
         self.assertTrue(isinstance(c, combine.MseedCombiner))
         c = combine.Combiner.create('text', qp={})
         self.assertTrue(isinstance(c, combine.StationTextCombiner))
@@ -56,11 +67,11 @@ class CombinerTestCase(unittest.TestCase):
 
 class StationTextCombinerTestCase(unittest.TestCase):
     HEADER_SNIPPED = \
-    u"#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime"
+    "#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime"
     FIRST_SNIPPED = \
-    u"NL|HGN|50.764|5.9317|135.0|HEIMANSGROEVE, NETHERLANDS|2001-06-06T00:00:00|"
+    "NL|HGN|50.764|5.9317|135.0|HEIMANSGROEVE, NETHERLANDS|2001-06-06T00:00:00|"
     SECOND_SNIPPED = \
-    u"II|BFO|48.3319|8.3311|589.0|Black Forest Observatory, Schiltach, Germany|1996-05-29T00:00:00|"
+    "II|BFO|48.3319|8.3311|589.0|Black Forest Observatory, Schiltach, Germany|1996-05-29T00:00:00|"
 
     def setUp(self):
         self.ofd = io.BytesIO()
@@ -74,7 +85,7 @@ class StationTextCombinerTestCase(unittest.TestCase):
         ifd = io.StringIO(snip)
         c.combine(ifd)
         c.dump(self.ofd)
-        self.assertEqual(snip, self.ofd.getvalue())
+        self.assertEqual(snip, self.ofd.getvalue().decode("utf-8"))
 
     def test_combine(self):
         c = combine.StationTextCombiner()
@@ -88,7 +99,7 @@ class StationTextCombinerTestCase(unittest.TestCase):
         self.assertEqual(self.HEADER_SNIPPED+'\n'
                 +self.FIRST_SNIPPED+'\n'
                 +self.SECOND_SNIPPED, 
-                self.ofd.getvalue())
+                self.ofd.getvalue().decode("utf-8"))
          
 # class StationTextCombinerTestCase
 
@@ -114,7 +125,8 @@ class WFCatalogJSONCombinerTestCase(unittest.TestCase):
             fd.seek(0)
             c.combine(fd)
         c.dump(self.ofd)
-        result = json.dumps(json.loads(self.ofd.getvalue()), sort_keys=True)
+        result = json.dumps(json.loads(self.ofd.getvalue().decode("utf-8")),
+                            sort_keys=True)
         self.assertEqual(json.dumps(snip, sort_keys=True), result)
 
     def test_combine(self):
@@ -130,7 +142,8 @@ class WFCatalogJSONCombinerTestCase(unittest.TestCase):
             fd_second.seek(0)
             c.combine(fd_second)
         c.dump(self.ofd)
-        result = json.dumps(json.loads(self.ofd.getvalue()), sort_keys=True)
+        result = json.dumps(json.loads(self.ofd.getvalue().decode("utf-8")),
+                            sort_keys=True)
 
         reference_result = first_snip
         reference_result.extend(second_snip)

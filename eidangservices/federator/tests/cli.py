@@ -28,9 +28,12 @@
 """
 Federator CLI tests.
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import *
 
 import os
-import mock
 import tempfile
 import unittest
 
@@ -38,6 +41,12 @@ from eidangservices import settings
 from eidangservices.federator.server.app import build_parser
 from eidangservices.federator.server.misc import ExitCodes
 
+try:
+    import mock
+except ImportError:
+    import unittest.mock as mock
+
+# -----------------------------------------------------------------------------
 class CLITestCase(unittest.TestCase):
     def setUp(self):
         self.parser = build_parser()
