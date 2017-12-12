@@ -238,14 +238,14 @@ class MseedCombiner(Combiner):
             else:
                 # Full header size cannot be smaller than
                 # fixed header size. This is an error.
-                self.logger.warn("record %s: data offset smaller than "\
+                self.logger.warning("record %s: data offset smaller than "\
                     "fixed header length: %s, bailing "\
                     "out" % (record_idx, data_offset))
                 break
 
             buf = ifd.read(remaining_header_size)
             if not buf:
-                self.logger.warn("remaining header corrupt in record "\
+                self.logger.warning("remaining header corrupt in record "\
                     "%s" % record_idx)
                 break
 
@@ -303,7 +303,7 @@ class MseedCombiner(Combiner):
             # read remainder of record (data section)
             buf = ifd.read(remaining_record_size)
             if not buf:
-                self.logger.warn("cannot read data section of record "\
+                self.logger.warning("cannot read data section of record "\
                     "%s" % record_idx)
                 break
 

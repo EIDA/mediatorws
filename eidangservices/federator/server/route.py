@@ -265,13 +265,13 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
                 raise
 
             # retrying for 5?? HTTP status codes
-            logger.warn("retrying %s (%d) after %d seconds due to %s"
+            logger.warning("retrying %s (%d) after %d seconds due to %s"
                 % (url, n, wait, str(e)))
             retry(wait, logger=logger)
 
         except (urllib2.URLError, socket.error) as e:
             # retrying for connection errors
-            logger.warn("retrying %s (%d) after %d seconds due to %s"
+            logger.warning("retrying %s (%d) after %d seconds due to %s"
                 % (url, n, wait, str(e)))
             retry(wait, logger=logger)
 
@@ -392,7 +392,7 @@ class DownloadTask(TaskBase):
                                 url_handlers.append(h)
 
                             except ValueError:
-                                self.logger.warn("invalid auth response: %s" %
+                                self.logger.warning("invalid auth response: %s" %
                                         up)
                                 # TODO(damb): raise a proper exception and
                                 # inform the client
@@ -403,18 +403,18 @@ class DownloadTask(TaskBase):
                                     % auth_url)
 
                         else:
-                            self.logger.warn(
+                            self.logger.warning(
                             "authentication at %s failed with HTTP "
                             "status code %d" % (auth_url, fd.getcode()))
 
                 # TODO(damb): Howto inform the client about errors.
                 except (urllib2.URLError, socket.error) as e:
-                    self.logger.warn("authentication at %s failed: %s" %
+                    self.logger.warning("authentication at %s failed: %s" %
                             (auth_url, str(e)))
                     query_url = self.url.post()
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                self.logger.warn("reading %s failed: %s" % (wadl_url, str(e)))
+                self.logger.warning("reading %s failed: %s" % (wadl_url, str(e)))
                 query_url = self.url.post()
 
             except AuthNotSupported:
@@ -463,7 +463,7 @@ class DownloadTask(TaskBase):
                             (query_url, fd.getcode()))
 
                     elif fd.getcode() != 200:
-                        self.logger.warn(
+                        self.logger.warning(
                                 "getting data from %s failed with HTTP status "
                                 "code %d" % (query_url, fd.getcode()))
 
@@ -480,7 +480,7 @@ class DownloadTask(TaskBase):
                             return self._combiner.combine(fd)
 
                         else:
-                            self.logger.warn(
+                            self.logger.warning(
                             "getting data from %s failed: unsupported "
                             "content type '%s'" % (query_url, content_type))
 
@@ -490,20 +490,20 @@ class DownloadTask(TaskBase):
 
             except urllib2.HTTPError as e:
                 if e.code == 413 and n > 1:
-                    self.logger.warn("request too large for %s, splitting"
+                    self.logger.warning("request too large for %s, splitting"
                         % query_url)
 
                     n = -(n//-2)
 
                 else:
-                    self.logger.warn("getting data from %s failed: %s"
+                    self.logger.warning("getting data from %s failed: %s"
                         % (query_url, str(e)))
                     # TODO(damb): send the response code to the user: must be
                     # implemented for a detailed logging
                     break
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                self.logger.warn("getting data from %s failed: %s"
+                self.logger.warning("getting data from %s failed: %s"
                     % (query_url, str(e)))
                 # TODO(damb): send the response code to the user: must be
                 # implemented for a detailed logging

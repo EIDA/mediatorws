@@ -310,8 +310,8 @@ def main():
             fallback_handler.setFormatter(fallback_formatter)
             logger.addHandler(fallback_handler)
             logger_configured = True
-            logger.warn('Setup logging failed with %s. '
-                        'Using fallback logging configuration.' % err)
+            logger.warning('Setup logging failed with %s. '
+                           'Using fallback logging configuration.' % err)
 
     app = setup_app(args)
 
