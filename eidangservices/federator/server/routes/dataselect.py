@@ -28,13 +28,14 @@ This file is part of the EIDA mediator/federator webservices.
 import datetime
 import logging
 
-import flask
 from flask import request
 from webargs.flaskparser import use_args
 
-from eidangservices import settings
-from eidangservices.federator.server import \
-        general_request, schema, httperrors, misc
+import eidangservices as eidangws
+
+from eidangservices import settings, utils
+from eidangservices.federator.server import (general_request, schema,
+                                             httperrors)
 
 
 class DataselectResource(general_request.GeneralResource):
@@ -49,8 +50,8 @@ class DataselectResource(general_request.GeneralResource):
         self.logger = logging.getLogger(self.LOGGER)
 
     @use_args(schema.DataselectSchema(), locations=('query',))
-    @misc.use_fdsnws_kwargs(
-        schema.ManySNCLSchema(context={'request': request}),
+    @utils.use_fdsnws_kwargs(
+        eidangws.schema.ManySNCLSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, args, sncls):
@@ -70,9 +71,9 @@ class DataselectResource(general_request.GeneralResource):
     # get ()
 
         
-    @misc.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
-    @misc.use_fdsnws_kwargs(
-        schema.ManySNCLSchema(context={'request': request}),
+    @utils.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
+    @utils.use_fdsnws_kwargs(
+        eidangws.schema.ManySNCLSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, args, sncls):

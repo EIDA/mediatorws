@@ -31,9 +31,11 @@ import logging
 from flask import request
 from webargs.flaskparser import use_args
 
-from eidangservices import settings
-from eidangservices.federator.server import \
-        general_request, schema, httperrors, misc
+import eidangservices as eidangws
+
+from eidangservices import settings, utils
+from eidangservices.federator.server import (general_request, schema,
+                                             httperrors)
 
 
 class StationResource(general_request.GeneralResource):
@@ -45,8 +47,8 @@ class StationResource(general_request.GeneralResource):
         self.logger = logging.getLogger(self.LOGGER)
 
     @use_args(schema.StationSchema(), locations=('query',))
-    @misc.use_fdsnws_kwargs(
-        schema.ManySNCLSchema(context={'request': request}),
+    @utils.use_fdsnws_kwargs(
+        eidangws.schema.ManySNCLSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, station_args, sncls):
@@ -64,9 +66,9 @@ class StationResource(general_request.GeneralResource):
 
     # get ()
 
-    @misc.use_fdsnws_args(schema.StationSchema(), locations=('form',))
-    @misc.use_fdsnws_kwargs(
-        schema.ManySNCLSchema(context={'request': request}),
+    @utils.use_fdsnws_args(schema.StationSchema(), locations=('form',))
+    @utils.use_fdsnws_kwargs(
+        eidangws.schema.ManySNCLSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, station_args, sncls):

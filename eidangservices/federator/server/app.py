@@ -41,9 +41,7 @@ import tempfile
 from flask import Flask
 from flask_restful import Api
 
-from eidangservices import settings
-from eidangservices.federator.server.misc import (realpath, get_version,
-                                                  CustomParser)
+from eidangservices import settings, utils
 from eidangservices.federator.server.routes.misc import \
     DataselectVersionResource, StationVersionResource, \
     WFCatalogVersionResource, DataselectWadlResource, \
@@ -61,7 +59,7 @@ except ImportError:
     import configparser
 
 
-__version__ = get_version("federator")
+__version__ = utils.get_version("federator")
 
 logger_configured = False
 
@@ -73,7 +71,7 @@ def real_file_path(path):
     :rtype: str
     :raises argparse.ArgumentTypeError: if file does not exist
     """
-    path = realpath(path)
+    path = utils.realpath(path)
     if not os.path.isfile(path):
         raise argparse.ArgumentTypeError
     return path
@@ -87,7 +85,7 @@ def real_dir_path(path):
     :rtype: str
     :raises argparse.ArgumentTypeError: if directory does not exist
     """
-    path = realpath(path)
+    path = utils.realpath(path)
     if not os.path.isdir(path):
         raise argparse.ArgumentTypeError
     return path
@@ -103,7 +101,7 @@ def build_parser(parents=[]):
     :rtype: :py:class:`argparse.ArgumentParser`
     """
 
-    parser = CustomParser(
+    parser = utils.CustomParser(
         prog="eida-federator",
         description='Launch EIDA federator web service.',
         parents=parents)
@@ -262,7 +260,7 @@ def main():
                           dest="config_file",
                           default=settings.PATH_EIDANGWS_CONF,
                           metavar="PATH",
-                          type=realpath,
+                          type=utils.realpath,
                           help="path to federator configuration file " +
                           "(default: '%(default)s')")
 

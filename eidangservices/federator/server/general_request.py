@@ -34,8 +34,9 @@ import flask
 from flask import current_app, request
 from flask_restful import Resource
 
-from eidangservices import settings
-from eidangservices.federator.server import httperrors, route, misc, schema
+import eidangservices as eidangws
+from eidangservices import settings, utils
+from eidangservices.federator.server import httperrors, route, misc
 
 try:
     # Python 2.x
@@ -74,8 +75,8 @@ class GeneralResource(Resource):
         :return: The combined response (read from the temporary file)
         """
         postdata = None
-        sncl_schema = schema.SNCLSchema(many=True,
-                                        context={'request': request})
+        sncl_schema = eidangws.schema.SNCLSchema(many=True,
+                                                 context={'request': request})
         sncls = sncl_schema.dump(sncls).data
         self.logger.debug('SNCLs (serialized): %s' % sncls)
 
@@ -84,7 +85,7 @@ class GeneralResource(Resource):
             postdata = '\n'.join([' '.join(sncl.values()) for sncl in sncls])
         else:
             # merge SNCLs back to query parameters
-            sncls = misc.convert_scnl_dicts_to_query_params(sncls)
+            sncls = utils.convert_scnl_dicts_to_query_params(sncls)
             query_params.update(sncls)
 
         # TODO(damb): Improve mimetype handling.

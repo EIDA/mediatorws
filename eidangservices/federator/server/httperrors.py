@@ -29,8 +29,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 from werkzeug.exceptions import HTTPException
 
-from eidangservices import settings
-from eidangservices.federator.server.misc import get_version
+from eidangservices import settings, utils
 
 # Error <CODE>: <SIMPLE ERROR DESCRIPTION>
 # <MORE DETAILED ERROR DESCRIPTION>
@@ -67,7 +66,7 @@ def get_error_message(
     
     return ERROR_MESSAGE_TEMPLATE % (code, description_short, 
         description_long, documentation_uri, request_url, request_time, 
-        get_version("federator"))
+        utils.get_version("federator"))
 
 
 class FDSNHTTPError(HTTPException):
