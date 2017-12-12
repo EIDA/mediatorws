@@ -37,11 +37,15 @@ import datetime
 import marshmallow as ma
 import unittest
 
-from eidangservices.federator.tests.helpers import GETRequest, POSTRequest
+import flask
 
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 from eidangservices.federator.server import schema, misc
 
+try:
+    import mock
+except ImportError:
+    import unittest.mock as mock
 
 SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR 
 
@@ -275,25 +279,21 @@ class FDSNWSDateTimeFieldTestCase(FieldTestCase):
 
 # -----------------------------------------------------------------------------
 # schema related test cases
-# TODO (damb): Write tests for ManySNCLSchema
 
-# TODO (damb): To be refactorred
 class SNCLSchemaTestCase(unittest.TestCase):
-    def setUp(self):
-        self.schema = schema.SNCLSchema()
 
-    def tearDown(self):
-        self.schema = None
+    def _load(self, s, dataset):
+        return s.load(dataset).data
 
-    def _load(self, dataset):
-        return self.schema.load(dataset).data
+    def _dump(self, s, dataset):
+        return dict(s.dump(dataset).data)
 
-    def _dump(self, dataset):
-        return dict(self.schema.dump(dataset).data)
-
-    def test_sncl_get(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # no time definitions
         reference_result = {
                 'network': 'CH?*', 
@@ -302,34 +302,46 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'channel': 'AZ?*'}
         test_dataset = {'net': 'CH?*', 'sta': 'DAVOX?*', 'loc': '*?ABC',
                         'cha': 'AZ?*'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_invalid_net(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_invalid_net(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         test_dataset = {'net': 'C-', 'sta': 'DAVO?'}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
        
-    def test_sncl_get_invalid_sta(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_invalid_sta(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         test_dataset = {'net': '?*', 'sta': 'DAVO,', 'loc': '--'}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
 
-    def test_sncl_get_invalid_cha(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_invalid_cha(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'cha': 'BH,'}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
 
-    def test_sncl_get_valid_loc_minus(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_valid_loc_minus(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define multiple channels
         reference_result = {
                 'network': '*', 
@@ -337,13 +349,16 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'location': '--',
                 'channel': '*'}
         test_dataset = {'loc': '--'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_valid_loc_space(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_valid_loc_space(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define multiple channels
         reference_result = {
                 'network': '*', 
@@ -351,13 +366,16 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'location': '  ',
                 'channel': '*'}
         test_dataset = {'loc': '  '}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_start(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_start(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # only starttime definition
         reference_result = {
                 'network': 'CH', 
@@ -367,13 +385,16 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'starttime': '2017-01-01T00:00:00'}
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': '2017-01-01'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_start(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_start(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # only endtime definition
         reference_result = {
                 'network': 'CH', 
@@ -383,13 +404,16 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'endtime': '2017-01-01T00:00:00'}
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': '2017-01-01'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_start_end(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_start_end(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define both starttime and endtime
         reference_result = {
                 'network': 'CH', 
@@ -401,34 +425,43 @@ class SNCLSchemaTestCase(unittest.TestCase):
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': '2017-01-01',
                         'end': '2017-02-01'}
-        test_dataset = self._load(test_dataset)
-        result = self._dump(test_dataset)
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_get_starts(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_starts(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define multiple times
         test_dataset = {'net': 'CH', 'sta': 'DAVOX',
                         'start': '2017-01-01,2017-01-02',
                         'end': '2017-02-01'}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
 
-    def test_sncl_get_start_future(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_start_future(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define starttime in future
         future = datetime.datetime.now() + datetime.timedelta(1)
         future = future.isoformat()
         test_dataset = {'net': 'CH', 'sta': 'DAVOX',
                          'start': future}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
 
-    def test_sncl_get_end_future(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_end_future(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define endtime in future
         now = datetime.datetime.utcnow() 
         tomorrow = now + datetime.timedelta(1)
@@ -437,30 +470,36 @@ class SNCLSchemaTestCase(unittest.TestCase):
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX',
                         'end': tomorrow_str}
-        result = self._load(test_dataset)
+        result = self._load(s, test_dataset)
         self.assertAlmostEqual(result.endtime, now,
                                delta=datetime.timedelta(seconds=1))
 
-    def test_sncl_get_end_lt_start(self):
+    @mock.patch('flask.Request')
+    def test_sncl_get_end_lt_start(self, mock_request):
         # request.method == 'GET'
-        self.schema.context['request'] = GETRequest
+        mock_request.method = 'GET'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define endtime <= starttime
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': '2017-01-01',
                         'start': '2017-02-01'}
         with self.assertRaises(ma.ValidationError):
-            test_dataset = self._load(test_dataset)
+            test_dataset = self._load(s, test_dataset)
 
 
-    def test_sncl_post(self):
+    @mock.patch('flask.Request')
+    def test_sncl_post(self, mock_request):
         # request.method == 'POST'
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # valid values - single SNCL line
         reference_result = misc.SNCL(network='CH',
                                      station='DAVOX',
                                      location='*',
                                      channel='*',
-                                     starttime=datetime.datetime(2017,01,01),
-                                     endtime=datetime.datetime(2017,01,02))
+                                     starttime=datetime.datetime(2017,1,1),
+                                     endtime=datetime.datetime(2017,1,2))
         
         test_dataset = {
                 'net': 'CH', 
@@ -469,12 +508,15 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'cha': '*',
                 'start': '2017-01-01',
                 'end': '2017-01-02'}
-        result = self._load(test_dataset)
+        result = self._load(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-    def test_sncl_post_missing_time(self):
+    @mock.patch('flask.Request')
+    def test_sncl_post_missing_time(self, mock_request):
         # request.method == 'POST
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # define a invalid SNCL
         test_dataset = {
                 'net': 'CH', 
@@ -483,11 +525,14 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'cha': '*',
                 'start': '2017-01-01'}
         with self.assertRaises(ma.ValidationError):
-            result = self._load(test_dataset)
+            result = self._load(s, test_dataset)
 
-    def test_sncl_post_start_lt_end(self):
+    @mock.patch('flask.Request')
+    def test_sncl_post_start_lt_end(self, mock_request):
         # request.method == 'POST'
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # invalid time definition
         test_dataset = {
                 'net': 'CH', 
@@ -497,11 +542,14 @@ class SNCLSchemaTestCase(unittest.TestCase):
                 'start': '2017-01-02',
                 'end': '2017-01-01'}
         with self.assertRaises(ma.ValidationError):
-            self._load(test_dataset)
+            self._load(s, test_dataset)
 
-    def test_sncl_post_start_end_future(self):
+    @mock.patch('flask.Request')
+    def test_sncl_post_start_end_future(self, mock_request):
         # request.method == 'POST'
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.SNCLSchema(context={'request': mock_request})
+
         # both starttime and endtime in future (not caught)
         today = datetime.datetime.now()
         tomorrow = today + datetime.timedelta(1)
@@ -520,7 +568,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
                         'cha': '*',
                         'start': tomorrow_str,
                         'end': dat_str}
-        result = self._load(test_dataset)
+        result = self._load(s, test_dataset)
         self.assertEqual(result, reference_result)
 
 # class SNCLSchemaTestCase
@@ -528,39 +576,39 @@ class SNCLSchemaTestCase(unittest.TestCase):
 
 class ManySNCLSchemaTestCase(unittest.TestCase):
 
-    def setUp(self):
-        self.schema = schema.ManySNCLSchema()
-
-    def tearDown(self):
-        self.schema = None
-
-    def test_many_sncls(self):
+    @mock.patch('flask.Request')
+    def test_many_sncls(self, mock_request):
         # request.method == 'POST'
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.ManySNCLSchema(context={'request': mock_request})
+
         reference_result = [misc.SNCL(network='CH',
                                       station='DAVOX',
-                                      starttime=datetime.datetime(2017,01,01),
-                                      endtime=datetime.datetime(2017,01,31)),
+                                      starttime=datetime.datetime(2017,1,1),
+                                      endtime=datetime.datetime(2017,1,31)),
                             misc.SNCL(network='GR',
                                       station='BFO',
                                       channel='BH?',
-                                      starttime=datetime.datetime(2017,01,01),
-                                      endtime=datetime.datetime(2017,01,31))]
+                                      starttime=datetime.datetime(2017,1,1),
+                                      endtime=datetime.datetime(2017,1,31))]
         test_dataset = {'sncls': [
                         {'net': 'CH', 'sta': 'DAVOX',
                          'start': '2017-01-01', 'end': '2017-01-31'},
                         {'net': 'GR', 'sta': 'BFO', 'cha': 'BH?',
                          'start': '2017-01-01', 'end': '2017-01-31'}
                         ]}
-        result = self.schema.load(test_dataset).data['sncls']
+        result = s.load(test_dataset).data['sncls']
         self.assertEqual(result, reference_result)
 
-    def test_post_missing_sncl(self):
+    @mock.patch('flask.Request')
+    def test_post_missing_sncl(self, mock_request):
         # request.method == 'POST'
-        self.schema.context['request'] = POSTRequest
+        mock_request.method = 'POST'
+        s = schema.ManySNCLSchema(context={'request': mock_request})
+
         test_dataset = []
         with self.assertRaises(ma.ValidationError):
-            self.schema.load(test_dataset)
+            s.load(test_dataset)
 
 # class ManySNCLSchemaTestCase
 
