@@ -202,20 +202,7 @@ class FDSNWSParser(FlaskParser):
             for sncl_dict in sncls:
                 sncl_dict['end'] = endtime
 
-        args = req.args.copy()
-        args.setlist('sncls', sncls)
-
-        # remove former scnl related values
-        for key in ('net', 'network',
-                     'sta', 'station',
-                     'loc', 'location',
-                     'cha', 'channel',
-                     'start', 'starttime'
-                     'end', 'endtime'):
-            try:
-                del args[key]
-            except KeyError:
-                pass
+        args = {'sncls': sncls}
 
         return webargs.core.get_value(args, name, field)
 
