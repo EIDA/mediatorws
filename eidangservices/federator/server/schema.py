@@ -185,14 +185,15 @@ class SNCLSchema(Schema):
                     endtime = datetime.datetime.utcnow()
                     data['endtime'] = endtime
 
-
             elif self.context.get('request').method == 'POST':
                 if starttime is None or endtime is None:
                     raise ValidationError('missing temporal constraints')
 
             if starttime and starttime >= endtime:
                 raise ValidationError(
-                            'endtime must be greater than starttime')
+                        'endtime must be greater than starttime')
+        else:
+            raise ValidationError('missing context')
 
 
     class Meta:
