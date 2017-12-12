@@ -209,14 +209,14 @@ class ManySNCLSchema(Schema):
     webargs locations different from *json*. This way we are able to treat
     SNCLs like json bulk type arguments.
     """
-    sncls = fields.List(fields.Nested(SNCLSchema))
+    sncls = fields.Nested('SNCLSchema', many=True)
 
     @validates_schema
     def validate_schema(self, data):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
             self.context.get('request').method == 'POST'):
-            if 'sncls' not in data:
+            if 'sncls' not in data or not data['sncls']:
                 raise ValidationError('No SNCL defined.')
             if [v for v in data['sncls'] if v is None]:
                 raise ValidationError('Invalid SNCL defined.')
