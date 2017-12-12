@@ -164,7 +164,7 @@ class FDSNWSParser(FlaskParser):
         """
         def _get_values(keys, raw=False):
             """
-            löok up keys in req.args
+            look up keys in req.args
             :param keys: an iterable with keys to look up
             :param bool raw: return the raw value if True - else the value is
             splitted
