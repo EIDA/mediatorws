@@ -41,6 +41,7 @@ def get_version(filename):
         metadata = dict(findall("__([a-z]+)__ = '([^']+)'", f.read()))
     return metadata['version']
 
+# TODO(damb): Distribute tests separately.
 
 _name = 'eidangservices'
 _version = '0.9.1'
