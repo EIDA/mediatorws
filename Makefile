@@ -54,15 +54,23 @@ $(call CHECKVARS, $(SERVICES))
 install: $(patsubst %,%.install,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
 
+.PHONY: build-clean
+build-clean:
+	rm -rfv build
+	rm -rfv *.egg-info
+
+.PHONY: ls
 ls:
 	@echo "SERVICES available: \n$(SERVICES_ALL)"
 
 # install services
 %.install: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
+	$(MAKE) build-clean
 	cat $^ > $(MANIFEST_IN)
 	python setup.py $(@:.install=) install
 	
-%.sdist: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
+%.sdist: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL) 
+	$(MAKE) build-clean
 	cat $^ > $(MANIFEST_IN)
 	python setup.py $(@:.sdist=) sdist
 
