@@ -65,6 +65,17 @@ _iso8601_re = re.compile(
 )
 
 # -----------------------------------------------------------------------------
+class ExitCodes:
+    """
+    Enum for exit codes.
+    """
+    EXIT_SUCCESS = 0
+    EXIT_WARNING = 1
+    EXIT_ERROR = 2
+
+# class ExitCodes
+
+
 class CustomParser(argparse.ArgumentParser):
 
     def error(self, message):

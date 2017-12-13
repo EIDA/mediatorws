@@ -38,8 +38,8 @@ import tempfile
 import unittest
 
 from eidangservices import settings
+from eidangservices.utils import ExitCodes
 from eidangservices.federator.server.app import build_parser
-from eidangservices.federator.server.misc import ExitCodes
 
 try:
     import mock

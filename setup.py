@@ -67,7 +67,7 @@ _deps = [
 if sys.version_info[:2] < (3, 3):
     _deps.append('mock')
 
-_test_suites = 'eidangservices.federator.tests'
+_test_suites = 'eidangservices.tests.testsuite'
 
 
 subsys = sys.argv[1]
@@ -86,8 +86,8 @@ if 'federator' == subsys:
             'eida-federator = eidangservices.federator.server.app:main',
         ]
     }
-    _includes = ('eidangservices',
-            '*.federator', 'federator.*', '*.federator.*')
+    _includes = ('eidangservices', 'eidangservices.tests',
+                 '*.federator', 'federator.*', '*.federator.*')
     _deps = [
             'fasteners>=0.14.1',
             'Flask>=0.12.2',
@@ -101,7 +101,7 @@ if 'federator' == subsys:
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
-    _test_suites = 'eidangservices.federator.tests.federator_testsuite'
+    _test_suites = 'eidangservices.tests.federator_testsuite'
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)

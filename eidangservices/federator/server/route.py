@@ -636,6 +636,9 @@ class WebserviceRouter:
                         else:
                             sncls.append(line)
 
+                    self.logger.debug('routes received: %s' %
+                                      self.__routing_table) 
+
         except (urllib2.URLError, socket.error) as e:
             raise Error("getting routes from %s failed: %s" % (query_url,
                 str(e)))

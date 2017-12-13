@@ -34,6 +34,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import datetime
+import functools
 
 from marshmallow import (Schema, fields, validate, ValidationError,
                          post_load, post_dump, validates_schema)
@@ -41,9 +42,54 @@ from marshmallow import (Schema, fields, validate, ValidationError,
 from eidangservices import settings, utils
 
 
+validate_percentage = validate.Range(min=0, max=100)
+validate_latitude = validate.Range(min=-90., max=90)
+validate_longitude = validate.Range(min=-180., max=180.)
+validate_radius = validate.Range(min=0., max=180.)
 validate_net_sta_cha = validate.Regexp(r'[A-Z0-9_*?]*$')
+not_empty = validate.NoneOf([None, ''])
+
+def NotEmptyField(field_type, **kwargs):
+    return functools.partial(field_type, validate=not_empty, **kwargs)
+
+Percentage = functools.partial(fields.Float, validate=validate_percentage)
+NotEmptyString = NotEmptyField(fields.Str)
+NotEmptyInt = NotEmptyField(fields.Int, as_string=True)
+NotEmptyFloat = NotEmptyField(fields.Float, as_string=True)
+
+Degree = functools.partial(fields.Float, as_string=True)
+Latitude = functools.partial(Degree, validate=validate_latitude)
+Longitude = functools.partial(Degree, validate=validate_longitude)
+Radius = functools.partial(Degree, validate=validate_radius)
+
 
 # -----------------------------------------------------------------------------
+class JSONBool(fields.Bool):
+    """
+    A field serialializing to a JSON boolean.
+    """
+    #: Values that will (de)serialize to `True`. If an empty set, any non-falsy
+    #  value will deserialize to `true`.
+    truthy = set(('true', True))
+    #: Values that will (de)serialize to `False`.
+    falsy = set(('false', False))
+
+    def _serialize(self, value, attr, obj):
+
+        if value is None:
+            return None
+        elif value in self.truthy:
+            return 'true'
+        elif value in self.falsy:
+            return 'false'
+
+        return bool(value)
+
+# class JSONBool
+
+FDSNWSBool = JSONBool
+
+
 class FDSNWSDateTime(fields.DateTime):
     """
     Class extends marshmallow standard DateTime with a *FDSNWS datetime*
