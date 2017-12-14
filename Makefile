@@ -41,7 +41,7 @@
 #
 # =============================================================================
 
-SERVICES_ALL=federator
+SERVICES_ALL=federator stationlite
 # TODO(damb): Provide installation for all services
 #SERVICES_ALL=federator mediator stationlite
 SERVICES?=$(SERVICES_ALL)
