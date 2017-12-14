@@ -66,6 +66,7 @@ test: $(patsubst %,%.test,$(SERVICES))
 
 .PHONY: build-clean
 build-clean:
+	rm -rfv $(MANIFEST_IN)
 	rm -rfv build
 	rm -rfv *.egg-info
 
