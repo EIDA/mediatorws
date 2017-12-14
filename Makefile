@@ -17,6 +17,7 @@
 #
 # 	$ make ls
 #
+# ----
 # To install a specific EIDA NG webservice invoke:
 #
 # 	$ make install \
@@ -25,6 +26,13 @@
 # To install all EIDA NG webservices available invoke:
 # 	
 # 	$ make install
+#
+# ----
+# Invoke
+#
+# 	$ make tests [SERVICES=list of services]
+#
+# to run unittest facilities.
 #
 # NOTE:
 # -----
@@ -53,6 +61,8 @@ $(call CHECKVARS, $(SERVICES))
 # -----------------------------------------------------------------------------
 install: $(patsubst %,%.install,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
+test: $(patsubst %,%.test,$(SERVICES))
+
 
 .PHONY: build-clean
 build-clean:
@@ -74,5 +84,7 @@ ls:
 	cat $^ > $(MANIFEST_IN)
 	python setup.py $(@:.sdist=) sdist
 
+%.test: %.install
+	python setup.py $(@:.test=) test
 
 # ---- END OF <Makefile> ----
