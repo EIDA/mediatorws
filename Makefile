@@ -52,8 +52,8 @@ MANIFEST_ALL=MANIFEST.in.all
 
 # -----------------------------------------------------------------------------
 #
-CHECKVAR=$(if $(filter-out $(1),$(SERVICES_ALL)), \
-	$(error ERROR: Invalid SERVICES parameter value: $(1)),)
+CHECKVAR=$(if $(filter $(1),$(SERVICES_ALL)),, \
+	$(error ERROR: Invalid SERVICES parameter value: $(1)))
 CHECKVARS=$(foreach var,$(1),$(call CHECKVAR,$(var)))
 
 $(call CHECKVARS, $(SERVICES))
