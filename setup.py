@@ -106,7 +106,30 @@ if 'federator' == subsys:
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
-    pass
+
+    _name = 'stationlite'
+    _version = get_version('eidangservices/stationlite/__init__.py')
+    _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
+    _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
+    _description = ("EIDA NG StationLite webservice")
+
+    _includes = ('eidangservices', 'eidangservices.tests',
+                 '*.stationlite', 'stationlite.*', '*.stationlite.*')
+
+    # NOTE(damb): Currently dependencies for stationlite executables are not
+    # resolved.
+    _deps = [
+            'Flask>=0.12.2',
+            'Flask-RESTful>=0.3.6',
+            'Flask-SQLAlchemy>=2.3.2',
+            'future>=0.16.0',
+            'marshmallow>=3.0.0b4',
+            'python-dateutil>=2.6.1',
+            'webargs>=1.8.1',
+            ]
+
+    _test_suites = 'eidangservices.tests.stationlite_testsuite'
+
 elif 'mediator' == subsys:
     sys.argv.pop(1)
     pass
