@@ -25,9 +25,9 @@ class StationLiteResource(Resource):
         # this is an simple example query that lists all networks
         net = dbquery.find_networks(db_connection, db_tables)
         
-        return misc.get_response(str(net), settings.GENERAL_TEXT_MIMETYPE)
+        return misc.get_response(str(net), settings.MIMETYPE_TEXT)
     
 
     def post(self): 
-        return misc.get_response('post', settings.GENERAL_TEXT_MIMETYPE)
+        return misc.get_response('post', settings.MIMETYPE_TEXT)
 

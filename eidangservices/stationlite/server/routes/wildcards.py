@@ -15,8 +15,8 @@ class WildcardsResource(Resource):
     """Service query for wildcardresolver."""
     
     def get(self):
-        return misc.get_response('get', settings.GENERAL_TEXT_MIMETYPE)
+        return misc.get_response('get', settings.MIMETYPE_TEXT)
 
     def post(self): 
-        return misc.get_response('post', settings.GENERAL_TEXT_MIMETYPE)
+        return misc.get_response('post', settings.MIMETYPE_TEXT)
     
