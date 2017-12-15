@@ -52,7 +52,7 @@ def create_and_init_tables(db_path):
     
     if os.path.isfile(db_path):
         error_msg = "error: db file {} already exists".format(db_path)
-        raise RuntimeError, error_msg
+        raise RuntimeError(error_msg)
     
     engine, connection = get_engine_and_connection(
         'sqlite:///{}'.format(db_path))
@@ -289,8 +289,8 @@ def get_db_endpoint_id_from_url(connection, db_tables, endpoint_url, service):
     else:
         
         if len(r) > 1:
-            print "ERROR_UNIQUE_ENDPOINT: more that one entries for same "\
-                "url/service combination"
+            print("ERROR_UNIQUE_ENDPOINT: more that one entries for same "\
+                "url/service combination")
             
         endpoint_id = r[0][0]
         
@@ -480,7 +480,7 @@ def db_insert_network(connection, tables, net, node_id):
     nodes = db_insert_network_node_relation(
         connection, tables, network_id, node_id)
     
-    #print "{} {}".format(log_msg, ' '.join(nodes))
+    #print("{} {}".format(log_msg, ' '.join(nodes)))
         
     # insert network epoch, if new
     networkepoch_id = find_db_networkepoch_id(connection, tables, net)
@@ -662,7 +662,7 @@ def db_remove_outdated_rows(connection, tables, now_utc):
         d = tb.delete().where(tb.c.lastseen < now_utc)
         r = connection.execute(d)
         
-        print "table {}: deleted {} rows".format(tablename, r.rowcount)
+        print("table {}: deleted {} rows".format(tablename, r.rowcount))
 
     
 def to_db_timestamp(timestamp_iso):

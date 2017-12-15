@@ -38,10 +38,10 @@ def main():
     
     for node, node_par in settings.EIDA_NODES.items():
         
-        print "===== using service at node {}".format(node)
+        print("===== using service at node {}".format(node))
         
         if node_par['services']['eida']['routing']['service'] is False:
-            print "does not provide routing service, skipping\n"
+            print("does not provide routing service, skipping\n")
             continue
         
         server = node_par['services']['eida']['routing']['server']
@@ -49,7 +49,7 @@ def main():
         
         for check_node, check_node_par in settings.EIDA_NODES.items():
             
-            print "-- trying SNCLs for node {}".format(check_node)
+            print("-- trying SNCLs for node {}".format(check_node))
             
             payload = {
                 'network': check_node_par['testquerysncls']['network'],
@@ -81,7 +81,7 @@ def main():
             
             for pl in (payload, payload_wild):
                 
-                print "+++"
+                print"+++")
                 
                 try:
                     response = requests.get(endpoint, params=pl)
@@ -89,13 +89,13 @@ def main():
                 except requests.exceptions.ConnectionError:
                         
                     error_msg = "error: no connection"
-                    print error_msg
+                    print(error_msg)
                     continue
                 
                 if not response.ok:
-                    print "error: code {}".format(response.status_code)
+                    print("error: code {}".format(response.status_code))
                 
-                print response.text
+                print(response.text)
 
 
 if __name__ == '__main__':
