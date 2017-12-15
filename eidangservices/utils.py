@@ -260,6 +260,20 @@ def realpath(p):
 
 # realpath ()
 
+def real_file_path(path):
+    """
+    check if file exists
+    :returns: realpath in case the file exists
+    :rtype: str
+    :raises argparse.ArgumentTypeError: if file does not exist
+    """
+    path = realpath(path)
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError
+    return path
+
+# real_file_path ()
+
 def from_fdsnws_datetime(datestring, use_dateutil=True):
     """
     parse a datestring from a string specified by the fdsnws datetime

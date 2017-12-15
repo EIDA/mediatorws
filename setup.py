@@ -117,7 +117,7 @@ elif 'stationlite' == subsys:
                  '*.stationlite', 'stationlite.*', '*.stationlite.*')
     _entry_points = {
         'console_scripts': [
-            'eida-stationlite= eidangservices.stationlite.server.__main__:main',
+            'eida-stationlite= eidangservices.stationlite.server.app:main',
         ]
     }
 

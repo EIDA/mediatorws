@@ -56,5 +56,13 @@
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
 # path_logging_conf=/path/to/logging.conf
-# 
+#
+# ----------------------------------------------------------------------------
+[CONFIG_STATIONLITE]
+# Configuration section for the EIDA NG StationLite Webservice. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. 
+#
+# TODO(damb): add configuration parameter description
+#
 # ---- END OF <eidangws_config> ----
