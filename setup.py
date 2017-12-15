@@ -115,6 +115,11 @@ elif 'stationlite' == subsys:
 
     _includes = ('eidangservices', 'eidangservices.tests',
                  '*.stationlite', 'stationlite.*', '*.stationlite.*')
+    _entry_points = {
+        'console_scripts': [
+            'eida-stationlite= eidangservices.stationlite.server.__main__:main',
+        ]
+    }
 
     # NOTE(damb): Currently dependencies for stationlite executables are not
     # resolved.
