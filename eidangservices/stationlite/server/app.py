@@ -154,6 +154,9 @@ def main():
     """
     main function for EIDA stationlite webservice
     """
+    # TODO(damb):
+    #   - implement WSGI compatibility
+    #   - check how database handling is coordinated
     global logger_configured
     
     c_parser = argparse.ArgumentParser(formatter_class=\
