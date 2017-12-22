@@ -14,7 +14,7 @@ import eidangservices as eidangws
 from eidangservices import settings, utils
 
 from eidangservices.stationlite.server import schema
-from eidangservices.stationlite.utils import misc
+from eidangservices.stationlite import misc
 
        
 class WildcardsResource(Resource):

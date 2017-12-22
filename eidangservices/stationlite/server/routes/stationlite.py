@@ -39,7 +39,7 @@ from eidangservices import settings, utils
 
 from eidangservices.stationlite.engine import dbquery
 from eidangservices.stationlite.server import schema
-from eidangservices.stationlite.utils import misc
+from eidangservices.stationlite import misc
 
 
 class StationLiteResource(Resource):
