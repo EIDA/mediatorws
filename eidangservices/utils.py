@@ -33,6 +33,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import argparse
+import collections
 import datetime
 import itertools
 import os
@@ -65,6 +66,8 @@ _iso8601_re = re.compile(
 )
 
 # -----------------------------------------------------------------------------
+Route = collections.namedtuple('Route', ['sncl', 'url'])
+
 class ExitCodes:
     """
     Enum for exit codes.
