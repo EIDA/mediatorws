@@ -65,6 +65,9 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLiteSchema: %s' % args)
         self.logger.debug('SNCLs: %s' % sncls)
 
+        # TODO(damb): approach:
+        # convert sncl to a sncl schema
+
         db_engine, db_connection, db_tables = misc.get_db()
         
         # TODO(fab): put in "real" query for SNCL at al.
