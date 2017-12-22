@@ -54,8 +54,6 @@ from eidangservices import settings, utils
 from eidangservices.stationlite.engine import db
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
-from eidangservices.stationlite.server.routes.wildcards import \
-    WildcardsResource
 
 
 __version__ = utils.get_version("stationlite")
@@ -135,13 +133,6 @@ def setup_app(args):
         StationLiteResource, "%s%s" % (settings.EIDA_STATIONLITE_PATH, 
             settings.FDSN_QUERY_METHOD_TOKEN))
 
-    ## wildcardresolver service endpoint
-    
-    # query method
-    api.add_resource(
-        WildcardsResource, "%s%s" % (settings.EIDA_WILDCARDS_PATH, 
-            settings.FDSN_QUERY_METHOD_TOKEN))
- 
     sqlalchemy_uri = "sqlite:///{}".format(args.db)
     
     app.config.update(
