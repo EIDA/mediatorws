@@ -91,7 +91,7 @@ class GeneralResource(Resource):
         # TODO(damb): Improve mimetype handling.
         self.logger.debug((
             "Processing request: query_params={0}, path_tempfile={1}, "
-            "post={2}, timout={3}, retries={4}, "
+            "post={2}, timeout={3}, retries={4}, "
             "retry_wait={5}, retry_lock={6}, threads={7}").format(
                     query_params,
                     path_tempfile,
@@ -188,6 +188,7 @@ def process_request(query_params,
         return None
 
 # process_request ()
+
 
 def get_routing_url(routing_service):
     """
