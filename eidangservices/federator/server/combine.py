@@ -450,7 +450,7 @@ class StationTextCombiner(Combiner):
         Dump Station text data.
         """
         if self.__text:
-            ofd.write(self.__text.encode('ascii'))
+            ofd.write(self.__text.encode('utf-8'))
 
 # class StationTextCombiner
 
