@@ -328,6 +328,7 @@ class DownloadTask(TaskBase):
         self._num_retries = kwargs.get('num_retries')
         self._retry_wait = kwargs.get('retry_wait')
         self._retry_lock = kwargs.get('retry_lock')
+        self.combined_size = 0
 
     # __init__ () 
 
@@ -475,9 +476,12 @@ class DownloadTask(TaskBase):
                         content_type = content_type.split(';')[0]
 
                         if (self._combiner and 
-                                content_type == self._combiner.mimetype):
+                            content_type == self._combiner.mimetype):
 
-                            return self._combiner.combine(fd)
+                            self.combined_size += self._combiner.combine(fd)
+                            if (n == len(self.sncls) or
+                                (i+n) >= len(self.sncls)):
+                                return self.combined_size
 
                         else:
                             self.logger.warning(
@@ -660,6 +664,7 @@ class WebserviceRouter:
                 }
         # create tasks from the routing table content
         bytes_fetched = []
+        self.logger.debug('Number of routes: %d' % len(self.__routing_table))
         for url, sncls in self.__routing_table:
             self.logger.debug(
                     'Setting up DownloadTask for <url=%s, sncls=%s> ...'
@@ -677,7 +682,7 @@ class WebserviceRouter:
         self.__thread_pool.join()
 
         self.logger.debug('Bytes fetched: %s' % bytes_fetched)
-        self.logger.info('Totally received and combined %d bytes.' %
+        self.logger.info('Totally combined %d bytes.' %
                          self._combiner.buffer_size)
 
         return bytes_fetched
