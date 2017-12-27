@@ -34,7 +34,9 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import functools
+import io
 import logging
+import sys
 import time
 import unittest
 #import warnings
@@ -44,7 +46,7 @@ import multiprocessing as mp
 from queue import Empty
 
 from eidangservices import settings
-from eidangservices.federator.server import route, misc
+from eidangservices.federator.server import combine, route, misc
 
 from future import standard_library
 standard_library.install_aliases()
@@ -89,6 +91,7 @@ def _connect(func, queue):
         queue.put(e)
 
 # _catch_exception(func, queue)
+
 
 # -----------------------------------------------------------------------------
 class ConnectionTestCase(unittest.TestCase):
@@ -162,8 +165,6 @@ class ConnectionTestCase(unittest.TestCase):
             error = error_queue.get(timeout=1)
             raise error
 
-
-
     # test_ok_retrying_but_locked ()
 
     @mock.patch('urllib.request.urlopen')
@@ -204,6 +205,92 @@ class ConnectionTestCase(unittest.TestCase):
     # test_url_error ()
 
 # class ConnectionTestCase
+
+
+class DownloadTaskTestCase(unittest.TestCase):
+
+    def setUp(self):
+        # target url
+        self.url = route.TargetURL(
+            urllib.parse.urlparse('https://www.ethz.ch/'), [])
+        self.sncls = ['CH BASLT * * 2017-01-01 2017-01-02',
+                      'CH DAVOX * * 2017-01-01 2017-01-02']
+        self.combiner = combine.Combiner.create('text')
+        self.timeout = settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT
+        self.num_retries = 3
+        self.retry_wait = 5
+        self.logger = logging.getLogger()
+        self.logger.addHandler(logging.NullHandler())
+
+    def tearDown(self):
+        self.url = None
+        self.combiner = None
+        self.timeout = None
+        self.num_retries = None
+        self.retry_wait = None
+        self.logger = None
+
+
+    # XXX(damb): Test fails under Python2 since federator.server.route does not
+    # use future yet. The test will be executed as soon as federator uses
+    # requests instead of urllib
+    @unittest.skipIf(sys.version_info < (3, 4),
+            'federator.server.route does not use future yet')
+    @mock.patch('route.route.connect')
+    def test_splitting(self, mock_connect):
+
+        class HTTPResponseOK(io.BytesIO):
+            """
+            Utility urllib HTTP reponse object.
+            """
+        
+            def getcode(self):
+                return 200
+
+            def info(self):
+                return {'Content-Type': settings.MIMETYPE_TEXT}
+        
+        # class HTTPResponseOK
+
+        reference_result = (
+            '#Network|Station|Latitude|Longitude|Elevation|SiteName|'
+            'StartTime|EndTime\n'
+            'CH|BALST|47.33578|7.69498|863.0|Balsthal, SO|'
+            '2000-06-16T00:00:00|\n'
+            'CH|DAVOX|46.7805|9.87952|1830.0|Davos, Dischmatal, GR|'
+            '2002-07-24T00:00:00|')
+
+
+        download = route.DownloadTask(
+            self.url,
+            self.sncls,
+            combiner=self.combiner,
+            timeout=self.timeout,
+            num_retries=self.num_retries,
+            retry_wait=self.retry_wait,
+            retry_lock=False)
+
+        first_connect_response = HTTPResponseOK(
+            b'CH|BALST|47.33578|7.69498|863.0|Balsthal, '
+            b'SO|2000-06-16T00:00:00|\n')
+        second_connect_response = HTTPResponseOK(
+            b'CH|DAVOX|46.7805|9.87952|1830.0|Davos, Dischmatal, '
+            b'GR|2002-07-24T00:00:00|')
+        side_effect = [urllib.request.HTTPError('Mock-URL', 413, 'Mock-Error',
+                                                {}, None),
+                       first_connect_response, second_connect_response]
+        mock_connect.side_effect = side_effect
+
+        download()
+        ofd = io.BytesIO()
+        self.combiner.dump(ofd)
+        self.assertEqual(ofd.getvalue().decode('utf-8'), reference_result)
+        # TODO(damb): check mock calls; will be implemented as soon as we are
+        # using the requests library
+        #print(mock_connect.mock_calls)
+
+
+# class DownloadTaskTestCase
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
