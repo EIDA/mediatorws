@@ -479,7 +479,6 @@ FDSN_EVENT_PATH = '/fdsnws/event/1/'
 
 EIDA_ROUTING_PATH = '/eidaws/routing/1/'
 EIDA_STATIONLITE_PATH = '/routing/'
-EIDA_WILDCARDS_PATH = '/wildcardresolver/'
 
 EIDA_MEDIATOR_PATH = '/eidaws/mediator/'
 
