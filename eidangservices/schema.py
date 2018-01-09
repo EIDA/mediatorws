@@ -144,6 +144,15 @@ class SNCLSchema(Schema):
                 del data['endtime']
             return data
 
+    @post_dump
+    def replace_empty_location(self, data):
+        """
+        Replaces empty location identifiers when serializing.
+        """
+        if data['location'] == '':
+            data['location'] = '--'
+        return data
+
     @validates_schema
     def validate_temporal_constraints(self, data):
         # NOTE(damb): context dependent validation
