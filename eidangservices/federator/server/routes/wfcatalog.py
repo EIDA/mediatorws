@@ -36,9 +36,8 @@ from webargs.flaskparser import use_args
 
 import eidangservices as eidangws
 
-from eidangservices import settings, utils
-from eidangservices.federator.server import (general_request, schema,
-                                             httperrors)
+from eidangservices import httperrors, settings, utils
+from eidangservices.federator.server import general_request, schema
 
 
 class WFCatalogResource(general_request.GeneralResource):

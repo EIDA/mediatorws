@@ -34,8 +34,7 @@ from webargs.flaskparser import use_args
 import eidangservices as eidangws
 
 from eidangservices import settings, utils
-from eidangservices.federator.server import (general_request, schema,
-                                             httperrors)
+from eidangservices.federator.server import general_request, schema
 
 
 class DataselectResource(general_request.GeneralResource):
