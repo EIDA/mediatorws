@@ -44,7 +44,7 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
-from eidangservices import schema, utils
+from eidangservices import schema, sncl, utils
 
 try:
     import mock
@@ -70,21 +70,23 @@ class FDSNWSParserTestCase(unittest.TestCase):
                                        'sta': 'DAVOX',
                                        'start': '2017-01-01',
                                        'end': '2017-01-07'})
-        reference_sncls = [utils.SNCL(network='CH',
-                                     station='DAVOX',
-                                     location='*',
-                                     channel='*',
-                                     starttime=datetime.datetime(2017, 1, 1),
-                                     endtime=datetime.datetime(2017, 1, 7))]
+        reference_sncls = [sncl.StreamEpoch.from_sncl(
+            network='CH',
+            station='DAVOX',
+            location='*',
+            channel='*',
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 7))]
 
         test_args = parser.parse(self.TestSchema(), mock_request,
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
         sncls = utils.fdsnws_parser.parse(
-                schema.ManySNCLSchema(context={'request': mock_request}),
-                mock_request,
-                locations=('query',))['sncls']
+                schema.ManyStreamEpochSchema(
+                    context={'request': mock_request}),
+                    mock_request,
+                    locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
     # test_get_single ()
@@ -97,27 +99,30 @@ class FDSNWSParserTestCase(unittest.TestCase):
                                        'sta': 'DAVOX,BALST',
                                        'start': '2017-01-01',
                                        'end': '2017-01-07'})
-        reference_sncls = [utils.SNCL(network='CH',
-                                      station='DAVOX',
-                                      location='*',
-                                      channel='*',
-                                      starttime=datetime.datetime(2017, 1, 1),
-                                      endtime=datetime.datetime(2017, 1, 7)),
-                           utils.SNCL(network='CH',
-                                      station='BALST',
-                                      location='*',
-                                      channel='*',
-                                      starttime=datetime.datetime(2017, 1, 1),
-                                      endtime=datetime.datetime(2017, 1, 7))]
+        reference_sncls = [sncl.StreamEpoch.from_sncl(
+            network='CH',
+            station='DAVOX',
+            location='*',
+            channel='*',
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 7)),
+                           sncl.StreamEpoch.from_sncl(
+            network='CH',
+            station='BALST',
+            location='*',
+            channel='*',
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 7))]
 
         test_args = parser.parse(self.TestSchema(), mock_request,
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
         sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('query',))['sncls']
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
     # test_get_multiple () 
@@ -127,19 +132,17 @@ class FDSNWSParserTestCase(unittest.TestCase):
         mock_request.method = 'GET'
         mock_request.args = MultiDict({'f': 'value'})
 
-        reference_sncls = [utils.SNCL(network='*',
-                                      station='*',
-                                      location='*',
-                                      channel='*')]
+        reference_sncls = [sncl.StreamEpoch(stream=sncl.Stream())]
 
         test_args = parser.parse(self.TestSchema(), mock_request,
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
         sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('query',))['sncls']
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
     # test_get_missing ()
@@ -156,10 +159,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
         with self.assertRaises(HTTPException):
             sncls = utils.fdsnws_parser.parse(
-                        schema.ManySNCLSchema(
+                        schema.ManyStreamEpochSchema(
                             context={'request': mock_request}),
                         mock_request,
-                        locations=('query',))['sncls']
+                        locations=('query',))['stream_epochs']
 
     # test_get_invalid 
 
@@ -169,19 +172,21 @@ class FDSNWSParserTestCase(unittest.TestCase):
         mock_request.stream = io.StringIO(
                 "f=value\nNL HGN ?? * 2013-10-10 2013-10-11")
 
-        reference_sncls = [utils.SNCL(network='NL',
-                                      station='HGN',
-                                      location='??',
-                                      channel='*',
-                                      starttime=datetime.datetime(2013, 10, 10),
-                                      endtime=datetime.datetime(2013, 10, 11))]
+        reference_sncls = [sncl.StreamEpoch.from_sncl(
+            network='NL',
+            station='HGN',
+            location='??',
+            channel='*',
+            starttime=datetime.datetime(2013, 10, 10),
+            endtime=datetime.datetime(2013, 10, 11))]
         test_args = utils.fdsnws_parser.parse(self.TestSchema(), mock_request,
                                              locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
         sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('form',))['sncls']
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('form',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
     # test_post_single ()
@@ -193,26 +198,29 @@ class FDSNWSParserTestCase(unittest.TestCase):
                 "f=value\nNL HGN ?? * 2013-10-10 2013-10-11\n"
                 "GR BFO * * 2017-01-01 2017-01-31")
 
-        reference_sncls = [utils.SNCL(network='NL',
-                                      station='HGN',
-                                      location='??',
-                                      channel='*',
-                                      starttime=datetime.datetime(2013, 10, 10),
-                                      endtime=datetime.datetime(2013, 10, 11)),
-                           utils.SNCL(network='GR',
-                                      station='BFO',
-                                      location='*',
-                                      channel='*',
-                                      starttime=datetime.datetime(2017, 1, 1),
-                                      endtime=datetime.datetime(2017, 1, 31))]
+        reference_sncls = [sncl.StreamEpoch.from_sncl(
+            network='NL',
+            station='HGN',
+            location='??',
+            channel='*',
+            starttime=datetime.datetime(2013, 10, 10),
+            endtime=datetime.datetime(2013, 10, 11)),
+                           sncl.StreamEpoch.from_sncl(
+            network='GR',
+            station='BFO',
+            location='*',
+            channel='*',
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 31))]
 
         test_args = utils.fdsnws_parser.parse(self.TestSchema(), mock_request,
                                              locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
         sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('form',))['sncls']
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('form',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
     # test_post_multiple ()
@@ -224,10 +232,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
         with self.assertRaises(HTTPException):
             sncls = utils.fdsnws_parser.parse(
-                        schema.ManySNCLSchema(
+                        schema.ManyStreamEpochSchema(
                             context={'request': mock_request}),
-                        mock_request,
-                        locations=('form',))['sncls']
+                            mock_request,
+                            locations=('form',))['stream_epochs']
 
     # test_post_empty ()
 
@@ -241,9 +249,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
         self.assertEqual(dict(test_args), {'f': 'value'})
         with self.assertRaises(HTTPException):
             sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('form',))
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('form',))
 
     # test_post_missing ()
 
@@ -258,9 +267,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
         self.assertEqual(dict(test_args), {'f': 'value'})
         with self.assertRaises(HTTPException):
             sncls = utils.fdsnws_parser.parse(
-                    schema.ManySNCLSchema(context={'request': mock_request}),
-                    mock_request,
-                    locations=('form',))['sncls']
+                    schema.ManyStreamEpochSchema(
+                        context={'request': mock_request}),
+                        mock_request,
+                        locations=('form',))['stream_epochs']
 
     # test_post_invalid ()
 

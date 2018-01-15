@@ -39,7 +39,7 @@ import unittest
 import flask
 import marshmallow as ma
 
-from eidangservices import schema, utils
+from eidangservices import schema, sncl, utils
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
 try:
@@ -279,7 +279,7 @@ class FDSNWSDateTimeFieldTestCase(FieldTestCase):
 
 
 # -----------------------------------------------------------------------------
-class SNCLSchemaTestCase(unittest.TestCase):
+class StreamEpochSchemaTestCase(unittest.TestCase):
 
     def _load(self, s, dataset):
         return s.load(dataset).data
@@ -291,7 +291,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # no time definitions
         reference_result = {
@@ -309,7 +309,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_invalid_net(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         test_dataset = {'net': 'C-', 'sta': 'DAVO?'}
         with self.assertRaises(ma.ValidationError):
@@ -319,7 +319,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_invalid_sta(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         test_dataset = {'net': '?*', 'sta': 'DAVO,', 'loc': '--'}
         with self.assertRaises(ma.ValidationError):
@@ -329,7 +329,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_invalid_cha(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'cha': 'BH,'}
         with self.assertRaises(ma.ValidationError):
@@ -339,7 +339,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_valid_loc_minus(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define multiple channels
         reference_result = {
@@ -356,7 +356,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_valid_loc_space(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define multiple channels
         reference_result = {
@@ -373,7 +373,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_start(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # only starttime definition
         reference_result = {
@@ -392,7 +392,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_start(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # only endtime definition
         reference_result = {
@@ -411,7 +411,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_start_end(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define both starttime and endtime
         reference_result = {
@@ -432,7 +432,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_starts(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define multiple times
         test_dataset = {'net': 'CH', 'sta': 'DAVOX',
@@ -445,7 +445,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_start_future(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define starttime in future
         future = datetime.datetime.now() + datetime.timedelta(1)
@@ -459,7 +459,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_end_future(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define endtime in future
         now = datetime.datetime.utcnow() 
@@ -477,7 +477,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_get_end_lt_start(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define endtime <= starttime
         test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'end': '2017-01-01',
@@ -490,15 +490,13 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_post(self, mock_request):
         # request.method == 'POST'
         mock_request.method = 'POST'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # valid values - single SNCL line
-        reference_result = utils.SNCL(network='CH',
-                                      station='DAVOX',
-                                      location='*',
-                                      channel='*',
-                                      starttime=datetime.datetime(2017,1,1),
-                                      endtime=datetime.datetime(2017,1,2))
+        reference_result = sncl.StreamEpoch(
+            stream=sncl.Stream(network='CH', station='DAVOX'),
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 2))
         
         test_dataset = {
                 'net': 'CH', 
@@ -514,7 +512,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_post_missing_time(self, mock_request):
         # request.method == 'POST
         mock_request.method = 'POST'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define a invalid SNCL
         test_dataset = {
@@ -530,7 +528,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_post_start_lt_end(self, mock_request):
         # request.method == 'POST'
         mock_request.method = 'POST'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # invalid time definition
         test_dataset = {
@@ -547,7 +545,7 @@ class SNCLSchemaTestCase(unittest.TestCase):
     def test_sncl_post_start_end_future(self, mock_request):
         # request.method == 'POST'
         mock_request.method = 'POST'
-        s = schema.SNCLSchema(context={'request': mock_request})
+        s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # both starttime and endtime in future (not caught)
         today = datetime.datetime.now()
@@ -555,12 +553,11 @@ class SNCLSchemaTestCase(unittest.TestCase):
         tomorrow_str = tomorrow.isoformat()
         dat = today + datetime.timedelta(2)
         dat_str = dat.isoformat()
-        reference_result = utils.SNCL(network='CH',
-                                      station='DAVOX',
-                                      location='*',
-                                      channel='*',
-                                      starttime=tomorrow,
-                                      endtime=dat)
+        reference_result = sncl.StreamEpoch(
+            stream=sncl.Stream(network='CH', station='DAVOX'),
+            starttime=tomorrow,
+            endtime=dat)
+
         test_dataset = {'net': 'CH',
                         'sta': 'DAVOX',
                         'loc': '*',
@@ -570,46 +567,47 @@ class SNCLSchemaTestCase(unittest.TestCase):
         result = self._load(s, test_dataset)
         self.assertEqual(result, reference_result)
 
-# class SNCLSchemaTestCase
+# class StreamEpochSchemaTestCase
 
 
-class ManySNCLSchemaTestCase(unittest.TestCase):
+class ManyStreamEpochSchemaTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_many_sncls(self, mock_request):
         # request.method == 'POST'
         mock_request.method = 'POST'
-        s = schema.ManySNCLSchema(context={'request': mock_request})
+        s = schema.ManyStreamEpochSchema(context={'request': mock_request})
 
-        reference_result = [utils.SNCL(network='CH',
-                                       station='DAVOX',
-                                       starttime=datetime.datetime(2017,1,1),
-                                       endtime=datetime.datetime(2017,1,31)),
-                            utils.SNCL(network='GR',
-                                       station='BFO',
-                                       channel='BH?',
-                                       starttime=datetime.datetime(2017,1,1),
-                                       endtime=datetime.datetime(2017,1,31))]
-        test_dataset = {'sncls': [
+        reference_result = [sncl.StreamEpoch(
+            stream=sncl.Stream(network='CH', station='DAVOX'),
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 31)),
+                            sncl.StreamEpoch(
+            stream=sncl.Stream(network='GR',
+                               station='BFO',
+                               channel='BH?'),
+            starttime=datetime.datetime(2017, 1, 1),
+            endtime=datetime.datetime(2017, 1, 31))]
+        test_dataset = {'stream_epochs': [
                         {'net': 'CH', 'sta': 'DAVOX',
                          'start': '2017-01-01', 'end': '2017-01-31'},
                         {'net': 'GR', 'sta': 'BFO', 'cha': 'BH?',
                          'start': '2017-01-01', 'end': '2017-01-31'}
                         ]}
-        result = s.load(test_dataset).data['sncls']
+        result = s.load(test_dataset).data['stream_epochs']
         self.assertEqual(result, reference_result)
 
     @mock.patch('flask.Request')
     def test_post_missing_sncl(self, mock_request):
         # request.method == 'POST'
         mock_request.method = 'POST'
-        s = schema.ManySNCLSchema(context={'request': mock_request})
+        s = schema.ManyStreamEpochSchema(context={'request': mock_request})
 
         test_dataset = []
         with self.assertRaises(ma.ValidationError):
             s.load(test_dataset)
 
-# class ManySNCLSchemaTestCase
+# class ManyStreamEpochSchemaTestCase
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
