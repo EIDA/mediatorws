@@ -28,6 +28,7 @@
 """
 Implementation of a *StationLite* resource.
 """
+import collections
 import logging
 
 from flask import request
@@ -35,7 +36,8 @@ from flask_restful import Resource
 from webargs.flaskparser import use_args
 
 import eidangservices as eidangws
-from eidangservices import settings, utils
+from eidangservices import httperrors, settings, utils
+from eidangservices.sncl import StreamEpochs, StreamEpochsHandler
 
 from eidangservices.stationlite.engine import dbquery
 from eidangservices.stationlite.server import schema
@@ -63,19 +65,14 @@ class StationLiteResource(Resource):
         Process a *StationLite* GET request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpochs: %s' % sncls)
 
-        # TODO(damb): approach:
-        # convert sncl to a sncl schema
+        response = self._process_request(args, sncls)
+        if not response:
+            raise httperrors.NoDataError()
 
-        db_engine, db_connection, db_tables = misc.get_db()
+        return misc.get_response(response, settings.MIMETYPE_TEXT)
         
-        # TODO(fab): put in "real" query for SNCL at al.
-        # this is an simple example query that lists all networks
-        net = dbquery.find_networks(db_connection, db_tables)
-        
-        return misc.get_response(str(net), settings.MIMETYPE_TEXT)
-
     # get ()
 
     @utils.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
@@ -88,13 +85,58 @@ class StationLiteResource(Resource):
         Process a *StationLite* POST request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpochs: %s' % sncls)
 
-        # TODO(damb): to be implemented
+        response = self._process_request(args, sncls)
+        if not response:
+            raise httperrors.NoDataError()
 
-        return misc.get_response('post', settings.MIMETYPE_TEXT)
+        return misc.get_response(response, settings.MIMETYPE_TEXT)
 
     # post ()
+
+    def _process_request(self, args, stream_epochs):
+
+        db_engine, db_connection, db_tables = misc.get_db()
+
+        # collect results for each stream epoch
+        routes = []
+        for stream_epoch in stream_epochs:
+            self.logger.debug('Processing request for %r' % (stream_epoch,))
+
+            stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
+            self.logger.debug('Processing request for (SQL) %r' %
+                              (stream_epoch,))
+            # query
+            _routes = dbquery.find_streamepochs_and_routes(
+                db_connection, db_tables, stream_epoch, args['service'])
+
+            # adjust stream_epoch regarding time_constraints
+            for url, streams in _routes:
+                streams.modify_with_temporal_constraints(
+                    start=stream_epoch.starttime,
+                    end=stream_epoch.endtime)
+            routes.extend(_routes)
+
+        # flatten response list
+        self.logger.debug('StationLite routes: %s' % routes)
+
+        # merge stream epochs for each route
+        merged_routes = collections.defaultdict(StreamEpochsHandler)
+        for url, stream_epochs in routes:
+            merged_routes[url].merge(list(stream_epochs))
+
+        self.logger.debug('StationLite routes (merged): %r' % merged_routes)
+
+        # convert the result to EIDAWS routing POST format
+        response = '\n\n'.join(url+'\n'+str(stream_epochs)
+                               for url, stream_epochs in merged_routes.items())
+        if response:
+            response += '\n'
+
+        return response
+
+    # _process_request ()
 
 # class StationLiteResource
 
