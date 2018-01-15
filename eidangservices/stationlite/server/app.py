@@ -39,7 +39,6 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import argparse
-import configparser
 import logging
 import logging.config
 import logging.handlers # needed for handlers defined in logging.conf
@@ -54,6 +53,13 @@ from eidangservices import settings, utils
 from eidangservices.stationlite.engine import db
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
+
+try:
+    # Python 2.x
+    import ConfigParser as configparser
+except ImportError:
+    # Python 3:
+    import configparser
 
 
 __version__ = utils.get_version("stationlite")
