@@ -213,8 +213,8 @@ class DownloadTaskTestCase(unittest.TestCase):
         # target url
         self.url = route.TargetURL(
             urllib.parse.urlparse('https://www.ethz.ch/'), [])
-        self.sncls = ['CH BASLT * * 2017-01-01 2017-01-02',
-                      'CH DAVOX * * 2017-01-01 2017-01-02']
+        self.stream_epochs = ['CH BASLT * * 2017-01-01 2017-01-02',
+                              'CH DAVOX * * 2017-01-01 2017-01-02']
         self.combiner = combine.Combiner.create('text')
         self.timeout = settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT
         self.num_retries = 3
@@ -224,6 +224,7 @@ class DownloadTaskTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.url = None
+        self.stream_epochs = None
         self.combiner = None
         self.timeout = None
         self.num_retries = None
@@ -263,7 +264,7 @@ class DownloadTaskTestCase(unittest.TestCase):
 
         download = route.DownloadTask(
             self.url,
-            self.sncls,
+            self.stream_epochs,
             combiner=self.combiner,
             timeout=self.timeout,
             num_retries=self.num_retries,
