@@ -112,10 +112,10 @@ class FDSNWSDateTime(fields.DateTime):
 # class FDSNWSDateTime
 
 # -----------------------------------------------------------------------------
-class SNCLSchema(Schema):
+class StreamEpochSchema(Schema):
     """
-    A SNCL Schema. The name *SNCL* refers to the *FDSNWS* POST format. A SNCL
-    is a line consisting of:
+    A StreamEpoch Schema. The name *StreamEpoch* refers to the *FDSNWS* POST
+    format. A StreamEpoch is a line consisting of:
 
         network station location channel starttime endtime
     """
@@ -185,31 +185,31 @@ class SNCLSchema(Schema):
         strict = True
         ordered = True
 
-# class SNCLSchema
+# class StreamEpochSchema
 
 
-class ManySNCLSchema(Schema):
+class ManyStreamEpochSchema(Schema):
     """
     A schema class intended to provide a :code:`many=True` replacement for
     webargs locations different from *json*. This way we are able to treat
-    SNCLs like json bulk type arguments.
+    StreamEpoch objects like json bulk type arguments.
     """
-    sncls = fields.Nested('SNCLSchema', many=True)
+    stream_epochs = fields.Nested('StreamEpochSchema', many=True)
 
     @validates_schema
     def validate_schema(self, data):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
             self.context.get('request').method == 'POST'):
-            if 'sncls' not in data or not data['sncls']:
-                raise ValidationError('No SNCL defined.')
-            if [v for v in data['sncls'] if v is None]:
-                raise ValidationError('Invalid SNCL defined.')
+            if 'stream_epochs' not in data or not data['stream_epochs']:
+                raise ValidationError('No StreamEpoch defined.')
+            if [v for v in data['stream_epochs'] if v is None]:
+                raise ValidationError('Invalid StreamEpoch defined.')
 
 
     class Meta:
         strict = True
 
-# class ManySNCLSchema
+# class ManyStreamEpochSchema
 
 # ---- END OF <schema.py> ----

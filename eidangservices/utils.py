@@ -122,23 +122,23 @@ class FDSNWSParser(FlaskParser):
         locations = _get_values(('loc', 'locations')) or ['*']
         channels = _get_values(('cha', 'channels')) or ['*']
 
-        sncls = []
+        stream_epochs = []
         for prod in itertools.product(networks, stations, locations, channels):
-            sncls.append({'net': prod[0],
+            stream_epochs.append({'net': prod[0],
                           'sta': prod[1],
                           'loc': prod[2],
                           'cha': prod[3]})
         # add times
         starttime = _get_values(('start', 'starttime'), raw=True)
         if starttime:
-            for sncl_dict in sncls:
-                sncl_dict['start'] = starttime
+            for stream_epoch_dict in stream_epochs:
+                stream_epoch_dict['start'] = starttime
         endtime = _get_values(('end', 'endtime'), raw=True)
         if endtime:
-            for sncl_dict in sncls:
-                sncl_dict['end'] = endtime
+            for stream_epoch_dict in stream_epochs:
+                stream_epoch_dict['end'] = endtime
 
-        args = {'sncls': sncls}
+        args = {'stream_epochs': stream_epochs}
 
         return webargs.core.get_value(args, name, field)
 
@@ -160,7 +160,7 @@ class FDSNWSParser(FlaskParser):
         # convert buffer into list
         req_buffer = req.data.split("\n")
 
-        param_dict = {'sncls': []}
+        param_dict = {'stream_epochs': []}
 
         for line in req_buffer:
             check_param = line.split(
@@ -171,18 +171,18 @@ class FDSNWSParser(FlaskParser):
                 param_dict[check_param[0].strip()] = check_param[1].strip()
                 #self.logger.debug('Query parameter: %s' % check_param)
             elif len(check_param) == 1:
-                # parse SNCL
-                sncl = line.split()
-                if len(sncl) == 6:
-                    sncl = {
-                            'net': sncl[0],
-                            'sta': sncl[1],
-                            'loc': sncl[2],
-                            'cha': sncl[3],
-                            'start': sncl[4],
-                            'end': sncl[5]
+                # parse StreamEpoch
+                stream_epoch = line.split()
+                if len(stream_epoch) == 6:
+                    stream_epoch = {
+                            'net': stream_epoch[0],
+                            'sta': stream_epoch[1],
+                            'loc': stream_epoch[2],
+                            'cha': stream_epoch[3],
+                            'start': stream_epoch[4],
+                            'end': stream_epoch[5]
                             }
-                    param_dict['sncls'].append(sncl)
+                    param_dict['stream_epochs'].append(stream_epoch)
             else:
                 #self.logger.warn("Ignoring illegal POST line: %s" % line)
                 continue

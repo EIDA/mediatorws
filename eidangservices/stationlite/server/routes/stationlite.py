@@ -57,17 +57,17 @@ class StationLiteResource(Resource):
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, args, sncls):
+    def get(self, args, stream_epochs):
         """
         Process a *StationLite* GET request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('StreamEpochs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, sncls)
+        response = self._process_request(args, stream_epochs)
         if not response:
             raise httperrors.NoDataError()
 
@@ -77,17 +77,17 @@ class StationLiteResource(Resource):
 
     @utils.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, args, sncls): 
+    def post(self, args, stream_epochs):
         """
         Process a *StationLite* POST request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('StreamEpochs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, sncls)
+        response = self._process_request(args, stream_epochs)
         if not response:
             raise httperrors.NoDataError()
 

@@ -61,13 +61,13 @@ class GeneralResource(Resource):
     def path_tempfile(self):
         return misc.get_temp_filepath() 
 
-    def _process_request(self, query_params, sncls, mimetype, path_tempfile,
-            post=False):
+    def _process_request(self, query_params, stream_epochs, mimetype,
+                         path_tempfile, post=False):
         """
         Process a GET request and send the resulting file to the client.
 
         :param dict query_params: Dictionary of query parameters
-        :param list sncls: List of SNCL objects
+        :param list stream_epochs: List of StreamEpoch objects
         :param str mimetype: The responses's mimetype
         :param path_tempfile: Path to the temporary file the combined output
         will be stored
@@ -75,18 +75,20 @@ class GeneralResource(Resource):
         :return: The combined response (read from the temporary file)
         """
         postdata = None
-        sncl_schema = eidangws.schema.SNCLSchema(many=True,
+        se_schema = eidangws.schema.StreamEpochSchema(many=True,
                                                  context={'request': request})
-        sncls = sncl_schema.dump(sncls).data
-        self.logger.debug('SNCLs (serialized): %s' % sncls)
+        stream_epochs = se_schema.dump(stream_epochs).data
+        self.logger.debug('StreamEpochs (serialized): %s' % stream_epochs)
 
         if post:
             # convert to postlines
-            postdata = '\n'.join([' '.join(sncl.values()) for sncl in sncls])
+            postdata = '\n'.join([' '.join(stream_epoch.values())
+                                 for stream_epoch in stream_epochs])
         else:
-            # merge SNCLs back to query parameters
-            sncls = utils.convert_scnl_dicts_to_query_params(sncls)
-            query_params.update(sncls)
+            # merge StreamEpoch objects back to query parameters
+            stream_epochs = utils.convert_scnl_dicts_to_query_params(
+                stream_epochs)
+            query_params.update(stream_epochs)
 
         # TODO(damb): Improve mimetype handling.
         self.logger.debug((
@@ -144,7 +146,7 @@ def process_request(query_params,
     :param dict query_params: The requests query arguments
     :param path_tempfile: Path to a temporary file the combined output will be
     dumped to
-    :param postdata: SNCLs formated in the *FDSNWS POST* format
+    :param postdata: StreamEpochs formated in the *FDSNWS POST* format
     :type postdata: str or None
 
     :return: Path to the temporary file containing the combined output or None.

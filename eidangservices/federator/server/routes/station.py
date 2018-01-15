@@ -47,19 +47,19 @@ class StationResource(general_request.GeneralResource):
 
     @use_args(schema.StationSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, station_args, sncls):
+    def get(self, station_args, stream_epochs):
         # request.method == 'GET'
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         s = schema.StationSchema()
         station_args = s.dump(station_args).data
         self.logger.debug('StationSchema (serialized): %s' % station_args)
 
         # process request
-        return self._process_request(station_args, sncls,
+        return self._process_request(station_args, stream_epochs,
                                      self._get_result_mimetype(station_args),
                                      path_tempfile=self.path_tempfile)
 
@@ -67,20 +67,20 @@ class StationResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.StationSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, station_args, sncls):
+    def post(self, station_args, stream_epochs):
         # request.method == 'POST'
 
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
         
         # serialize objects
         s = schema.StationSchema()
         station_args = s.dump(station_args).data
         self.logger.debug('StationSchema (serialized): %s' % station_args)
 
-        return self._process_request(station_args, sncls,
+        return self._process_request(station_args, stream_epochs,
                                      self._get_result_mimetype(station_args),
                                      path_tempfile=self.path_tempfile,
                                      post=True)

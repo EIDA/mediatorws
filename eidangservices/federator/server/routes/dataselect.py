@@ -50,13 +50,12 @@ class DataselectResource(general_request.GeneralResource):
 
     @use_args(schema.DataselectSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, args, sncls):
+    def get(self, args, stream_epochs):
         # request.method == 'GET'
-
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         # serialize objects
         s = schema.DataselectSchema()
@@ -64,7 +63,8 @@ class DataselectResource(general_request.GeneralResource):
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
-        return self._process_request(args, sncls, settings.DATASELECT_MIMETYPE,
+        return self._process_request(args, stream_epochs,
+                                     settings.DATASELECT_MIMETYPE,
                                      path_tempfile=self.path_tempfile)
 
     # get ()
@@ -72,19 +72,21 @@ class DataselectResource(general_request.GeneralResource):
         
     @utils.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, args, sncls):
+    def post(self, args, stream_epochs):
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
+        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         s = schema.DataselectSchema()
         args = s.dump(args).data
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
-        return self._process_request(args, sncls, settings.DATASELECT_MIMETYPE,
+        return self._process_request(args, stream_epochs,
+                                     settings.DATASELECT_MIMETYPE,
                                      path_tempfile=self.path_tempfile,
                                      post=True)
 

@@ -54,23 +54,23 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @use_args(schema.WFCatalogSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, wfcatalog_args, sncls):
+    def get(self, wfcatalog_args, stream_epochs):
         """
         Process a *WFCatalog* GET request.
         """
         # request.method == 'GET'
 
         # sanity check - starttime and endtime must be specified
-        if not sncls or sncls[0].starttime is None or sncls[0].endtime is None:
+        if not stream_epochs or stream_epochs[0].starttime is None or stream_epochs[0].endtime is None:
             raise httperrors.BadRequestError(
                     settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
                     datetime.datetime.utcnow()
             )
 
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 
         # serialize objects
         s = schema.WFCatalogSchema()
@@ -79,7 +79,7 @@ class WFCatalogResource(general_request.GeneralResource):
                           wfcatalog_args)
 
         # process request
-        return self._process_request(wfcatalog_args, sncls,
+        return self._process_request(wfcatalog_args, stream_epochs,
                                      settings.WFCATALOG_MIMETYPE,
                                      path_tempfile=self.path_tempfile)
 
@@ -87,10 +87,10 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManySNCLSchema(context={'request': request}),
+        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, wfcatalog_args, sncls):
+    def post(self, wfcatalog_args, stream_epochs):
         """
         Process a *WFCatalog* POST request.
         """
@@ -98,14 +98,14 @@ class WFCatalogResource(general_request.GeneralResource):
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
 
-        self.logger.debug('SNCLs: %s' % sncls)
+        self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 
         # serialize objects
         s = schema.WFCatalogSchema()
         wfcatalog_args = s.dump(wfcatalog_args).data
         self.logger.debug('WFCatalogSchema (serialized): %s' % wfcatalog_args)
 
-        return self._process_request(wfcatalog_args, sncls,
+        return self._process_request(wfcatalog_args, stream_epochs,
                                      settings.WFCATALOG_MIMETYPE,
                                      path_tempfile=self.path_tempfile,
                                      post=True)
