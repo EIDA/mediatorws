@@ -1,84 +1,124 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# This is <dbquery.py>
+# -----------------------------------------------------------------------------
+#
+# This file is part of EIDA NG webservices (eida-stationlite).
+#
+# eida-stationlite is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# eida-stationlite is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ----
+#
+# Copyright (c) Fabian Euchner (ETH), Daniel Armbruster (ETH)
+#
+# REVISION AND CHANGES
+# 2018/01/08        V0.1    Daniel Armbruster
+# =============================================================================
 """
 DB query tools for stationlite web service.
 
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
+from builtins import *
+
+import collections
 import datetime
 import dateutil
+import logging
 import os
-
-from operator import itemgetter
-
 
 from sqlalchemy import (
     MetaData, Table, Column, Integer, Float, String, Unicode, DateTime, 
-    ForeignKey, create_engine, insert, select, update, and_, func)
+    ForeignKey, create_engine, insert, select, update, and_, not_, func)
 
+from eidangservices import settings, utils
+from eidangservices.sncl import StreamEpochs, StreamEpochsHandler
 
-from eidangservices import settings
-from eidangservices.stationlite.engine import db
+logger = logging.getLogger('flask.app.stationlite.dbquery')
 
-
-def find_snclepochs_and_routes_from_query(
-    connection, tables, net, sta, loc, cha, st, et, service):
+# ----------------------------------------------------------------------------
+def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
+                                 like_escape='/'):
     """
-    Return SNCL epochs and routes for given query parameters.
-    
+    Return routes for a given stream epoch.
+
+    :param :py:class:`sncl.StreamEpoch`: StreamEpoch the database query is
+    performed with
+    :param str service: String specifying the webservice
+    :param str like_escape: Character used for the SQL ESCAPE statement
+
+    :returns: List of :py:class:`utils.Route` objects
+    :rtype list:
     """
-    
-    tn = tables['network']['networkepoch']
-    tne = tables
-    
+    tn = tables['network']
     ts = tables['station']
-    tse = tables['stationepoch']
-    
     tc = tables['channel']
     tr = tables['routing']
     te = tables['endpoint']
     tsv = tables['service']
+
+    conj = (tn.c.name.like(stream_epoch.network, escape=like_escape) &
+            ts.c.name.like(stream_epoch.station, escape=like_escape) &
+            tc.c.locationcode.like(stream_epoch.location, escape=like_escape) &
+            tc.c.code.like(stream_epoch.channel, escape=like_escape) &
+            (tc.c.network_ref == tn.c.oid) &
+            (tc.c.station_ref == ts.c.oid) &
+            (tr.c.channel_ref == tc.c.oid) &
+            (tr.c.endpoint_ref == te.c.oid) &
+            (te.c.service_ref == tsv.c.oid) &
+            (service == tsv.c.name))
+
+    if stream_epoch.starttime:
+        # NOTE(damb): compare to None for undefined endtime (i.e. device
+        # currently operating)
+        conj &= ((stream_epoch.starttime < tr.c.endtime) |
+                 (tr.c.endtime == None))
+    if stream_epoch.endtime:
+        conj &= (stream_epoch.endtime > tr.c.starttime)
+
+    s = select([
+            tn.c.name, ts.c.name, tc.c.locationcode, tc.c.code,
+            tr.c.starttime, tr.c.endtime, te.c.url]).where(conj)
     
-    # TODO(fab): correct query
-    s = select(
-        [tn.c.nametn.c.name, ts.c.name, tc.c.locationcode, tc.c.code, 
-         tr.c.starttime, tr.c.endtime, te.c.url]).where(
-            and_(
-                net == tn.c.name,
-                sta == ts.c.name,
-                
-                loc == tc.c.locationcode,
-                cha == tc.c.code,
-                db.to_db_timestamp(st) == tc.c.starttime,
-                db.to_db_timestamp(et) == tc.c.endtime,
-                tc.c.network_ref == tn.c.oid,
-                tc.c.network_ref == ts.c.oid,
-                
-                tr.c.channel_ref == tc.c.oid,
-                tr.c.endpoint_ref == te.c.oid,
-                
-                te.c.service_ref == tsv.c.oid,
-                service == tsv.c.name
-                
-        )
-    )
+    rp = connection.execute(s).fetchall()
     
-    rp = connection.execute(s)
-    r = rp.fetchall()
+    now = datetime.datetime.utcnow()
+    routes = collections.defaultdict(StreamEpochsHandler)
     
-    routes = []
-        
-    for row in r:
-        routes.append(
-            {'net': row[0],
-             'sta': row[1],
-             'loc': row[2],
-             'cha': row[3],
-             'st': row[4],
-             'et': row[5],
-             'url': row[6]})
-    
-    return routes
+    for row in rp:
+        #print('Query response: %r' % row)
+        # NOTE(damb): Set endtime to 'now' if undefined (i.e. device currently
+        # acquiring data).
+        endtime = row[tr.c.endtime]
+        if endtime is None:
+            endtime = now
+
+        stream_epochs = StreamEpochs(network=row[tn.c.name],
+                                     station=row[ts.c.name],
+                                     location=row[tc.c.locationcode],
+                                     channel=row[tc.c.code],
+                                     epochs=[(row[tr.c.starttime], endtime)])
+
+
+        routes[row[te.c.url]].merge([stream_epochs])
+
+    return [utils.Route(url=url, streams=streams)
+            for url, streams in routes.items()]
+
+# find_snclepochs_and_routes ()
 
 
 def find_networks(connection, tables):
