@@ -61,6 +61,7 @@ _deps = [
         # TODO(damb): Seems not to work for Python 2.7
         #'mock:python_version<"3.3"',
         'future>=0.16.0',
+        'intervaltree>=2.1',
         'marshmallow>=3.0.0b4',
         'webargs>=1.8.1',
         ]
@@ -96,6 +97,7 @@ if 'federator' == subsys:
             # TODO(damb): Seems not to work for Python 2.7
             #'mock:python_version<"3.3"',
             'future>=0.16.0',
+            'intervaltree>=2.1',
             'marshmallow>=3.0.0b4',
             'webargs>=1.8.1',
             ]
@@ -128,6 +130,7 @@ elif 'stationlite' == subsys:
             'Flask-RESTful>=0.3.6',
             'Flask-SQLAlchemy>=2.3.2',
             'future>=0.16.0',
+            'intervaltree>=2.1',
             'marshmallow>=3.0.0b4',
             'python-dateutil>=2.6.1',
             'requests>=2.18.4',
