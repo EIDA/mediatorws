@@ -247,6 +247,14 @@ class StreamEpochs(object):
                    epochs=epochs[(stream_epoch.starttime,
                                   stream_epoch.endtime)])
 
+    @classmethod
+    def from_stream(cls, stream, epochs=[]):
+        return cls(network=stream.network,
+                   station=stream.station,
+                   location=stream.location,
+                   channel=stream.channel,
+                   epochs=epochs)
+
     def id(self):
         return self._stream.id()
 
@@ -418,9 +426,10 @@ class StreamEpochsHandler(object):
 
     def __iter__(self):
         # TODO(damb): check for more elegant implementation
-        return iter([StreamEpochs(**self.__stream_id_to_dict(stream_id),
-                                  epochs=stream_epochs)
-                     for stream_id, stream_epochs in self.d.items()])
+        return iter([StreamEpochs.from_stream(
+                    Stream(**self.__stream_id_to_dict(stream_id)),
+                    epochs=stream_epochs)
+                    for stream_id, stream_epochs in self.d.items()])
 
     def __repr__(self):
         return '<StreamEpochsHandler(streams=%r)>' % list(self)
