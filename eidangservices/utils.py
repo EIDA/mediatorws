@@ -66,7 +66,7 @@ _iso8601_re = re.compile(
 )
 
 # -----------------------------------------------------------------------------
-Route = collections.namedtuple('Route', ['sncl', 'url'])
+Route = collections.namedtuple('Route', ['url', 'streams'])
 
 class ExitCodes:
     """
