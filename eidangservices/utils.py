@@ -266,33 +266,31 @@ def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
     # ignores localtime parameter
     return dt.isoformat(*args, **kwargs)
 
-def convert_scnl_dicts_to_query_params(sncls):
+def convert_scnl_dicts_to_query_params(stream_epochs_dict):
     """
-    Convert a list of SNCLs to SNCL FDSNWS query parameters.
+    Convert a list of StreamEpoch objects to StreamEpoch FDSNWS query
+    parameters.
 
-    :param list sncls: A list of SNCL dicts
-    :return: SNCL related query parameters
+    :param list stream_epochs_dict: A list of :py:class`sncl.StreamEpoch` dicts
+    :return: StreamEpoch related query parameters
     :retval: dict
-    :raises ValueError: If temporal constraints differ between sncls.
+    :raises ValueError: If temporal constraints differ between stream epochs.
 
     .. note::
 
-        SNCLs are flattened.
+        StreamEpoch objects are flattened.
     """
-    retval = {}
+    retval = collections.defaultdict(set)
     _temporal_constraints_params = ('starttime', 'endtime')
-    if sncls:
-        for sncl in sncls:
-            for key, value in sncl.items():
-                if key in retval:
-                    retval[key].update([value])
-                else:
-                    retval[key] = set([value])
+    if stream_epochs_dict:
+        for stream_epoch in stream_epochs_dict:
+            for key, value in stream_epoch.items():
+                retval[key].update([value])
     for key, values in retval.items():
         if key in _temporal_constraints_params:
             if len(values) != 1:
-                raise ValueError(
-                        "SNCLs provide different temporal constraints.")
+                raise ValueError("StreamEpoch objects provide "
+                                 "multiple temporal constraints.")
             retval[key] = values.pop()
         else:
             retval[key] = ','.join(values)
