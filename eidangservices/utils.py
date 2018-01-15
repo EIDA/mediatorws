@@ -89,48 +89,6 @@ class CustomParser(argparse.ArgumentParser):
 # class CustomParser
 
 
-class SNCL(object):
-
-    def __init__(self, network='*', station='*', location='*', channel='*',
-            starttime=None, endtime=None):
-        self.network = network
-        self.station = station
-        self.location = location
-        self.channel = channel
-        self.starttime = starttime
-        self.endtime = endtime
-
-    # __init__ ()
-
-    def __eq__(self, other):
-        """
-        allows comparing SNCLs
-        """
-        if other.__class__ is self.__class__:
-            return (other.network == self.network and
-                    other.station == self.station and
-                    other.location == self.location and
-                    other.channel == self.channel and
-                    other.starttime == self.starttime and
-                    other.endtime == self.endtime)
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        return ("<SNCL(net=%r, sta=%r, loc=%r, cha=%r, start=%r, end=%r)>" %
-                (self.network, self.station, self.location, self.channel,
-                 self.starttime, self.endtime))
-
-    def __str__(self):
-        return ("%s %s %s %s %s %s" %
-                (self.network, self.station, self.location, self.channel,
-                 self.starttime, self.endtime))
-
-# class SNCL
-
-
 class FDSNWSParser(FlaskParser):
     """
     FDSNWS parser with enhanced SNCL parsing.
