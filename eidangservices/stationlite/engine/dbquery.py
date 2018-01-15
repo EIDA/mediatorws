@@ -92,4 +92,4 @@ def find_networks(connection, tables):
     
     return [x[0] for x in r]
 
-    
+# ---- END OF <dbquery.py> ----
