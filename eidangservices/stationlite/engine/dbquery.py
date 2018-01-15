@@ -118,7 +118,7 @@ def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]
 
-# find_snclepochs_and_routes ()
+# find_streamepochs_and_routes ()
 
 
 def find_networks(connection, tables):
