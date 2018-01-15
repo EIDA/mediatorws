@@ -39,6 +39,7 @@ import functools
 from marshmallow import (Schema, fields, validate, ValidationError,
                          post_load, post_dump, validates_schema)
 
+import eidangservices as eidangws
 from eidangservices import settings, utils
 
 
@@ -132,7 +133,7 @@ class SNCLSchema(Schema):
 
     @post_load
     def make_sncl(self, data):
-        return utils.SNCL(**data)
+        return eidangws.sncl.StreamEpoch.from_sncl(**data)
 
     @post_dump
     def skip_empty_datetimes(self, data):
