@@ -432,10 +432,12 @@ class StreamEpochsHandler(object):
         """
         Merge other StreamEpochs to object.
 
-        :param list others: List of :py:class:`StreamEpoochs` objects
+        :param list others: List of :py:class:`StreamEpochs` objects
         """
         for stream_epochs in others:
             self._merge(stream_epochs.id(), stream_epochs.epochs)
+
+    # merge ()
 
     def _merge(self, key, epochs):
         """
