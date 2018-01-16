@@ -30,7 +30,7 @@ Provides testsuite loading methods.
 import os
 import unittest
 
-from eidangservices.tests import schema, utils
+from eidangservices.tests import schema, sncl, utils
 
 federator_available =  False
 mediator_available = False
@@ -67,6 +67,7 @@ def general_testsuite():
     general_testsuite = unittest.TestSuite()
     loader = unittest.TestLoader()
     general_testsuite.addTests(loader.loadTestsFromModule(schema))
+    general_testsuite.addTests(loader.loadTestsFromModule(sncl))
     general_testsuite.addTests(loader.loadTestsFromModule(utils))
     return general_testsuite
 
