@@ -33,6 +33,8 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import *
 
+import functools
+
 from collections import namedtuple
 
 from intervaltree import Interval, IntervalTree
@@ -63,6 +65,7 @@ def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_',
 # fdsnws_to_sql_wildcards ()
 
 # ----------------------------------------------------------------------------
+@functools.total_ordering
 class Stream(namedtuple('Stream',
                         ['network', 'station', 'location', 'channel'])):
     """
@@ -89,6 +92,11 @@ class Stream(namedtuple('Stream',
                                station=station,
                                location=location,
                                channel=channel)
+    def __eq__(self, other):
+        return self.id() == other.id()
+
+    def __lt__(self, other):
+        return self.id() < other.id()
 
     def __repr__(self):
         return ('<Stream(net=%r, sta=%r, loc=%r, cha=%r)>' %
@@ -100,7 +108,7 @@ class Stream(namedtuple('Stream',
 
 # class Stream
 
-
+@functools.total_ordering
 class StreamEpoch(namedtuple('StreamEpoch',
                   ['stream', 'starttime', 'endtime'])):
     """
@@ -177,19 +185,23 @@ class StreamEpoch(namedtuple('StreamEpoch',
         """
         allows comparing StreamEpoch objects
         """
-        if other.__class__ is self.__class__:
-            return (other.network == self.network and
-                    other.station == self.station and
-                    other.location == self.location and
-                    other.channel == self.channel and
-                    other.starttime == self.starttime and
-                    other.endtime == self.endtime)
-        return False
-
+        return (self.stream == other.stream and
+                self.starttime == other.starttime and
+                self.endtime == other.endtime)
     # __eq__ ()
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __lt__(self, other):
+        if self.stream == other.stream:
+            if self.starttime == other.starttime:
+                if None not in (self.endtime, other.endtime):
+                    return self.endtime < other.endtime
+                elif self.endtime is None:
+                    return False
+                return True
+            return self.starttime < other.starttime
+        return self.stream < other.stream
+
+    # __lt__ ()
 
     def __repr__(self):
         return ("<StreamEpoch(stream=%r, start=%r, end=%r)>" %
@@ -201,6 +213,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
 # class StreamEpoch
 
 
+@functools.total_ordering
 class StreamEpochs(object):
     """
     This class represents a mapping of a Stream object to multiple epochs. In
@@ -343,6 +356,23 @@ class StreamEpochs(object):
                                            starttime=epoch.begin,
                                            endtime=epoch.end)
                                            for epoch in self.epochs])
+    def __eq__(self, other):
+        """
+        allows comparing StreamEpochs objects
+        """
+        return (self._stream == other._stream and self.epochs == other.epochs)
+
+    # __eq__ ()
+
+    def __lt__(self, other):
+        if self._stream == other._stream:
+            if self.starttime == other.starttime:
+                return self.epochs.end() < other.epochs.end()
+            return self.epochs.begin() < other.epochs.begin()
+        return self._stream < other._stream
+
+    # __lt__ ()
+
     def __repr__(self):
         return ('<StreamEpochs(stream=%r, start=%r, end=%r)>' %
                 (self._stream, self.starttime, self.endtime))

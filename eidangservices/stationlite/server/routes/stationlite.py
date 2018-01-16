@@ -124,13 +124,21 @@ class StationLiteResource(Resource):
         # merge stream epochs for each route
         merged_routes = collections.defaultdict(StreamEpochsHandler)
         for url, stream_epochs in routes:
-            merged_routes[url].merge(list(stream_epochs))
+            merged_routes[url].merge(stream_epochs)
 
         self.logger.debug('StationLite routes (merged): %r' % merged_routes)
 
+        # sort response
+        routes = [utils.Route(url=url,
+                              streams=sorted(stream_epochs))
+                  for url, stream_epochs in merged_routes.items()]
+        # sort additionally by url
+        routes.sort()
+
         # convert the result to EIDAWS routing POST format
-        response = '\n\n'.join(url+'\n'+str(stream_epochs)
-                               for url, stream_epochs in merged_routes.items())
+        response = '\n\n'.join(
+            url+'\n'+'\n'.join(str(stream_epoch) for stream_epoch in
+                stream_epochs) for url, stream_epochs in routes)
         if response:
             response += '\n'
 
