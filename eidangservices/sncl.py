@@ -381,17 +381,20 @@ class StreamEpochsHandler(object):
         #           =
         #    ---..----..----
         for stream_id, epochs in self.d.items():
-            if not start:
-                start = epochs.begin()
-            if not end:
-                end = epochs.end()
+
+            _start = start
+            _end = end
+
+            if _start is None:
+                _start = epochs.begin()
+            if _end is None:
+                _end = epochs.end()
 
             # slice at new boundaries
-            epochs.slice(start)
-            epochs.slice(end)
-
+            epochs.slice(_start)
+            epochs.slice(_end)
             # search and assign the overlap
-            self.d[stream_id] = Epochs(sorted(epochs.search(start,end)))
+            self.d[stream_id] = Epochs(sorted(epochs.search(_start,_end)))
 
     # modify_with_temporal_constraints ()
 
