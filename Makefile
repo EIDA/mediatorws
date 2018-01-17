@@ -30,9 +30,15 @@
 # ----
 # Invoke
 #
-# 	$ make tests [SERVICES=list of services]
+# 	$ make test [SERVICES=list of services]
 #
 # to run unittest facilities.
+#
+# ----
+# To create a sphinx documentation run
+#
+# 	$ pip install sphinx
+# 	$ make doc [SERVICES=list of services]
 #
 # NOTE:
 # -----
@@ -47,8 +53,18 @@ SERVICES_ALL=federator stationlite
 SERVICES?=$(SERVICES_ALL)
 
 PATH_EIDANGSERVICES=eidangservices
+PATH_DOCS=docs
+
 MANIFEST_IN=MANIFEST.in
 MANIFEST_ALL=MANIFEST.in.all
+
+BASENAME_DOC=docs
+SPHINX_BUILDER=html
+SPHINX_CHECK:=$(strip \
+	$(shell python setup.py --help-commands | grep build_sphinx))
+SPHINX_PKGS=$(sort $(dir $(wildcard $(PATH_EIDANGSERVICES)/*/)))
+SPHINX_EXCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
+							 __pycache__ tests))
 
 # -----------------------------------------------------------------------------
 #
@@ -62,13 +78,18 @@ $(call CHECKVARS, $(SERVICES))
 install: $(patsubst %,%.install,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
 test: $(patsubst %,%.test,$(SERVICES))
+doc: $(patsubst %,%.doc,$(SERVICES))
 
+.PHONY: clean build-clean doc-clean
+clean: build-clean doc-clean
 
-.PHONY: build-clean
 build-clean:
 	rm -rfv $(MANIFEST_IN)
 	rm -rfv build
 	rm -rfv *.egg-info
+
+doc-clean:
+	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
 
 .PHONY: ls
 ls:
@@ -87,5 +108,26 @@ ls:
 
 %.test: %.install
 	python setup.py $(@:.test=) test
+
+%.doc: $(PATH_DOCS)/sphinx.% %.make_docs_dest %.sphinx-apidoc
+	python setup.py $(@:.doc=) build_sphinx \
+	--build-dir $(PATH_DOCS)/$(BASENAME_DOC).$(@:.doc=)/ \
+	-s $(word 1,$^)/source/ -b $(SPHINX_BUILDER)
+
+# -----------------------------------------------------------------------------
+# utility pattern rules
+
+%.sphinx-apidoc: $(PATH_DOCS)/sphinx.%/source %.sphinx-service-exclude
+	$(if $(SPHINX_CHECK),,$(error ERROR: sphinx not installed))
+	sphinx-apidoc -M -o $< $(PATH_EIDANGSERVICES) \
+		$(filter-out $(PATH_EIDANGSERVICES)/$(@:.sphinx-apidoc=)/, $(SPHINX_PKGS)) \
+		$(SPHINX_EXCLUDE) $(SPHINX_SERVICE_EXCLUDE)
+
+%.sphinx-service-exclude:
+	$(eval SPHINX_SERVICE_EXCLUDE := $(addsuffix /tests/, \
+		$(addprefix $(PATH_EIDANGSERVICES)/,$(@:.sphinx-service-exclude=))))
+
+%.make_docs_dest:
+	mkdir -pv $(PATH_DOCS)/$(BASENAME_DOC).$(@:.make_docs_dest=)
 
 # ---- END OF <Makefile> ----

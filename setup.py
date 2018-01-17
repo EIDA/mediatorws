@@ -28,6 +28,7 @@
 setup.py for EIDA NG Mediator/Federator webservices
 """
 
+import os
 import sys
 from setuptools import setup, find_packages
 
@@ -70,6 +71,7 @@ if sys.version_info[:2] < (3, 3):
     _deps.append('mock')
 
 _test_suites = 'eidangservices.tests.testsuite'
+_sphinx_build_dir = 'docs'
 
 
 subsys = sys.argv[1]
@@ -105,6 +107,7 @@ if 'federator' == subsys:
         _deps.append('mock')
 
     _test_suites = 'eidangservices.tests.federator_testsuite'
+    _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
@@ -138,6 +141,7 @@ elif 'stationlite' == subsys:
             ]
 
     _test_suites = 'eidangservices.tests.stationlite_testsuite'
+    _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'mediator' == subsys:
     sys.argv.pop(1)
@@ -179,7 +183,13 @@ setup(
     install_requires = _deps,
     entry_points = _entry_points,
     zip_safe=False,
-    test_suite = _test_suites
+    test_suite = _test_suites,
+    # configure sphinx
+    command_options={
+        'build_sphinx': {
+            'project': ('setup.py', _name),
+            'version': ('setup.py', _version),
+            'release': ('setup.py', _version)}},
 )
 
 # ---- END OF <setup.py> ----
