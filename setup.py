@@ -67,8 +67,13 @@ _deps = [
         'webargs>=1.8.1',
         ]
 
+_test_deps = []
 if sys.version_info[:2] < (3, 3):
-    _deps.append('mock')
+    _test_deps.append('mock')
+
+_extras = {
+    'test': _test_deps,
+}
 
 _test_suites = 'eidangservices.tests.testsuite'
 _sphinx_build_dir = 'docs'
@@ -184,6 +189,8 @@ setup(
     entry_points = _entry_points,
     zip_safe=False,
     test_suite = _test_suites,
+    tests_require = _test_deps,
+    extras_require = _extras,
     # configure sphinx
     command_options={
         'build_sphinx': {
