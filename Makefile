@@ -76,17 +76,20 @@ $(call CHECKVARS, $(SERVICES))
 
 # -----------------------------------------------------------------------------
 install: $(patsubst %,%.install,$(SERVICES))
+develop: $(patsubst %,%.develop,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
 test: $(patsubst %,%.test,$(SERVICES))
 doc: $(patsubst %,%.doc,$(SERVICES))
 
-.PHONY: clean build-clean doc-clean
-clean: build-clean doc-clean
+.PHONY: clean build-clean doc-clean MANIFEST-clean
+clean: build-clean doc-clean MANIFEST-clean
 
 build-clean:
-	rm -rfv $(MANIFEST_IN)
 	rm -rfv build
 	rm -rfv *.egg-info
+
+MANIFEST-clean:
+	rm -rfv $(MANIFEST_IN)
 
 doc-clean:
 	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
@@ -97,9 +100,15 @@ ls:
 
 # install services
 %.install: %.MANIFEST
+	$(MAKE) build-clean
 	python setup.py $(@:.install=) install
+
+%.develop: %.MANIFEST
+	$(MAKE) build-clean
+	python setup.py $(@:.develop=) develop
 	
 %.sdist: %.MANIFEST
+	$(MAKE) build-clean
 	python setup.py $(@:.sdist=) sdist
 
 %.test: %.install
@@ -113,8 +122,8 @@ ls:
 # -----------------------------------------------------------------------------
 # utility pattern rules
 
-%.MANIFEST: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL) 
-	$(MAKE) build-clean
+%.MANIFEST: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
+	$(MAKE) MANIFEST-clean
 	cat $^ > $(MANIFEST_IN)
 
 %.sphinx-apidoc: $(PATH_DOCS)/sphinx.%/source %.sphinx-service-exclude
