@@ -96,14 +96,10 @@ ls:
 	@echo "SERVICES available: \n$(SERVICES_ALL)"
 
 # install services
-%.install: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
-	$(MAKE) build-clean
-	cat $^ > $(MANIFEST_IN)
+%.install: %.MANIFEST
 	python setup.py $(@:.install=) install
 	
-%.sdist: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL) 
-	$(MAKE) build-clean
-	cat $^ > $(MANIFEST_IN)
+%.sdist: %.MANIFEST
 	python setup.py $(@:.sdist=) sdist
 
 %.test: %.install
@@ -116,6 +112,10 @@ ls:
 
 # -----------------------------------------------------------------------------
 # utility pattern rules
+
+%.MANIFEST: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL) 
+	$(MAKE) build-clean
+	cat $^ > $(MANIFEST_IN)
 
 %.sphinx-apidoc: $(PATH_DOCS)/sphinx.%/source %.sphinx-service-exclude
 	$(if $(SPHINX_CHECK),,$(error ERROR: sphinx not installed))
