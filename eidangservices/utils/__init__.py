@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices.
-# 
+#
 # EIDA NG webservices is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # EDIA NG webservices is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -30,7 +30,7 @@ General purpose utils for EIDA NG webservices
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import argparse
 import collections
@@ -67,6 +67,7 @@ _iso8601_re = re.compile(
 
 # -----------------------------------------------------------------------------
 Route = collections.namedtuple('Route', ['url', 'streams'])
+
 
 class ExitCodes:
     """
@@ -125,9 +126,9 @@ class FDSNWSParser(FlaskParser):
         stream_epochs = []
         for prod in itertools.product(networks, stations, locations, channels):
             stream_epochs.append({'net': prod[0],
-                          'sta': prod[1],
-                          'loc': prod[2],
-                          'cha': prod[3]})
+                                  'sta': prod[1],
+                                  'loc': prod[2],
+                                  'cha': prod[3]})
         # add times
         starttime = _get_values(('start', 'starttime'), raw=True)
         if starttime:
@@ -153,7 +154,7 @@ class FDSNWSParser(FlaskParser):
         buf = req.stream.read()
         if buf or req.stream.tell() == 0:
             req.data = buf
-        
+
         if isinstance(req.data, bytes):
             req.data = req.data.decode('utf-8')
 
@@ -166,10 +167,10 @@ class FDSNWSParser(FlaskParser):
             check_param = line.split(
                                 settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
             if len(check_param) == 2:
-                
+
                 # add query params
                 param_dict[check_param[0].strip()] = check_param[1].strip()
-                #self.logger.debug('Query parameter: %s' % check_param)
+                # self.logger.debug('Query parameter: %s' % check_param)
             elif len(check_param) == 1:
                 # parse StreamEpoch
                 stream_epoch = line.split()
@@ -184,7 +185,7 @@ class FDSNWSParser(FlaskParser):
                             }
                     param_dict['stream_epochs'].append(stream_epoch)
             else:
-                #self.logger.warn("Ignoring illegal POST line: %s" % line)
+                # self.logger.warn("Ignoring illegal POST line: %s" % line)
                 continue
 
         return webargs.core.get_value(param_dict, name, field)
@@ -193,12 +194,13 @@ class FDSNWSParser(FlaskParser):
 
 # class FDSNWSParser
 
+
 fdsnws_parser = FDSNWSParser()
 use_fdsnws_args = fdsnws_parser.use_args
 use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 
 # -----------------------------------------------------------------------------
-def get_version(namespace_pkg_name=None):
+def get_version(namespace_pkg_name=None): #noqa
     """
     fetch version string
 
@@ -211,15 +213,17 @@ def get_version(namespace_pkg_name=None):
         if namespace_pkg_name:
             return pkg_resources.get_distribution(namespace_pkg_name).version
         raise
-    except:
+    except: # noqa
         return pkg_resources.get_distribution("eidangservices").version
 
 # get_version ()
+
 
 def realpath(p):
     return os.path.realpath(os.path.expanduser(p))
 
 # realpath ()
+
 
 def real_file_path(path):
     """
@@ -235,6 +239,7 @@ def real_file_path(path):
 
 # real_file_path ()
 
+
 def from_fdsnws_datetime(datestring, use_dateutil=True):
     """
     parse a datestring from a string specified by the fdsnws datetime
@@ -247,7 +252,7 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
     if len(datestring) == 10:
         # only YYYY-mm-dd is defined
         return datetime.datetime.combine(ma.utils.from_iso_date(datestring,
-            use_dateutil), datetime.time())
+                                         use_dateutil), datetime.time())
     else:
         # from marshmallow
         if not _iso8601_re.match(datestring):
@@ -257,14 +262,16 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
             return parser.parse(datestring, ignoretz=IGNORE_TZ)
         else:
             # Strip off microseconds and timezone info.
-            return datetime.datetime.strptime(datestring[:19], 
-                '%Y-%m-%dT%H:%M:%S')
+            return datetime.datetime.strptime(datestring[:19],
+                                              '%Y-%m-%dT%H:%M:%S')
 
 # from_fdsnws_datetime ()
+
 
 def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
     # ignores localtime parameter
     return dt.isoformat(*args, **kwargs)
+
 
 def convert_scnl_dicts_to_query_params(stream_epochs_dict):
     """

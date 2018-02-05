@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -31,15 +31,14 @@ Field and schema related test facilities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import datetime
 import unittest
 
-import flask
+import flask # noqa
 import marshmallow as ma
 
-from eidangservices import utils
 from eidangservices.utils import schema, sncl
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
@@ -49,12 +48,12 @@ except ImportError:
     import unittest.mock as mock
 
 
-SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR 
+SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
 # -----------------------------------------------------------------------------
 # field related test cases
 
-class FieldTestCase(unittest.TestCase):
+class FieldTestCase(unittest.TestCase): # noqa
     """
     Base class for all field test cases.
     """
@@ -80,7 +79,7 @@ class FieldTestCase(unittest.TestCase):
             method = self.schema.load
         for v in data:
             with self.assertRaises(ma.ValidationError):
-                result = method(v)
+                method(v)
 
 # class FieldTestCase
 
@@ -95,7 +94,7 @@ class PercentageFieldTestCase(FieldTestCase):
 
     def test_field_valid(self):
         reference_result = {u'f': 20.0}
-        valid = [dict(f=20), dict(f=20.)] 
+        valid = [dict(f=20), dict(f=20.)]
         self._valid(valid, reference_result)
 
     def test_field_invalid(self):
@@ -119,7 +118,7 @@ class NotEmptyStringFieldTestCase(FieldTestCase):
         self._valid(data, reference_result)
 
     def test_field_invalid(self):
-        invalid = [dict(f=1), dict(f='')] 
+        invalid = [dict(f=1), dict(f='')]
         self._invalid(invalid)
 
 # class NotEmptyStringFieldTestCase
@@ -139,7 +138,7 @@ class NotEmptyIntFieldTestCase(FieldTestCase):
         self._valid(valid, reference_result)
 
     def test_field_invalid(self):
-        invalid = [dict(f='foo'), dict(f='')] 
+        invalid = [dict(f='foo'), dict(f='')]
         self._invalid(invalid)
 
 # class NotEmptyIntFieldTestCase
@@ -152,21 +151,21 @@ class NotEmptyFloatFieldTestCase(FieldTestCase):
 
         class Meta:
             strict = True
-    
+
     def test_field_valid(self):
         reference_result = {u'f': 123.}
         valid = [dict(f=123), dict(f=123.), dict(f='123')]
         self._valid(valid, reference_result)
 
     def test_field_invalid(self):
-        invalid = [dict(f='foo'), dict(f='')] 
+        invalid = [dict(f='foo'), dict(f='')]
         self._invalid(invalid)
 
 # class NotEmptyFloatFieldTestCase
 
 
 class LatitudeFieldTestCase(FieldTestCase):
-    
+
     class TestSchema(ma.Schema):
         f = schema.Latitude()
 
@@ -182,11 +181,11 @@ class LatitudeFieldTestCase(FieldTestCase):
         invalid = [dict(f=-100), dict(f=100), dict(f=''), dict(f='foo')]
         self._invalid(invalid)
 
-# class LatitudeFieldTestCase 
+# class LatitudeFieldTestCase
 
 
 class LongitudeFieldTestCase(FieldTestCase):
-    
+
     class TestSchema(ma.Schema):
         f = schema.Longitude()
 
@@ -242,8 +241,8 @@ class FDSNWSBoolFieldTestCase(FieldTestCase):
         self._valid(valid, reference_result)
 
     def test_field_invalid(self):
-        invalid = [dict(f='True'), dict(f='yes'), 
-                dict(f='False'), dict(f='no'), dict(f='')]
+        invalid = [dict(f='True'), dict(f='yes'),
+                   dict(f='False'), dict(f='no'), dict(f='')]
         self._invalid(invalid)
 
 # class FDSNWSBoolFieldTestCase
@@ -259,21 +258,22 @@ class FDSNWSDateTimeFieldTestCase(FieldTestCase):
 
     def test_field_valid(self):
         reference_result = {'f': datetime.datetime(2017, 1, 1)}
-        valid=[dict(f='2017-01-01'), 
-                dict(f='2017-01-01T00:00:00'), 
-                dict(f='2017-01-01T00:00:00.000'), 
-                dict(f='2017-01-01T00:00:00.000000')]
+        valid = [dict(f='2017-01-01'),
+                 dict(f='2017-01-01T00:00:00'),
+                 dict(f='2017-01-01T00:00:00.000'),
+                 dict(f='2017-01-01T00:00:00.000000')]
         self._valid(valid, reference_result)
 
-        reference_result = {'f': datetime.datetime(2017, 1, 1, 1, 1, 1, 123000)}
-        valid=[dict(f='2017-01-01T01:01:01.123')]
+        reference_result = {'f': datetime.datetime(
+            2017, 1, 1, 1, 1, 1, 123000)}
+        valid = [dict(f='2017-01-01T01:01:01.123')]
         self._valid(valid, reference_result)
 
     def test_field_invalid(self):
-        invalid = [dict(f=123), 
-                dict(f='foo'), 
-                dict(f='2017-01'), 
-                dict(f='2017-01-01T01:01:01.123456+00:01')]
+        invalid = [dict(f=123),
+                   dict(f='foo'),
+                   dict(f='2017-01'),
+                   dict(f='2017-01-01T01:01:01.123456+00:01')]
         self._invalid(invalid)
 
 # class FDSNWSDateTimeFieldTestCase
@@ -296,7 +296,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # no time definitions
         reference_result = {
-                'network': 'CH?*', 
+                'network': 'CH?*',
                 'station': 'DAVOX?*',
                 'location': '*?ABC',
                 'channel': 'AZ?*'}
@@ -315,7 +315,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         test_dataset = {'net': 'C-', 'sta': 'DAVO?'}
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(s, test_dataset)
-       
+
     @mock.patch('flask.Request')
     def test_sncl_get_invalid_sta(self, mock_request):
         # request.method == 'GET'
@@ -344,7 +344,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # define multiple channels
         reference_result = {
-                'network': '*', 
+                'network': '*',
                 'station': '*',
                 'location': '--',
                 'channel': '*'}
@@ -361,7 +361,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # define multiple channels
         reference_result = {
-                'network': '*', 
+                'network': '*',
                 'station': '*',
                 'location': '  ',
                 'channel': '*'}
@@ -378,7 +378,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # only starttime definition
         reference_result = {
-                'network': 'CH', 
+                'network': 'CH',
                 'station': 'DAVOX',
                 'location': '*',
                 'channel': '*',
@@ -390,14 +390,14 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         self.assertEqual(result, reference_result)
 
     @mock.patch('flask.Request')
-    def test_sncl_get_start(self, mock_request):
+    def test_sncl_get_end(self, mock_request):
         # request.method == 'GET'
         mock_request.method = 'GET'
         s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # only endtime definition
         reference_result = {
-                'network': 'CH', 
+                'network': 'CH',
                 'station': 'DAVOX',
                 'location': '*',
                 'channel': '*',
@@ -416,7 +416,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # define both starttime and endtime
         reference_result = {
-                'network': 'CH', 
+                'network': 'CH',
                 'station': 'DAVOX',
                 'location': '*',
                 'channel': '*',
@@ -451,8 +451,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         # define starttime in future
         future = datetime.datetime.now() + datetime.timedelta(1)
         future = future.isoformat()
-        test_dataset = {'net': 'CH', 'sta': 'DAVOX',
-                         'start': future}
+        test_dataset = {'net': 'CH', 'sta': 'DAVOX', 'start': future}
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(s, test_dataset)
 
@@ -463,10 +462,9 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         s = schema.StreamEpochSchema(context={'request': mock_request})
 
         # define endtime in future
-        now = datetime.datetime.utcnow() 
+        now = datetime.datetime.utcnow()
         tomorrow = now + datetime.timedelta(1)
         tomorrow_str = tomorrow.isoformat()
-
 
         test_dataset = {'net': 'CH', 'sta': 'DAVOX',
                         'end': tomorrow_str}
@@ -486,7 +484,6 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         with self.assertRaises(ma.ValidationError):
             test_dataset = self._load(s, test_dataset)
 
-
     @mock.patch('flask.Request')
     def test_sncl_post(self, mock_request):
         # request.method == 'POST'
@@ -498,9 +495,9 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
             stream=sncl.Stream(network='CH', station='DAVOX'),
             starttime=datetime.datetime(2017, 1, 1),
             endtime=datetime.datetime(2017, 1, 2))
-        
+
         test_dataset = {
-                'net': 'CH', 
+                'net': 'CH',
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
@@ -517,13 +514,13 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # define a invalid SNCL
         test_dataset = {
-                'net': 'CH', 
+                'net': 'CH',
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
                 'start': '2017-01-01'}
         with self.assertRaises(ma.ValidationError):
-            result = self._load(s, test_dataset)
+            self._load(s, test_dataset)
 
     @mock.patch('flask.Request')
     def test_sncl_post_start_lt_end(self, mock_request):
@@ -533,7 +530,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
 
         # invalid time definition
         test_dataset = {
-                'net': 'CH', 
+                'net': 'CH',
                 'sta': 'DAVOX',
                 'loc': '*',
                 'cha': '*',
@@ -611,8 +608,7 @@ class ManyStreamEpochSchemaTestCase(unittest.TestCase):
 # class ManyStreamEpochSchemaTestCase
 
 # -----------------------------------------------------------------------------
-if __name__ == '__main__':
+if __name__ == '__main__': # noqa
     unittest.main()
 
 # ---- END OF <schema.py> ----
-

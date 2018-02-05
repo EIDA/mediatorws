@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices.
-# 
+#
 # EIDA NG webservices are free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # EIDA NG webservices are distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -27,12 +27,11 @@
 """
 Provides testsuite loading methods.
 """
-import os
 import unittest
 
 from eidangservices.utils.tests import schema, sncl, utils
 
-federator_available =  False
+federator_available = False
 mediator_available = False
 stationlite_available = False
 
@@ -63,7 +62,7 @@ def general_testsuite():
     # NOTE(damb): Loading tests with discover does not work since the
     # directory 'eidangservices/tests' is considered as a namespace package.
     # Also discover() seems to change PYTHONPATH
-    #return loader.discover(__name__.replace('.', os.path.sep), '*.py')
+    # return loader.discover(__name__.replace('.', os.path.sep), '*.py')
     general_testsuite = unittest.TestSuite()
     loader = unittest.TestLoader()
     general_testsuite.addTests(loader.loadTestsFromModule(schema))
@@ -124,7 +123,7 @@ def testsuite():
     """
     testsuite = general_testsuite()
     if federator_available:
-       testsuite.addTests(eidangservices.federator.tests.testsuite())
+        testsuite.addTests(eidangservices.federator.tests.testsuite())
     if mediator_available:
         testsuite.addTests(eidangservices.mediator.tests.testsuite())
     if stationlite_available:

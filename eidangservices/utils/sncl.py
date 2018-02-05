@@ -31,20 +31,20 @@ SNCL related utilities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import functools
 
 from collections import namedtuple
 
-from intervaltree import Interval, IntervalTree
+from intervaltree import IntervalTree
 
 import eidangservices as eidangws
 
 Epochs = IntervalTree
 
 # ----------------------------------------------------------------------------
-def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_',
+def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
                             like_escape='/'):
     """
     Replace the FDSNWS wildcard characters in *str_old* with the corresponding
@@ -65,7 +65,7 @@ def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_',
 # fdsnws_to_sql_wildcards ()
 
 # ----------------------------------------------------------------------------
-@functools.total_ordering
+@functools.total_ordering # noqa
 class Stream(namedtuple('Stream',
                         ['network', 'station', 'location', 'channel'])):
     """
@@ -92,6 +92,7 @@ class Stream(namedtuple('Stream',
                                station=station,
                                location=location,
                                channel=channel)
+
     def __eq__(self, other):
         return self.id() == other.id()
 
@@ -107,6 +108,7 @@ class Stream(namedtuple('Stream',
                         self.channel])
 
 # class Stream
+
 
 @functools.total_ordering
 class StreamEpoch(namedtuple('StreamEpoch',
@@ -257,8 +259,8 @@ class StreamEpochs(object):
                    station=stream_epoch.station,
                    location=stream_epoch.location,
                    channel=stream_epoch.channel,
-                   epochs=epochs[(stream_epoch.starttime,
-                                  stream_epoch.endtime)])
+                   epochs=[(stream_epoch.starttime,
+                            stream_epoch.endtime)])
 
     @classmethod
     def from_stream(cls, stream, epochs=[]):
@@ -283,7 +285,6 @@ class StreamEpochs(object):
         self.epochs.merge_overlaps()
 
     # merge ()
-
 
     def fdsnws_to_sql_wildcards(self, like_multiple='%', like_single='_',
                                 like_escape='/'):
@@ -355,7 +356,8 @@ class StreamEpochs(object):
                                            channel=self.channel,
                                            starttime=epoch.begin,
                                            endtime=epoch.end)
-                                           for epoch in self.epochs])
+                     for epoch in self.epochs])
+
     def __eq__(self, other):
         """
         allows comparing StreamEpochs objects
@@ -424,7 +426,7 @@ class StreamEpochsHandler(object):
             epochs.slice(_start)
             epochs.slice(_end)
             # search and assign the overlap
-            self.d[stream_id] = Epochs(sorted(epochs.search(_start,_end)))
+            self.d[stream_id] = Epochs(sorted(epochs.search(_start, _end)))
 
     # modify_with_temporal_constraints ()
 

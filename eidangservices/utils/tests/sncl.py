@@ -31,7 +31,7 @@ EIDA NG webservices sncl module test facilities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import datetime
 import unittest
@@ -39,14 +39,14 @@ import unittest
 from eidangservices.utils import sncl
 
 # -----------------------------------------------------------------------------
-class StreamEpochsHandlerTestCase(unittest.TestCase):
+class StreamEpochsHandlerTestCase(unittest.TestCase): # noqa
 
     def setUp(self):
         self.stream_epochs = [sncl.StreamEpochs(
                 network='GR',
                 station='BFO',
                 location='',
-                channel = 'LHZ',
+                channel='LHZ',
                 epochs=[(datetime.datetime(2018, 1, 1),
                          datetime.datetime(2018, 1, 7)),
                         (datetime.datetime(2018, 1, 14),
@@ -62,7 +62,7 @@ class StreamEpochsHandlerTestCase(unittest.TestCase):
                 network='GR',
                 station='BFO',
                 location='',
-                channel = 'LHZ',
+                channel='LHZ',
                 epochs=[(datetime.datetime(2018, 1, 14),
                          datetime.datetime(2018, 1, 15))])]
 
@@ -82,7 +82,7 @@ class StreamEpochsHandlerTestCase(unittest.TestCase):
                 network='GR',
                 station='BFO',
                 location='',
-                channel = 'LHZ',
+                channel='LHZ',
                 epochs=[(start, datetime.datetime(2018, 1, 7)),
                         (datetime.datetime(2018, 1, 14),
                          datetime.datetime(2018, 1, 15)),
@@ -92,7 +92,7 @@ class StreamEpochsHandlerTestCase(unittest.TestCase):
         ses_handler.modify_with_temporal_constraints(start=start, end=end)
         self.assertEqual(list(ses_handler), reference_result)
 
-    # test_modify_with_temporal_constraints_slice_wins () 
+    # test_modify_with_temporal_constraints_slice_wins ()
 
     def test_modify_with_temporal_constraints_no_startend(self):
         reference_result = self.stream_epochs
@@ -100,12 +100,12 @@ class StreamEpochsHandlerTestCase(unittest.TestCase):
         ses_handler.modify_with_temporal_constraints()
         self.assertEqual(list(ses_handler), reference_result)
 
-    # test_modify_with_temporal_constraints_no_startend () 
+    # test_modify_with_temporal_constraints_no_startend ()
 
 # class StreamEpochsHandlerTestCase
 
 # -----------------------------------------------------------------------------
-if __name__ == '__main__':
+if __name__ == '__main__': # noqa
     unittest.main()
 
 # ---- END OF <sncl.py> ----

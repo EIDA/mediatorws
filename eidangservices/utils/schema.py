@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices.
-# 
+#
 # EIDA NG webservices is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # EIDA NG webservices is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -31,7 +31,7 @@ General marshmallow schema definitions for EIDA NG webservices.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import datetime
 import functools
@@ -39,7 +39,7 @@ import functools
 from marshmallow import (Schema, fields, validate, ValidationError,
                          post_load, post_dump, validates_schema)
 
-from eidangservices import settings, utils
+from eidangservices import utils
 from eidangservices.utils import sncl
 
 
@@ -50,8 +50,10 @@ validate_radius = validate.Range(min=0., max=180.)
 validate_net_sta_cha = validate.Regexp(r'[A-Z0-9_*?]*$')
 not_empty = validate.NoneOf([None, ''])
 
+
 def NotEmptyField(field_type, **kwargs):
     return functools.partial(field_type, validate=not_empty, **kwargs)
+
 
 Percentage = functools.partial(fields.Float, validate=validate_percentage)
 NotEmptyString = NotEmptyField(fields.Str)
@@ -88,6 +90,7 @@ class JSONBool(fields.Bool):
 
 # class JSONBool
 
+
 FDSNWSBool = JSONBool
 
 
@@ -113,20 +116,20 @@ class FDSNWSDateTime(fields.DateTime):
 # class FDSNWSDateTime
 
 # -----------------------------------------------------------------------------
-class StreamEpochSchema(Schema):
+class StreamEpochSchema(Schema): # noqa
     """
     A StreamEpoch Schema. The name *StreamEpoch* refers to the *FDSNWS* POST
     format. A StreamEpoch is a line consisting of:
 
         network station location channel starttime endtime
     """
-    network = fields.Str(load_from='net', missing = '*',
+    network = fields.Str(load_from='net', missing='*',
                          validate=validate_net_sta_cha)
-    station = fields.Str(load_from='sta', missing = '*',
+    station = fields.Str(load_from='sta', missing='*',
                          validate=validate_net_sta_cha)
-    location = fields.Str(load_from='loc', missing = '*',
+    location = fields.Str(load_from='loc', missing='*',
                           validate=validate.Regexp(r'[A-Z0-9_*?]*$|--|\s\s'))
-    channel = fields.Str(load_from='cha', missing = '*',
+    channel = fields.Str(load_from='cha', missing='*',
                          validate=validate_net_sta_cha)
     starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
     endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
@@ -137,7 +140,7 @@ class StreamEpochSchema(Schema):
 
     @post_dump
     def skip_empty_datetimes(self, data):
-        if (self.context.get('request') and 
+        if (self.context.get('request') and
                 self.context.get('request').method == 'GET'):
             if data.get('starttime') is None:
                 del data['starttime']
@@ -181,7 +184,6 @@ class StreamEpochSchema(Schema):
         else:
             raise ValidationError('missing context')
 
-
     class Meta:
         strict = True
         ordered = True
@@ -201,12 +203,11 @@ class ManyStreamEpochSchema(Schema):
     def validate_schema(self, data):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
-            self.context.get('request').method == 'POST'):
+                self.context.get('request').method == 'POST'):
             if 'stream_epochs' not in data or not data['stream_epochs']:
                 raise ValidationError('No StreamEpoch defined.')
             if [v for v in data['stream_epochs'] if v is None]:
                 raise ValidationError('Invalid StreamEpoch defined.')
-
 
     class Meta:
         strict = True
