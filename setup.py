@@ -74,7 +74,8 @@ _extras = {
     'test': _test_deps,
 }
 
-_test_suites = 'eidangservices.utils.tests.testsuite'
+_test_suites = [os.path.join('eidangservices', 'utils', 'tests')]
+
 _sphinx_build_dir = 'docs'
 
 
@@ -111,7 +112,7 @@ if 'federator' == subsys:
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
-    _test_suites = 'eidangservices.utils.tests.federator_testsuite'
+    _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
     _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'stationlite' == subsys:
@@ -146,7 +147,7 @@ elif 'stationlite' == subsys:
             'webargs>=1.8.1',
             ]
 
-    _test_suites = 'eidangservices.utils.tests.stationlite_testsuite'
+    _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
     _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'mediator' == subsys:
@@ -155,6 +156,25 @@ elif 'mediator' == subsys:
 else:
     pass
     # build the entire mediatorws package
+
+if 'test' == sys.argv[1]:
+    # remove testsuite duplicates
+    try:
+        idx = sys.argv.index('--addopts')
+        pytest_args = sys.argv[idx+1]
+        _test_suites = [suite for suite in _test_suites
+                        if suite not in pytest_args.split(' ')]
+    except IndexError:
+        sys.argv.append('')
+    except ValueError:
+        pass
+
+    if _test_suites:
+        if '--addopts' in sys.argv:
+            sys.argv[-1] += ' ' + ' '.join(_test_suites)
+        else:
+            sys.argv.append('--addopts')
+            sys.argv.append(' '.join(_test_suites))
 
 
 setup(
@@ -189,7 +209,7 @@ setup(
     install_requires=_deps,
     entry_points=_entry_points,
     zip_safe=False,
-    test_suite=_test_suites,
+    setup_requires=['pytest-runner', ],
     tests_require=_test_deps,
     extras_require=_extras,
     # configure sphinx
