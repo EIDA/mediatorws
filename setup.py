@@ -63,7 +63,7 @@ _deps = [
         #'mock:python_version<"3.3"',
         'future>=0.16.0',
         'intervaltree>=2.1',
-        'marshmallow>=3.0.0b4',
+        'marshmallow==3.0.0b4',
         'webargs>=1.8.1',
         ]
 
@@ -106,7 +106,7 @@ if 'federator' == subsys:
             #'mock:python_version<"3.3"',
             'future>=0.16.0',
             'intervaltree>=2.1',
-            'marshmallow>=3.0.0b4',
+            'marshmallow==3.0.0b4',
             'webargs>=1.8.1',
             ]
     if sys.version_info[:2] < (3, 3):
@@ -141,7 +141,7 @@ elif 'stationlite' == subsys:
             'Flask-SQLAlchemy>=2.3.2',
             'future>=0.16.0',
             'intervaltree>=2.1',
-            'marshmallow>=3.0.0b4',
+            'marshmallow==3.0.0b4',
             'python-dateutil>=2.6.1',
             'requests>=2.18.4',
             'webargs>=1.8.1',
