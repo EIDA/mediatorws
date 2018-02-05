@@ -64,8 +64,8 @@ _deps = [
         'future>=0.16.0',
         'intervaltree>=2.1',
         'marshmallow==3.0.0b4',
-        'webargs>=1.8.1',
-        ]
+        'python-dateutil>=2.6.1',
+        'webargs>=1.8.1', ]
 
 _test_deps = []
 if sys.version_info[:2] < (3, 3):
@@ -107,8 +107,8 @@ if 'federator' == subsys:
             'future>=0.16.0',
             'intervaltree>=2.1',
             'marshmallow==3.0.0b4',
-            'webargs>=1.8.1',
-            ]
+            'python-dateutil>=2.6.1',
+            'webargs>=1.8.1', ]
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
