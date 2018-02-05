@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices.
-# 
+#
 # EIDA NG webservices are free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # EIDA NG webservices are distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -59,7 +59,7 @@ _deps = [
         'Flask>=0.12.2',
         'Flask-RESTful>=0.3.6',
         # TODO(damb): Seems not to work for Python 2.7
-        #'mock:python_version<"3.3"',
+        # 'mock:python_version<"3.3"',
         'future>=0.16.0',
         'intervaltree>=2.1',
         'marshmallow==3.0.0b4',
@@ -87,7 +87,7 @@ if 'federator' == subsys:
     _version = get_version('eidangservices/federator/__init__.py')
     _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
-        "fabian.euchner@sed.ethz.ch")
+                     "fabian.euchner@sed.ethz.ch")
     _description = ("EIDA NG Federator webservice")
     _entry_points = {
         'console_scripts': [
@@ -102,7 +102,7 @@ if 'federator' == subsys:
             'Flask>=0.12.2',
             'Flask-RESTful>=0.3.6',
             # TODO(damb): Seems not to work for Python 2.7
-            #'mock:python_version<"3.3"',
+            # 'mock:python_version<"3.3"',
             'future>=0.16.0',
             'intervaltree>=2.1',
             'marshmallow==3.0.0b4',
@@ -158,16 +158,16 @@ else:
 
 
 setup(
-    name = _name,
-    version = _version,
-    author = _author,
-    author_email = _author_email,
-    description = _description,
-    long_description = open('README.rst').read(),
-    license = "GPLv3",
-    keywords = "seismology waveforms federation mediation eida service",
-    url = "https://github.com/EIDA/mediatorws",
-    platforms=['Linux',],
+    name=_name,
+    version=_version,
+    author=_author,
+    author_email=_author_email,
+    description=_description,
+    long_description=open('README.rst').read(),
+    license="GPLv3",
+    keywords="seismology waveforms federation mediation eida service",
+    url="https://github.com/EIDA/mediatorws",
+    platforms=['Linux', ],
     classifiers=[
           "Development Status :: 3 - Alpha",
           "Framework :: Flask",
@@ -186,12 +186,12 @@ setup(
     ],
     packages=find_packages(include=_includes),
     include_package_data=True,
-    install_requires = _deps,
-    entry_points = _entry_points,
+    install_requires=_deps,
+    entry_points=_entry_points,
     zip_safe=False,
-    test_suite = _test_suites,
-    tests_require = _test_deps,
-    extras_require = _extras,
+    test_suite=_test_suites,
+    tests_require=_test_deps,
+    extras_require=_extras,
     # configure sphinx
     command_options={
         'build_sphinx': {
