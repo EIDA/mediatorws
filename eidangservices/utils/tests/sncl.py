@@ -36,7 +36,7 @@ from builtins import *
 import datetime
 import unittest
 
-from eidangservices import sncl
+from eidangservices.utils import sncl
 
 # -----------------------------------------------------------------------------
 class StreamEpochsHandlerTestCase(unittest.TestCase):

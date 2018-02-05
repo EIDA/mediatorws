@@ -30,7 +30,7 @@ Provides testsuite loading methods.
 import os
 import unittest
 
-from eidangservices.tests import schema, sncl, utils
+from eidangservices.utils.tests import schema, sncl, utils
 
 federator_available =  False
 mediator_available = False

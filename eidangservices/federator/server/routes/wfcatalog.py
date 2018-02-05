@@ -36,7 +36,8 @@ from webargs.flaskparser import use_args
 
 import eidangservices as eidangws
 
-from eidangservices import httperrors, settings, utils
+from eidangservices import settings, utils
+from eidangservices.utils import httperrors
 from eidangservices.federator.server import general_request, schema
 
 
@@ -54,7 +55,7 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @use_args(schema.WFCatalogSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, wfcatalog_args, stream_epochs):
@@ -87,7 +88,7 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, wfcatalog_args, stream_epochs):

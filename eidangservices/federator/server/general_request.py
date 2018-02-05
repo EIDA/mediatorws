@@ -35,7 +35,8 @@ from flask import current_app, request
 from flask_restful import Resource
 
 import eidangservices as eidangws
-from eidangservices import httperrors, settings, utils
+from eidangservices import settings, utils
+from eidangservices.utils import httperrors
 from eidangservices.federator.server import route, misc
 
 try:
@@ -75,7 +76,7 @@ class GeneralResource(Resource):
         :return: The combined response (read from the temporary file)
         """
         postdata = None
-        se_schema = eidangws.schema.StreamEpochSchema(many=True,
+        se_schema = eidangws.utils.schema.StreamEpochSchema(many=True,
                                                  context={'request': request})
         stream_epochs = se_schema.dump(stream_epochs).data
         self.logger.debug('StreamEpochs (serialized): %s' % stream_epochs)

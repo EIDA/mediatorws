@@ -44,7 +44,8 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
-from eidangservices import schema, sncl, utils
+from eidangservices import utils
+from eidangservices.utils import schema, sncl 
 
 try:
     import mock

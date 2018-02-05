@@ -36,7 +36,7 @@ from builtins import *
 from marshmallow import (Schema, fields, validate, validates_schema,
                          ValidationError)
 
-from eidangservices.schema import FDSNWSBool, Latitude, Longitude
+from eidangservices.utils.schema import FDSNWSBool, Latitude, Longitude
 
 # ----------------------------------------------------------------------------
 class StationLiteSchema(Schema):

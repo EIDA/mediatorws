@@ -40,9 +40,11 @@ from marshmallow import (Schema, SchemaOpts, fields, validate,
     ValidationError, post_load, post_dump, validates_schema)
 
 from eidangservices import settings
-from eidangservices.schema import (Percentage, NotEmptyString, NotEmptyInt,
-                                   NotEmptyFloat, FDSNWSDateTime, Degree,
-                                   Latitude, Longitude, Radius, FDSNWSBool)
+from eidangservices.utils.schema import (Percentage, NotEmptyString,
+                                         NotEmptyInt, NotEmptyFloat,
+                                         FDSNWSDateTime, Degree,
+                                         Latitude, Longitude, Radius,
+                                         FDSNWSBool)
 
 # TODO(damb): Improve error messages.
 # TODO(damb): Improve 'format' field implementation.

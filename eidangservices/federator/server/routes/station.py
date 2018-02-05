@@ -47,7 +47,7 @@ class StationResource(general_request.GeneralResource):
 
     @use_args(schema.StationSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, station_args, stream_epochs):
@@ -67,7 +67,7 @@ class StationResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.StationSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, station_args, stream_epochs):

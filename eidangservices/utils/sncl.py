@@ -378,7 +378,7 @@ class StreamEpochs(object):
                 (self._stream, self.starttime, self.endtime))
 
     def __str__(self):
-        se_schema = eidangws.schema.StreamEpochSchema(many=True)
+        se_schema = eidangws.utils.schema.StreamEpochSchema(many=True)
         stream_epochs = se_schema.dump(list(self)).data
         return '\n'.join([' '.join(stream_epoch.values())
                          for stream_epoch in stream_epochs])

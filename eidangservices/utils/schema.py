@@ -39,7 +39,8 @@ import functools
 from marshmallow import (Schema, fields, validate, ValidationError,
                          post_load, post_dump, validates_schema)
 
-from eidangservices import settings, sncl, utils
+from eidangservices import settings, utils
+from eidangservices.utils import sncl
 
 
 validate_percentage = validate.Range(min=0, max=100)

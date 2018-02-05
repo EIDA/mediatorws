@@ -39,7 +39,8 @@ import unittest
 import flask
 import marshmallow as ma
 
-from eidangservices import schema, sncl, utils
+from eidangservices import utils
+from eidangservices.utils import schema, sncl
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
 try:

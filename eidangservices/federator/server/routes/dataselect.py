@@ -50,7 +50,7 @@ class DataselectResource(general_request.GeneralResource):
 
     @use_args(schema.DataselectSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, args, stream_epochs):
@@ -72,7 +72,7 @@ class DataselectResource(general_request.GeneralResource):
         
     @utils.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, args, stream_epochs):

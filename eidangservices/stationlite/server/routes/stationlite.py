@@ -36,8 +36,9 @@ from flask_restful import Resource
 from webargs.flaskparser import use_args
 
 import eidangservices as eidangws
-from eidangservices import httperrors, settings, utils
-from eidangservices.sncl import StreamEpochs, StreamEpochsHandler
+from eidangservices import settings, utils
+from eidangservices.utils import httperrors
+from eidangservices.utils.sncl import StreamEpochs, StreamEpochsHandler
 
 from eidangservices.stationlite.engine import dbquery
 from eidangservices.stationlite.server import schema
@@ -57,7 +58,7 @@ class StationLiteResource(Resource):
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, args, stream_epochs):
@@ -77,7 +78,7 @@ class StationLiteResource(Resource):
 
     @utils.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, args, stream_epochs):

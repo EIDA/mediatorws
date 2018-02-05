@@ -75,7 +75,7 @@ _extras = {
     'test': _test_deps,
 }
 
-_test_suites = 'eidangservices.tests.testsuite'
+_test_suites = 'eidangservices.utils.tests.testsuite'
 _sphinx_build_dir = 'docs'
 
 
@@ -95,7 +95,8 @@ if 'federator' == subsys:
             'eida-federator = eidangservices.federator.server.app:main',
         ]
     }
-    _includes = ('eidangservices', 'eidangservices.tests',
+    _includes = ('eidangservices', 'eidangservices.utils',
+                 'eidangservices.utils.tests',
                  '*.federator', 'federator.*', '*.federator.*')
     _deps = [
             'fasteners>=0.14.1',
@@ -111,7 +112,7 @@ if 'federator' == subsys:
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
-    _test_suites = 'eidangservices.tests.federator_testsuite'
+    _test_suites = 'eidangservices.utils.tests.federator_testsuite'
     _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'stationlite' == subsys:
@@ -123,7 +124,8 @@ elif 'stationlite' == subsys:
     _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
     _description = ("EIDA NG StationLite webservice")
 
-    _includes = ('eidangservices', 'eidangservices.tests',
+    _includes = ('eidangservices', 'eidangservices.utils',
+                 'eidangservices.utils.tests',
                  '*.stationlite', 'stationlite.*', '*.stationlite.*')
     _entry_points = {
         'console_scripts': [
@@ -145,7 +147,7 @@ elif 'stationlite' == subsys:
             'webargs>=1.8.1',
             ]
 
-    _test_suites = 'eidangservices.tests.stationlite_testsuite'
+    _test_suites = 'eidangservices.utils.tests.stationlite_testsuite'
     _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'mediator' == subsys:
