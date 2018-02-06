@@ -67,7 +67,7 @@ _deps = [
         'python-dateutil>=2.6.1',
         'webargs>=1.8.1', ]
 
-_test_deps = []
+_test_deps = ['pytest']
 if sys.version_info[:2] < (3, 3):
     _test_deps.append('mock')
 
