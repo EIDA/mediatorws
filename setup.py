@@ -151,6 +151,13 @@ elif 'mediator' == subsys:
     raise RuntimeError("Mediator not packaged yet.")
 
 
+if _test_suites == [os.path.join('eidangservices', 'utils', 'tests')]:
+    # No subsystem deployment -> the full package is installed i.e. include all
+    # tests packages
+    _test_suites = find_packages(include=('*.tests', ))
+    _test_suites = [suite.replace('.', os.path.sep) for suite in _test_suites]
+
+
 if 'test' == sys.argv[1]:
     # remove testsuite duplicates
     try:
