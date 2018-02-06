@@ -152,7 +152,8 @@ elif 'stationlite' == subsys:
 
 elif 'mediator' == subsys:
     sys.argv.pop(1)
-    pass
+    raise RuntimeError("Mediator not packaged yet.")
+
 
 if 'test' == sys.argv[1]:
     # remove testsuite duplicates
