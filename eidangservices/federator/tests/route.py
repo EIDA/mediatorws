@@ -46,7 +46,7 @@ import multiprocessing as mp
 from queue import Empty
 
 from eidangservices import settings
-from eidangservices.federator.server import combine, route, misc
+from eidangservices.federator.server import combine, misc, route
 
 from future import standard_library
 standard_library.install_aliases()
@@ -237,7 +237,7 @@ class DownloadTaskTestCase(unittest.TestCase):
     # requests instead of urllib
     @unittest.skipIf(sys.version_info < (3, 4),
             'federator.server.route does not use future yet')
-    @mock.patch('route.route.connect')
+    @mock.patch('eidangservices.federator.server.route.connect')
     def test_splitting(self, mock_connect):
 
         class HTTPResponseOK(io.BytesIO):
