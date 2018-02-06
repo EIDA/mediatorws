@@ -76,8 +76,6 @@ _extras = {
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]
 
-_sphinx_build_dir = 'docs'
-
 
 subsys = sys.argv[1]
 if 'federator' == subsys:
@@ -113,7 +111,6 @@ if 'federator' == subsys:
         _deps.append('mock')
 
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
-    _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
@@ -148,7 +145,6 @@ elif 'stationlite' == subsys:
             ]
 
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
-    _sphinx_build_dir = os.path.join(_sphinx_build_dir, 'docs.'+subsys)
 
 elif 'mediator' == subsys:
     sys.argv.pop(1)
