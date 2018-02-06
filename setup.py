@@ -153,9 +153,6 @@ elif 'stationlite' == subsys:
 elif 'mediator' == subsys:
     sys.argv.pop(1)
     pass
-else:
-    pass
-    # build the entire mediatorws package
 
 if 'test' == sys.argv[1]:
     # remove testsuite duplicates
