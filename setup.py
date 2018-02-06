@@ -51,6 +51,7 @@ _description = ("EIDA NG Mediator/Federator webservices")
 _entry_points = {
     'console_scripts': [
         'eida-federator = eidangservices.federator.server.app:main',
+        'eida-stationlite = eidangservices.stationlite.server.app:main',
     ]
 }
 _includes = ('*')
@@ -126,7 +127,7 @@ elif 'stationlite' == subsys:
                  '*.stationlite', 'stationlite.*', '*.stationlite.*')
     _entry_points = {
         'console_scripts': [
-            'eida-stationlite= eidangservices.stationlite.server.app:main',
+            'eida-stationlite = eidangservices.stationlite.server.app:main',
         ]
     }
 
