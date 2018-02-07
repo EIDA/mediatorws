@@ -66,6 +66,8 @@ SPHINX_PKGS=$(sort $(dir $(wildcard $(PATH_EIDANGSERVICES)/*/)))
 SPHINX_EXCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
 							 __pycache__ tests))
 
+TOXENVS=py27 py34 py35 py36
+
 # -----------------------------------------------------------------------------
 #
 CHECKVAR=$(if $(filter $(1),$(SERVICES_ALL)),, \
@@ -74,12 +76,19 @@ CHECKVARS=$(foreach var,$(1),$(call CHECKVAR,$(var)))
 
 $(call CHECKVARS, $(SERVICES))
 
+null  :=
+space := $(null) #
+comma := ,
+
+COMMA_LIST=$(subst $(space),$(comma),$(strip $(1)))
+
 # -----------------------------------------------------------------------------
 install: $(patsubst %,%.install,$(SERVICES))
 develop: $(patsubst %,%.develop,$(SERVICES))
 sdist: $(patsubst %,%.sdist,$(SERVICES))
 test: $(patsubst %,%.test,$(SERVICES))
 doc: $(patsubst %,%.doc,$(SERVICES))
+tox: $(patsubst %,%.tox,$(SERVICES))
 
 .PHONY: clean build-clean doc-clean MANIFEST-clean
 clean: build-clean doc-clean MANIFEST-clean
@@ -113,6 +122,9 @@ ls:
 
 %.test: %.install
 	python setup.py $(@:.test=) test
+
+%.tox:
+	tox -e $(call COMMA_LIST,$(addsuffix -$(@:.tox=),$(TOXENVS)))
 
 %.doc: $(PATH_DOCS)/sphinx.% %.make_docs_dest %.sphinx-apidoc
 	python setup.py $(@:.doc=) build_sphinx \
