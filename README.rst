@@ -1,6 +1,12 @@
+.. |BuildStatus| image:: https://jenkins.ethz.ch/buildStatus/icon?job=mediatorws
+                  :alt: Build Status
+.. _BuildStatus: https://jenkins.ethz.ch/job/mediatorws
+
 **************************************
 EIDA NG Mediator/Federator webservices
 **************************************
+
+|BuildStatus|_ (py27, py34, py35, py36)
 
 This repository is intended to contain the source code for two of the web
 services of EIDA NG: (i) the *federator*, and (ii) the *mediator*.
