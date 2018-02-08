@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -31,12 +31,8 @@ Federator routing facility
 """
 # TODO(damb): use future to improve Py2/3 compatibility
 
-import datetime
-import json
 import logging
 import socket
-import struct
-import sys
 import threading
 import time
 
@@ -179,7 +175,7 @@ class RoutingURL(object):
         return qp
 
     def target_params(self):
-        return [(p, v) for (p, v) in self.__qp.items() 
+        return [(p, v) for (p, v) in self.__qp.items()
                 if p not in self.GET_PARAMS]
 
     def __str__(self):
@@ -204,19 +200,21 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
     :param bool lock_url: when retrying acquire a global
     :py:class:`fasteners.InterProcessLock` for the *url* passed
 
-    :return: a file-like object with methods depending on the *urlopen* function
+    :return: a file-like object with methods depending on the *urlopen*
+    function
     reference
-    :raises urllib2.HTTPError: if the HTTP status code is 4?? 
+    :raises urllib2.HTTPError: if the HTTP status code is 4??
     """
-    def retry(retry_wait, lock_url=lock_url, sleep_func=time.sleep, 
-            logger=None):
+    def retry(retry_wait, lock_url=lock_url, sleep_func=time.sleep,
+              logger=None):
         """
         Sleep.
-        """ 
+        """
         if lock_url:
             url_to_lock = urlparse.urlsplit(url).geturl()
-            url_lock = misc.URLConnectionLock(url_to_lock,
-                    path_lockdir=settings.PATH_LOCKDIR, logger=logger)
+            url_lock = misc.URLConnectionLock(
+                url_to_lock,
+                path_lockdir=settings.PATH_LOCKDIR, logger=logger)
 
         gotten = lock_url and url_lock.acquire(blocking=False)
         try:
@@ -230,7 +228,7 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
         finally:
             if gotten:
                 logger.debug('Lock for URL(%s) released.' % url_to_lock)
-                url_lock.release() 
+                url_lock.release()
 
     # retry ()
 
@@ -257,22 +255,22 @@ def connect(urlopen, url, data, timeout, count, wait, lock_url=True):
 
             fd.close()
             retry(wait, logger=logger)
-        
-        # NOTE(damb): approach 
+
+        # NOTE(damb): approach
         # https://docs.python.org/3.1/howto/urllib2.html#number-1 in use
         except urllib2.HTTPError as e:
             if e.code >= 400 and e.code < 500:
                 raise
 
             # retrying for 5?? HTTP status codes
-            logger.warning("retrying %s (%d) after %d seconds due to %s"
-                % (url, n, wait, str(e)))
+            logger.warning("retrying %s (%d) after %d seconds due to %s" %
+                           (url, n, wait, str(e)))
             retry(wait, logger=logger)
 
         except (urllib2.URLError, socket.error) as e:
             # retrying for connection errors
-            logger.warning("retrying %s (%d) after %d seconds due to %s"
-                % (url, n, wait, str(e)))
+            logger.warning("retrying %s (%d) after %d seconds due to %s" %
+                           (url, n, wait, str(e)))
             retry(wait, logger=logger)
 
 # connect ()
@@ -304,7 +302,7 @@ class TaskBase(object):
             self.__dict__.update(d)
 
     # __setstate__ ()
-    
+
     def __call__(self):
         raise NotImplementedError
 
@@ -330,7 +328,7 @@ class DownloadTask(TaskBase):
         self._retry_lock = kwargs.get('retry_lock')
         self.combined_size = 0
 
-    # __init__ () 
+    # __init__ ()
 
     def __call__(self):
         """
@@ -341,7 +339,7 @@ class DownloadTask(TaskBase):
         """
         url_handlers = []
 
-        if self._cred and self.url.post_qa() in self._cred:  
+        if self._cred and self.url.post_qa() in self._cred:
             # use static credentials
             query_url = self.url.post_qa()
             (user, passwd) = self._cred[query_url]
@@ -358,7 +356,7 @@ class DownloadTask(TaskBase):
             try:
                 with closing(connect(urllib2.urlopen, wadl_url, None,
                                      self._timeout, self._num_retries,
-                                     self._retry_wait, 
+                                     self._retry_wait,
                                      lock_url=self._retry_lock)) as fd:
 
                     root = ET.parse(fd).getroot()
@@ -374,7 +372,7 @@ class DownloadTask(TaskBase):
                     self._authdata = self._authdata.encode('utf-8')
 
                 try:
-                    with closing(connect(urllib2.urlopen, auth_url, 
+                    with closing(connect(urllib2.urlopen, auth_url,
                                          self._authdata, self._timeout,
                                          self._num_retries, self._retry_wait,
                                          lock_url=self._retry_lock)) as fd:
@@ -393,34 +391,34 @@ class DownloadTask(TaskBase):
                                 url_handlers.append(h)
 
                             except ValueError:
-                                self.logger.warning("invalid auth response: %s" %
-                                        up)
+                                self.logger.warning(
+                                    "invalid auth response: %s" % up)
                                 # TODO(damb): raise a proper exception and
                                 # inform the client
                                 return
 
                             self.logger.info(
-                                    "authentication at %s successful"
-                                    % auth_url)
+                                "authentication at %s successful" % auth_url)
 
                         else:
                             self.logger.warning(
-                            "authentication at %s failed with HTTP "
-                            "status code %d" % (auth_url, fd.getcode()))
+                                "authentication at %s failed with HTTP "
+                                "status code %d" % (auth_url, fd.getcode()))
 
                 # TODO(damb): Howto inform the client about errors.
                 except (urllib2.URLError, socket.error) as e:
                     self.logger.warning("authentication at %s failed: %s" %
-                            (auth_url, str(e)))
+                                        (auth_url, str(e)))
                     query_url = self.url.post()
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                self.logger.warning("reading %s failed: %s" % (wadl_url, str(e)))
+                self.logger.warning("reading %s failed: %s" %
+                                    (wadl_url, str(e)))
                 query_url = self.url.post()
 
             except AuthNotSupported:
-                self.logger.info("authentication at %s is not supported"
-                    % auth_url)
+                self.logger.info("authentication at %s is not supported" %
+                                 auth_url)
 
                 query_url = self.url.post()
 
@@ -437,18 +435,18 @@ class DownloadTask(TaskBase):
                 self.logger.info("getting data from %s" % query_url)
 
             else:
-                self.logger.debug("getting data from %s (%d%%..%d%%)"
-                    % (query_url,
-                       100*i/len(self.sncls),
-                       min(100, 100*(i+n)/len(self.sncls))))
+                self.logger.debug("getting data from %s (%d%%..%d%%)" %
+                                  (query_url,
+                                   100*i/len(self.sncls),
+                                   min(100, 100*(i+n)/len(self.sncls))))
 
-            #print('URL post_params: %s' % self.url.post_params())
+            # print('URL post_params: %s' % self.url.post_params())
             postdata = (''.join((p + '=' + str(v) + '\n')
                                 for (p, v) in self.url.post_params()) +
                         ''.join(self.sncls[i:i+n]))
 
             self.logger.debug("postdata (%s): %r" % (query_url, postdata))
-            
+
             if not isinstance(postdata, bytes):
                 postdata = postdata.encode('utf-8')
 
@@ -465,8 +463,8 @@ class DownloadTask(TaskBase):
 
                     elif fd.getcode() != 200:
                         self.logger.warning(
-                                "getting data from %s failed with HTTP status "
-                                "code %d" % (query_url, fd.getcode()))
+                            "getting data from %s failed with HTTP status "
+                            "code %d" % (query_url, fd.getcode()))
 
                         break
 
@@ -475,18 +473,19 @@ class DownloadTask(TaskBase):
                         content_type = fd.info().get('Content-Type')
                         content_type = content_type.split(';')[0]
 
-                        if (self._combiner and 
-                            content_type == self._combiner.mimetype):
+                        if (self._combiner and
+                                content_type == self._combiner.mimetype):
 
                             self.combined_size += self._combiner.combine(fd)
                             if (n == len(self.sncls) or
-                                (i+n) >= len(self.sncls)):
+                                    (i+n) >= len(self.sncls)):
                                 return self.combined_size
 
                         else:
                             self.logger.warning(
-                            "getting data from %s failed: unsupported "
-                            "content type '%s'" % (query_url, content_type))
+                                "getting data from %s failed: unsupported "
+                                "content type '%s'" %
+                                (query_url, content_type))
 
                             break
 
@@ -494,27 +493,27 @@ class DownloadTask(TaskBase):
 
             except urllib2.HTTPError as e:
                 if e.code == 413 and n > 1:
-                    self.logger.warning("request too large for %s, splitting"
-                        % query_url)
+                    self.logger.warning("request too large for %s, splitting" %
+                                        query_url)
 
                     n = -(n//-2)
 
                 else:
-                    self.logger.warning("getting data from %s failed: %s"
-                        % (query_url, str(e)))
+                    self.logger.warning("getting data from %s failed: %s" %
+                                        (query_url, str(e)))
                     # TODO(damb): send the response code to the user: must be
                     # implemented for a detailed logging
                     break
 
             except (urllib2.URLError, socket.error, ET.ParseError) as e:
-                self.logger.warning("getting data from %s failed: %s"
-                    % (query_url, str(e)))
+                self.logger.warning("getting data from %s failed: %s" %
+                                    (query_url, str(e)))
                 # TODO(damb): send the response code to the user: must be
                 # implemented for a detailed logging
                 break
 
         return 0
-    
+
     # __call__()
 
 # class DownloadTask
@@ -532,16 +531,17 @@ class WebserviceRouter:
 
     LOGGER = 'flask.app.federator.webservice_router'
 
-    def __init__(self, url, query_params={}, postdata=None, dest=None, 
-            timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
-            num_retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
-            retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
-            retry_lock=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
-            max_threads= \
-                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
+    def __init__(
+        self, url, query_params={}, postdata=None, dest=None,
+        timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
+        num_retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
+        retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
+        retry_lock=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
+        max_threads=\
+            settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
 
         self.logger = logging.getLogger(self.LOGGER)
-        
+
         # TODO(damb): to be refactored
         self.url = url
         self.query_params = query_params
@@ -562,7 +562,7 @@ class WebserviceRouter:
 
         self.__routing_table = []
         self.__thread_pool = ThreadPool(processes=max_threads,
-                initializer=start_thread)
+                                        initializer=start_thread)
 
     # __init__ ()
 
@@ -585,8 +585,8 @@ class WebserviceRouter:
             # NOTE(damb): Uses the post_params method of a RoutingURL.
             query_url = self.url.post()
             self.postdata = (''.join((p + '=' + v + '\n')
-                                for (p, v) in self.url.post_params()) +
-                        self.postdata)
+                             for (p, v) in self.url.post_params()) +
+                             self.postdata)
 
             if not isinstance(self.postdata, bytes):
                 self.postdata = self.postdata.encode('utf-8')
@@ -609,8 +609,8 @@ class WebserviceRouter:
 
                 elif fd.getcode() != 200:
                     raise Error(
-                            "getting routes from %s failed with HTTP status "
-                            "code %d" % (query_url, fd.getcode()))
+                        "getting routes from %s failed with HTTP status "
+                        "code %d" % (query_url, fd.getcode()))
 
                 else:
                     # parse routing service results and set up the routing
@@ -641,12 +641,12 @@ class WebserviceRouter:
                             sncls.append(line)
 
                     self.logger.debug('routes received: %s' %
-                                      self.__routing_table) 
+                                      self.__routing_table)
 
         except (urllib2.URLError, socket.error) as e:
-            raise Error("getting routes from %s failed: %s" % (query_url,
-                str(e)))
-    
+            raise Error("getting routes from %s failed: %s" %
+                        (query_url, str(e)))
+
     # _route ()
 
     def _fetch(self):
@@ -655,29 +655,27 @@ class WebserviceRouter:
         # H. fetch method. The original _fetch function functionality is
         # postponed to DownloadTask objects.
         task_kwargs = {
-                'cred': self.cred,
-                'authdata': self.authdata,
-                'combiner': self._combiner,
-                'timeout': self.timeout,
-                'num_retries': self.num_retries,
-                'retry_wait': self.retry_wait
-                }
+            'cred': self.cred,
+            'authdata': self.authdata,
+            'combiner': self._combiner,
+            'timeout': self.timeout,
+            'num_retries': self.num_retries,
+            'retry_wait': self.retry_wait}
         # create tasks from the routing table content
         bytes_fetched = []
         self.logger.debug('Number of routes: %d' % len(self.__routing_table))
         for url, sncls in self.__routing_table:
             self.logger.debug(
-                    'Setting up DownloadTask for <url=%s, sncls=%s> ...'
-                    % (url, sncls))
+                'Setting up DownloadTask for <url=%s, sncls=%s> ...' %
+                (url, sncls))
             # create a TargetURL
             target_url = TargetURL(
-                    urlparse.urlparse(url), 
-                    self.url.target_params())
+                urlparse.urlparse(url), self.url.target_params())
             # apply task to the thread pool
             self.__thread_pool.apply_async(
                 DownloadTask(target_url, sncls, **task_kwargs),
                 callback=bytes_fetched.append)
-        
+
         self.__thread_pool.close()
         self.__thread_pool.join()
 
@@ -699,6 +697,6 @@ class WebserviceRouter:
 
     # __call__ ()
 
-# class WebserviceRouter 
+# class WebserviceRouter
 
 # ---- END OF <route.py> ----

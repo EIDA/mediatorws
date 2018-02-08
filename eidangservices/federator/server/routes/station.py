@@ -2,21 +2,21 @@
 #
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # -----------------------------------------------------------------------------
@@ -25,7 +25,6 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-import datetime
 import logging
 
 from flask import request
@@ -47,7 +46,8 @@ class StationResource(general_request.GeneralResource):
 
     @use_args(schema.StationSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('query',)
     )
     def get(self, station_args, stream_epochs):
@@ -67,14 +67,15 @@ class StationResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.StationSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('form',)
     )
     def post(self, station_args, stream_epochs):
         # request.method == 'POST'
 
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
-        
+
         # serialize objects
         s = schema.StationSchema()
         station_args = s.dump(station_args).data
@@ -86,7 +87,7 @@ class StationResource(general_request.GeneralResource):
                                      post=True)
 
     # post ()
-    
+
     def _get_result_mimetype(self, args):
         """Return result mimetype (either XML or plain text."""
         try:
@@ -95,6 +96,6 @@ class StationResource(general_request.GeneralResource):
         except KeyError:
             return settings.STATION_MIMETYPE_XML
 
-    # _get_result_mimetype () 
-            
+    # _get_result_mimetype ()
+
 # class StationResource

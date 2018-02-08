@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -32,7 +32,7 @@ Federator response combination facilities
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from builtins import *
+from builtins import * # noqa
 
 import codecs
 import datetime
@@ -63,7 +63,6 @@ class Combiner(object):
 
     MIMETYPE = None
     LOGGER = 'flask.app.federator.combiner'
-
 
     def __init__(self, path_pipe):
         self.logger = logging.getLogger(self.LOGGER)
@@ -126,7 +125,6 @@ class Combiner(object):
             finally:
                 return None
         return None
-
 
     @property
     def mimetype(self):
@@ -231,22 +229,21 @@ class MseedCombiner(Combiner):
                 # size to read following blockettes. This
                 # can still fail if blockette 1000 is after
                 # position 256
-                remaining_header_size = \
-                    self.MINIMUM_RECORD_LENGTH - \
-                        self.FIXED_DATA_HEADER_SIZE
+                remaining_header_size = (self.MINIMUM_RECORD_LENGTH -
+                                         self.FIXED_DATA_HEADER_SIZE)
 
             else:
                 # Full header size cannot be smaller than
                 # fixed header size. This is an error.
                 self.logger.warning("record %s: data offset smaller than "\
-                    "fixed header length: %s, bailing "\
-                    "out" % (record_idx, data_offset))
+                                    "fixed header length: %s, bailing "\
+                                    "out" % (record_idx, data_offset))
                 break
 
             buf = ifd.read(remaining_header_size)
             if not buf:
                 self.logger.warning("remaining header corrupt in record "\
-                    "%s" % record_idx)
+                                    "%s" % record_idx)
                 break
 
             record += buf
@@ -277,8 +274,9 @@ class MseedCombiner(Combiner):
                 elif next_blockette_start == 0:
                     # no blockettes follow
                     self.logger.debug("record %s: no blockettes follow "\
-                        "after blockette %s at pos %s" % (
-                            record_idx, blockette_id, blockette_start))
+                                      "after blockette %s at pos %s" %
+                                      (record_idx, blockette_id,
+                                       blockette_start))
                     break
 
                 else:
@@ -287,7 +285,7 @@ class MseedCombiner(Combiner):
             # blockette 1000 not found
             if not b1000_found:
                 self.logger.debug("record %s: blockette 1000 not found,"\
-                    " stop reading" % record_idx)
+                                  " stop reading" % record_idx)
                 break
 
             # get record size (1 byte, unsigned char)
@@ -295,7 +293,7 @@ class MseedCombiner(Combiner):
             record_size_exponent, = struct.unpack(
                 b'!B',
                 buf[record_size_exponent_idx:\
-                record_size_exponent_idx+1])
+                    record_size_exponent_idx+1])
 
             remaining_record_size = \
                 2**record_size_exponent - curr_size
@@ -304,7 +302,7 @@ class MseedCombiner(Combiner):
             buf = ifd.read(remaining_record_size)
             if not buf:
                 self.logger.warning("cannot read data section of record "\
-                    "%s" % record_idx)
+                                    "%s" % record_idx)
                 break
 
             record += buf
@@ -491,8 +489,8 @@ class StationXMLCombiner(Combiner):
                 continue
 
             # station coords: check lat-lon box, remove stations outside
-            if self.__geometry_par_type is not None and \
-                el.tag == settings.STATIONXML_NETWORK_ELEMENT:
+            if (self.__geometry_par_type is not None and
+                    el.tag == settings.STATIONXML_NETWORK_ELEMENT):
 
                 self._remove_stations_outside_box(
                     el, self.__qp, self.__geometry_par_type)

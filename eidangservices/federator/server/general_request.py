@@ -2,21 +2,21 @@
 #
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # -----------------------------------------------------------------------------
@@ -55,12 +55,12 @@ class GeneralResource(Resource):
 
     def __init__(self):
         self.logger = logging.getLogger(self.LOGGER)
-   
+
     # __init__ ()
 
     @property
     def path_tempfile(self):
-        return misc.get_temp_filepath() 
+        return misc.get_temp_filepath()
 
     def _process_request(self, query_params, stream_epochs, mimetype,
                          path_tempfile, post=False):
@@ -76,8 +76,8 @@ class GeneralResource(Resource):
         :return: The combined response (read from the temporary file)
         """
         postdata = None
-        se_schema = eidangws.utils.schema.StreamEpochSchema(many=True,
-                                                 context={'request': request})
+        se_schema = eidangws.utils.schema.StreamEpochSchema(
+            many=True, context={'request': request})
         stream_epochs = se_schema.dump(stream_epochs).data
         self.logger.debug('StreamEpochs (serialized): %s' % stream_epochs)
 
@@ -96,27 +96,28 @@ class GeneralResource(Resource):
             "Processing request: query_params={0}, path_tempfile={1}, "
             "post={2}, timeout={3}, retries={4}, "
             "retry_wait={5}, retry_lock={6}, threads={7}").format(
-                    query_params,
-                    path_tempfile,
-                    bool(postdata), current_app.config['ROUTING_TIMEOUT'], 
-                    current_app.config['ROUTING_RETRIES'],
-                    current_app.config['ROUTING_RETRY_WAIT'], 
-                    current_app.config['ROUTING_RETRY_LOCK'], 
-                    current_app.config['NUM_THREADS']))
+                query_params,
+                path_tempfile,
+                bool(postdata), current_app.config['ROUTING_TIMEOUT'],
+                current_app.config['ROUTING_RETRIES'],
+                current_app.config['ROUTING_RETRY_WAIT'],
+                current_app.config['ROUTING_RETRY_LOCK'],
+                current_app.config['NUM_THREADS']))
 
-        resource_path = process_request(query_params,
-                path_tempfile=path_tempfile,
-                postdata=postdata,
-                timeout=current_app.config['ROUTING_TIMEOUT'],
-                retries=current_app.config['ROUTING_RETRIES'],
-                retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
-                retry_lock=current_app.config['ROUTING_RETRY_LOCK'],
-                threads=current_app.config['NUM_THREADS'])
+        resource_path = process_request(
+            query_params,
+            path_tempfile=path_tempfile,
+            postdata=postdata,
+            timeout=current_app.config['ROUTING_TIMEOUT'],
+            retries=current_app.config['ROUTING_RETRIES'],
+            retry_wait=current_app.config['ROUTING_RETRY_WAIT'],
+            retry_lock=current_app.config['ROUTING_RETRY_LOCK'],
+            threads=current_app.config['NUM_THREADS'])
 
         if resource_path is None or os.path.getsize(resource_path) == 0:
             # TODO(fab): get user-supplied error code
             raise httperrors.NoDataError()
-            
+
         else:
             # return contents of temp file
             try:
@@ -131,17 +132,18 @@ class GeneralResource(Resource):
 # class GeneralResource
 
 # -----------------------------------------------------------------------------
-def process_request(query_params, 
+def process_request(
+        query_params,
         path_tempfile=None,
         postdata=None,
         timeout=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
         retries=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
-        retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT, 
+        retry_wait=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
         retry_lock=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
         threads=settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS):
     """
     Route a *new* request.
-   
+
     Routing is delegated to the :py:class:`route.WebserviceRouter`.
 
     :param dict query_params: The requests query arguments
@@ -164,26 +166,27 @@ def process_request(query_params,
         cred = {}
         authdata = None
 
-        url = route.RoutingURL(urlparse.urlparse(get_routing_url(
-                    current_app.config['ROUTING_SERVICE'])),
-                query_params)
+        url = route.RoutingURL(
+            urlparse.urlparse(
+                get_routing_url(current_app.config['ROUTING_SERVICE'])),
+            query_params)
         dest = open(path_tempfile, 'wb')
 
         router = route.WebserviceRouter(
-                    url,
-                    query_params=query_params,
-                    postdata=postdata,
-                    dest=dest,
-                    timeout=timeout,
-                    num_retries=retries,
-                    retry_wait=retry_wait,
-                    retry_lock=retry_lock,
-                    max_threads=threads)
+            url,
+            query_params=query_params,
+            postdata=postdata,
+            dest=dest,
+            timeout=timeout,
+            num_retries=retries,
+            retry_wait=retry_wait,
+            retry_lock=retry_lock,
+            max_threads=threads)
         router()
 
     except Exception:
         return None
-    
+
     # get contents of temp file
     if os.path.isfile(path_tempfile):
         return path_tempfile
@@ -196,7 +199,7 @@ def process_request(query_params,
 def get_routing_url(routing_service):
     """
     Utility function. Get routing URL for routing service abbreviation.
-   
+
     :param str routing_service: Routing service identifier
     :return: URL of the EIDA routing service
     :rtype: str
@@ -204,14 +207,14 @@ def get_routing_url(routing_service):
     In case an unknown identifier was passed the URL of a default EIDA routing
     service is returned.
     """
-    
+
     try:
         server = settings.EIDA_NODES[routing_service]['services']['eida']\
             ['routing']['server']
     except KeyError:
         server = settings.EIDA_NODES[settings.DEFAULT_ROUTING_SERVICE]\
             ['services']['eida']['routing']['server']
-        
+
     return "%s%s" % (server, settings.EIDA_ROUTING_PATH)
 
 # get_routing_url ()

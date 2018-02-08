@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -31,39 +31,34 @@ Federator schema definitions
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
-import datetime
 import functools
 
-from marshmallow import (Schema, SchemaOpts, fields, validate,
-    ValidationError, post_load, post_dump, validates_schema)
+from marshmallow import (Schema, SchemaOpts, fields, validate, ValidationError,
+                         post_load, validates_schema)
 
 from eidangservices import settings
 from eidangservices.utils.schema import (Percentage, NotEmptyString,
                                          NotEmptyInt, NotEmptyFloat,
-                                         FDSNWSDateTime, Degree,
-                                         Latitude, Longitude, Radius,
-                                         FDSNWSBool)
+                                         FDSNWSDateTime, Latitude, Longitude,
+                                         Radius, FDSNWSBool)
 
 # TODO(damb): Improve error messages.
 # TODO(damb): Improve 'format' field implementation.
 
 NoData = functools.partial(
-        fields.Int,
-        as_string=True,
-        # TODO(damb): RESIF does not accept the nodata parameter for
-        # service=dataselect
-        #missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
-        validate=validate.OneOf([
-            settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
-            404
-        ])
-    )
-Quality = functools.partial(
-        fields.Str,
-        validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B'])
-    )
+    fields.Int,
+    as_string=True,
+    # TODO(damb): RESIF does not accept the nodata parameter for
+    # service=dataselect
+    # missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+    validate=validate.OneOf([
+        settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+        404
+    ]))
+Quality = functools.partial(fields.Str,
+                            validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B']))
 
 # -----------------------------------------------------------------------------
 class ServiceOpts(SchemaOpts):
@@ -106,24 +101,22 @@ class DataselectSchema(ServiceSchema):
     `<http://www.orfeus-eu.org/data/eida/webservices/dataselect/>`_.
     """
     format = fields.Str(
-            missing='miniseed',
-            validate=validate.OneOf(['miniseed'])
-        )
+        missing='miniseed',
+        validate=validate.OneOf(['miniseed']))
     nodata = NoData()
 
-    quality = Quality()#missing='B')
+    quality = Quality()  # missing='B')
     minimumlength = fields.Float(
-            missing=0.,
-            as_string=True,
-            validate=lambda n: 0. <= n
-        )
+        missing=0.,
+        as_string=True,
+        validate=lambda n: 0. <= n)
     longestonly = FDSNWSBool(missing='false')
 
     class Meta:
         service = 'dataselect'
         strict = True
 
-# class DataselectSchema 
+# class DataselectSchema
 
 
 class StationSchema(ServiceSchema):
@@ -133,11 +126,10 @@ class StationSchema(ServiceSchema):
     The parameters defined correspond to the definition
     `<http://www.orfeus-eu.org/data/eida/webservices/station/>`_.
     """
-    
+
     format = fields.Str(
-            missing='xml',
-            validate=validate.OneOf(['xml', 'text'])
-        )
+        missing='xml',
+        validate=validate.OneOf(['xml', 'text']))
     nodata = NoData()
 
     # temporal options
@@ -160,22 +152,19 @@ class StationSchema(ServiceSchema):
 
     # request options
     level = fields.Str(
-            missing='station',
-            validate=validate.OneOf(
-                ['network', 'station', 'channel', 'response']
-            )
-        )
+        missing='station',
+        validate=validate.OneOf(
+            ['network', 'station', 'channel', 'response']))
     includerestricted = FDSNWSBool(missing='true')
     includeavailability = FDSNWSBool(missing='false')
     updateafter = FDSNWSDateTime(format='fdsnws')
     matchtimeseries = FDSNWSBool(missing='false')
 
-
     @validates_schema
     def validate_spatial_params(self, data):
         # NOTE(damb): Allow either rectangular or circular spatial parameters
         rectangular_spatial = ('minlatitude', 'maxlatitude', 'minlongitude',
-                'maxlongitude')
+                               'maxlongitude')
         circular_spatial = ('latitude', 'longitude', 'minradius', 'maxradius')
 
         if (any(k in data for k in rectangular_spatial) and
@@ -190,7 +179,7 @@ class StationSchema(ServiceSchema):
         service = 'station'
         strict = True
 
-# class StationSchema 
+# class StationSchema
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -205,9 +194,8 @@ class WFCatalogSchema(ServiceSchema):
 
     csegments = FDSNWSBool(missing='false')
     format = fields.Str(
-            missing='json',
-            validate=validate.OneOf(['json'])
-        )
+        missing='json',
+        validate=validate.OneOf(['json']))
     granularity = fields.Str(missing='day')
     include = fields.Str(
         missing='default',
@@ -215,7 +203,7 @@ class WFCatalogSchema(ServiceSchema):
     )
     longestonly = FDSNWSBool(missing='false')
     # TODO(damb): check with a current WFCatalog webservice
-    #minimumlength = fields.Float(missing=0.)
+    # minimumlength = fields.Float(missing=0.)
     minimumlength = NotEmptyFloat()
 
     # record options
@@ -223,7 +211,7 @@ class WFCatalogSchema(ServiceSchema):
     num_records = NotEmptyInt()
     quality = Quality()
     record_length = NotEmptyInt()
-    #sample_rate = NotEmptyFloat()
+    # sample_rate = NotEmptyFloat()
     sample_rate = fields.Float(as_string=True)
 
     # sample metric options (including metric filtering)
@@ -516,7 +504,7 @@ class WFCatalogSchema(ServiceSchema):
     time_correction_applied_le = Percentage()
     time_correction_applied_ne = Percentage()
 
-    # timing quality options (including metric filtering) 
+    # timing quality options (including metric filtering)
     timing_correction = Percentage()
     timing_correction_eq = Percentage()
     timing_correction_gt = Percentage()
@@ -572,7 +560,6 @@ class WFCatalogSchema(ServiceSchema):
     timing_quality_upper_quartile_lt = NotEmptyFloat()
     timing_quality_upper_quartile_le = NotEmptyFloat()
     timing_quality_upper_quartile_ne = NotEmptyFloat()
-
 
     class Meta:
         service = 'wfcatalog'

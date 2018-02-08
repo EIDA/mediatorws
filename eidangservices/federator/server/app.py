@@ -3,21 +3,21 @@
 #
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # -----------------------------------------------------------------------------
@@ -33,7 +33,7 @@ from __future__ import print_function
 import argparse
 import logging
 import logging.config
-import logging.handlers # needed for handlers defined in logging.conf
+import logging.handlers  # needed for handlers defined in logging.conf
 import os
 import sys
 import tempfile
@@ -141,7 +141,8 @@ def build_parser(parents=[]):
                         "federator instances (default: %(default)s)")
     parser.add_argument("-n", "--threads", type=int,
                         default=\
-                        settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
+                        settings.
+                        EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,
                         help="maximum number of download threads " +
                         "(default: %(default)s)")
     parser.add_argument('--tmpdir', type=str, default='',
@@ -176,7 +177,8 @@ def setup_app(args):
 
     api = Api(errors=errors)
 
-    ## station service endpoint
+    # station service endpoint
+    # ----
 
     # query method
     api.add_resource(StationResource, "%s%s" %
@@ -193,7 +195,8 @@ def setup_app(args):
                      (settings.FDSN_STATION_PATH,
                       settings.FDSN_WADL_METHOD_TOKEN))
 
-    ## dataselect service endpoint
+    # dataselect service endpoint
+    # ----
 
     # query method
     api.add_resource(DataselectResource, "%s%s" %
@@ -212,7 +215,8 @@ def setup_app(args):
                      (settings.FDSN_DATASELECT_PATH,
                       settings.FDSN_WADL_METHOD_TOKEN))
 
-    ## wfcatalog service endpoint
+    # wfcatalog service endpoint
+    # ----
 
     api.add_resource(WFCatalogResource, "%s%s" %
                      (settings.FDSN_WFCATALOG_PATH,
@@ -227,7 +231,6 @@ def setup_app(args):
     api.add_resource(WFCatalogWadlResource, "%s%s" %
                      (settings.FDSN_WFCATALOG_PATH,
                       settings.FDSN_WADL_METHOD_TOKEN))
-
 
     api.init_app(app)
 
@@ -253,7 +256,7 @@ def main():
     global logger_configured
 
     c_parser = argparse.ArgumentParser(formatter_class=\
-                                        argparse.RawDescriptionHelpFormatter,
+                                       argparse.RawDescriptionHelpFormatter,
                                        add_help=False)
 
     c_parser.add_argument("-c", "--config",
@@ -272,7 +275,7 @@ def main():
     try:
         defaults = dict(config_parser.items(
             settings.EIDA_FEDERATOR_CONFIG_SECTION))
-    except:
+    except Exception:
         pass
 
     parser = build_parser(parents=[c_parser])
@@ -324,14 +327,15 @@ def main():
         app.run(threaded=True, debug=True, port=args.port)
     else:
         try:
-            from mod_wsgi import version
+            from mod_wsgi import version # noqa
             if logger_configured:
                 logger.info('Serving with mod_wsgi.')
-        except:
+        except Exception:
             pass
         return app
 
 # main ()
+
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":

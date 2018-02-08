@@ -2,21 +2,21 @@
 #
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # -----------------------------------------------------------------------------
@@ -25,7 +25,6 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-import datetime
 import logging
 
 from flask import request
@@ -40,7 +39,6 @@ from eidangservices.federator.server import general_request, schema
 class DataselectResource(general_request.GeneralResource):
     """
     Handler for dataselect service route.
-    
     """
     LOGGER = 'flask.app.federator.dataselect_resource'
 
@@ -50,7 +48,8 @@ class DataselectResource(general_request.GeneralResource):
 
     @use_args(schema.DataselectSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('query',)
     )
     def get(self, args, stream_epochs):
@@ -69,10 +68,10 @@ class DataselectResource(general_request.GeneralResource):
 
     # get ()
 
-        
     @utils.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('form',)
     )
     def post(self, args, stream_epochs):

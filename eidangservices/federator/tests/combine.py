@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -31,7 +31,7 @@ Federator combiner test facilities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import io
 import json
@@ -66,22 +66,22 @@ class CombinerTestCase(unittest.TestCase):
 
 
 class StationTextCombinerTestCase(unittest.TestCase):
-    HEADER_SNIPPED = \
-    "#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime"
-    FIRST_SNIPPED = \
-    "NL|HGN|50.764|5.9317|135.0|HEIMANSGROEVE, NETHERLANDS|2001-06-06T00:00:00|"
-    SECOND_SNIPPED = \
-    "II|BFO|48.3319|8.3311|589.0|Black Forest Observatory, Schiltach, Germany|1996-05-29T00:00:00|"
+    HEADER_SNIPPED = ("#Network|Station|Latitude|Longitude|"
+                      "Elevation|SiteName|StartTime|EndTime")
+    FIRST_SNIPPED = ("NL|HGN|50.764|5.9317|135.0|HEIMANSGROEVE, "
+                     "NETHERLANDS|2001-06-06T00:00:00|")
+    SECOND_SNIPPED = ("II|BFO|48.3319|8.3311|589.0|Black Forest Observatory, "
+                      "Schiltach, Germany|1996-05-29T00:00:00|")
 
     def setUp(self):
         self.ofd = io.BytesIO()
 
     def tearDown(self):
         self.ofd.close()
-        
+
     def test_single_snipped(self):
         c = combine.StationTextCombiner()
-        snip = self.HEADER_SNIPPED+'\n'+self.FIRST_SNIPPED 
+        snip = self.HEADER_SNIPPED+'\n'+self.FIRST_SNIPPED
         ifd = io.StringIO(snip)
         c.combine(ifd)
         c.dump(self.ofd)
@@ -96,27 +96,29 @@ class StationTextCombinerTestCase(unittest.TestCase):
         c.combine(ifd)
         ifd.close()
         c.dump(self.ofd)
-        self.assertEqual(self.HEADER_SNIPPED+'\n'
-                +self.FIRST_SNIPPED+'\n'
-                +self.SECOND_SNIPPED, 
-                self.ofd.getvalue().decode("utf-8"))
-         
+        self.assertEqual(self.HEADER_SNIPPED+'\n'+
+                         self.FIRST_SNIPPED+'\n'+
+                         self.SECOND_SNIPPED,
+                         self.ofd.getvalue().decode("utf-8"))
+
 # class StationTextCombinerTestCase
 
 
 class WFCatalogJSONCombinerTestCase(unittest.TestCase):
 
-    PATH_FIRST_SNIPPED = os.path.join(PATH_TESTDATA, 
-            "ODC-WFCATALOG-2017-11-15T15_27_08.164Z.json")
-    PATH_SECOND_SNIPPED = os.path.join(PATH_TESTDATA, 
-            "ODC-WFCATALOG-2017-11-15T15_49_00.633Z.json")
+    PATH_FIRST_SNIPPED = os.path.join(
+        PATH_TESTDATA,
+        "ODC-WFCATALOG-2017-11-15T15_27_08.164Z.json")
+    PATH_SECOND_SNIPPED = os.path.join(
+        PATH_TESTDATA,
+        "ODC-WFCATALOG-2017-11-15T15_49_00.633Z.json")
 
     def setUp(self):
         self.ofd = io.BytesIO()
 
     def tearDown(self):
         self.ofd.close()
-        
+
     def test_single_snipped(self):
         c = combine.WFCatalogJSONCombiner()
         snip = ''
@@ -157,7 +159,7 @@ class MseedCombinerTestCase(unittest.TestCase):
     # TODO(damb)
     pass
 
-# class MseedCombinerTestCase 
+# class MseedCombinerTestCase
 
 
 class StationXMLCombinerTestCase(unittest.TestCase):
@@ -165,6 +167,7 @@ class StationXMLCombinerTestCase(unittest.TestCase):
     pass
 
 # class StationXMLCombinerTestCase
+
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':

@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -31,7 +31,7 @@ Federator CLI tests.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import os
 import tempfile
@@ -66,14 +66,15 @@ class CLITestCase(unittest.TestCase):
     def test_port(self):
         # test default argument
         args = self.parser.parse_args([])
-        self.assertEqual(args.port, settings.EIDA_FEDERATOR_DEFAULT_SERVER_PORT)
+        self.assertEqual(args.port,
+                         settings.EIDA_FEDERATOR_DEFAULT_SERVER_PORT)
         args = self.parser.parse_args(['-p', '5001'])
         self.assertEqual(args.port, 5001)
         args = self.parser.parse_args(['--port', '5001'])
         self.assertEqual(args.port, 5001)
 
     # test_port ()
-    
+
     @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_routing(self):
         args = self.parser.parse_args([])
@@ -92,19 +93,19 @@ class CLITestCase(unittest.TestCase):
 
     def test_retries(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.retries, 
-                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES)
+        self.assertEqual(args.retries,
+                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES)
         args = self.parser.parse_args(['-r', '12'])
         self.assertEqual(args.retries, 12)
         args = self.parser.parse_args(['--retries', '12'])
         self.assertEqual(args.retries, 12)
 
     # test_retries ()
-        
+
     def test_retry_wait(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.retry_wait, 
-                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT)
+        self.assertEqual(args.retry_wait,
+                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT)
         args = self.parser.parse_args(['-w', '30'])
         self.assertEqual(args.retry_wait, 30)
         args = self.parser.parse_args(['--retry-wait', '30'])
@@ -114,8 +115,8 @@ class CLITestCase(unittest.TestCase):
 
     def test_retry_lock(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.retry_lock, 
-                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK)
+        self.assertEqual(args.retry_lock,
+                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK)
         args = self.parser.parse_args(['-L'])
         self.assertEqual(args.retry_lock, True)
         args = self.parser.parse_args(['--retry-lock'])
@@ -125,13 +126,14 @@ class CLITestCase(unittest.TestCase):
 
     def test_num_threads(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.threads,
-                settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS)
+        self.assertEqual(
+            args.threads,
+            settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS)
         args = self.parser.parse_args(['-n', '2'])
         self.assertEqual(args.threads, 2)
         args = self.parser.parse_args(['--threads', '2'])
         self.assertEqual(args.threads, 2)
-    
+
     # test_num_threads ()
 
     def test_tempdir(self):
@@ -141,7 +143,7 @@ class CLITestCase(unittest.TestCase):
         self.assertEqual(args.tmpdir, '')
         args = self.parser.parse_args(['--tmpdir', '/path/to/dir'])
         self.assertEqual(args.tmpdir, '/path/to/dir')
-    
+
         os.rmdir(path_tempdir)
 
     # test_tempdir ()
@@ -162,7 +164,8 @@ class CLITestCase(unittest.TestCase):
 
     # test_logging_conf
 
-# class CLITestCase 
+# class CLITestCase
+
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':

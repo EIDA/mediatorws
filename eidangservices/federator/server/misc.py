@@ -2,21 +2,21 @@
 #
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # -----------------------------------------------------------------------------
@@ -28,7 +28,7 @@ This file is part of the EIDA mediator/federator webservices.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import hashlib
 import os
@@ -46,8 +46,8 @@ class URLConnectionLock(fasteners.InterProcessLock):
     A :py:class:`fasteners.InterProcessLock` wrapper encoding the URL passed by
     means of an hash within the lockfile's filename.
     """
-    def __init__(self, url, path_lockdir=settings.PATH_LOCKDIR, 
-            sleep_func=time.sleep, logger=None):
+    def __init__(self, url, path_lockdir=settings.PATH_LOCKDIR,
+                 sleep_func=time.sleep, logger=None):
         """
         :param str url: url to be encoded within the lockfile's filename
         :param str path_lockdir: lockfile directory path
@@ -65,7 +65,7 @@ class URLConnectionLock(fasteners.InterProcessLock):
 # -----------------------------------------------------------------------------
 def get_temp_filepath():
     """Return path of temporary file."""
-    
+
     return os.path.join(
         tempfile.gettempdir(), next(tempfile._get_candidate_names()))
 

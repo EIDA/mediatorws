@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 # REVISION AND CHANGES
@@ -31,7 +31,7 @@ Federator routing test facilities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import functools
 import io
@@ -39,11 +39,8 @@ import logging
 import sys
 import time
 import unittest
-#import warnings
 
 import multiprocessing as mp
-
-from queue import Empty
 
 from eidangservices import settings
 from eidangservices.federator.server import combine, misc, route
@@ -69,10 +66,11 @@ def _acquire_lock(url, lock_for=1):
     :param lock_for: time in seconds the lock is acquired for
     """
     url_to_lock = urllib.parse.urlsplit(url).geturl()
-    url_lock = misc.URLConnectionLock(url_to_lock,
-            path_lockdir=settings.PATH_LOCKDIR)
+    url_lock = misc.URLConnectionLock(
+        url_to_lock,
+        path_lockdir=settings.PATH_LOCKDIR)
 
-    gotten = url_lock.acquire(blocking=False)  
+    gotten = url_lock.acquire(blocking=False)
     time.sleep(lock_for)
     if gotten:
         url_lock.release()
@@ -85,8 +83,8 @@ def _connect(func, queue):
     :param :py:class:`multiprocessing.Queue` queue: queue exceptions will be
     stored for child exceptions
     """
-    try: 
-        func()  
+    try:
+        func()
     except Exception as e:
         queue.put(e)
 
@@ -115,7 +113,7 @@ class ConnectionTestCase(unittest.TestCase):
     def test_status_code_200(self, mock_urlopen):
         mock_urlopen.return_value.getcode.return_value = 200
         fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-            self.num_retries, self.retry_wait, False) 
+                           self.num_retries, self.retry_wait, False)
         self.assertEqual(fd.getcode(), 200)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
@@ -125,7 +123,7 @@ class ConnectionTestCase(unittest.TestCase):
     def test_status_code_204(self, mock_urlopen):
         mock_urlopen.return_value.getcode.return_value = 204
         fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-            self.num_retries, self.retry_wait, False) 
+                           self.num_retries, self.retry_wait, False)
         self.assertEqual(fd.getcode(), 204)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
@@ -135,7 +133,7 @@ class ConnectionTestCase(unittest.TestCase):
     def test_status_code_ok(self, mock_urlopen):
         mock_urlopen.return_value.getcode.return_value = 305
         fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-            self.num_retries, self.retry_wait, False) 
+                           self.num_retries, self.retry_wait, False)
         self.assertEqual(fd.getcode(), 305)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
@@ -145,16 +143,17 @@ class ConnectionTestCase(unittest.TestCase):
     def test_ok_retrying_but_locked(self, mock_urlopen):
         mock_urlopen.return_value.getcode.return_value = 305
         # TODO(damb): Python 3.5: ResourceWarning is raised even though the
-        #warnings.simplefilter("ignore", ResourceWarning)
+        # warnings.simplefilter("ignore", ResourceWarning)
         connect = functools.partial(route.connect, mock_urlopen, self.url,
-                None, self.timeout, self.num_retries, self.retry_wait, True)
-        
+                                    None, self.timeout, self.num_retries,
+                                    self.retry_wait, True)
+
         error_queue = mp.Queue()
 
         locking_process = mp.Process(target=_acquire_lock, args=(self.url,))
         connecting_process = mp.Process(target=_connect,
-                args=(connect, error_queue))
-        
+                                        args=(connect, error_queue))
+
         locking_process.start()
         connecting_process.start()
 
@@ -171,11 +170,11 @@ class ConnectionTestCase(unittest.TestCase):
     def test_http_error_4xx(self, mock_urlopen):
         status_code = 400
         mock_urlopen.return_value.getcode.return_value = status_code
-        mock_urlopen.side_effect=urllib.request.HTTPError(self.url, status_code,
-                'Mock-HTTPError', {}, None)
+        mock_urlopen.side_effect=urllib.request.HTTPError(
+            self.url, status_code, 'Mock-HTTPError', {}, None)
         with self.assertRaises(urllib.request.HTTPError) as e:
             fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-                self.num_retries, self.retry_wait, False)
+                               self.num_retries, self.retry_wait, False)
         self.assertEqual(e.exception.code, status_code)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
@@ -186,12 +185,12 @@ class ConnectionTestCase(unittest.TestCase):
         status_code = 500
         mock_urlopen.return_value.getcode.return_value = status_code
         fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-            self.num_retries, self.retry_wait, False)
+                           self.num_retries, self.retry_wait, False)
         self.assertEqual(fd.getcode(), status_code)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
     # test_http_error_5xx ()
-    
+
     @mock.patch('urllib.request.urlopen')
     def test_url_error(self, mock_urlopen):
         status_code = 400
@@ -199,7 +198,7 @@ class ConnectionTestCase(unittest.TestCase):
         mock_urlopen.side_effect=urllib.request.URLError('Mock-URLError')
         with self.assertRaises(urllib.request.URLError) as e:
             fd = route.connect(mock_urlopen, self.url, None, self.timeout,
-                self.num_retries, self.retry_wait, False)
+                               self.num_retries, self.retry_wait, False)
         mock_urlopen.assert_called_with(self.url, None, self.timeout)
 
     # test_url_error ()
@@ -231,12 +230,11 @@ class DownloadTaskTestCase(unittest.TestCase):
         self.retry_wait = None
         self.logger = None
 
-
     # XXX(damb): Test fails under Python2 since federator.server.route does not
     # use future yet. The test will be executed as soon as federator uses
     # requests instead of urllib
     @unittest.skipIf(sys.version_info < (3, 4),
-            'federator.server.route does not use future yet')
+                     'federator.server.route does not use future yet')
     @mock.patch('eidangservices.federator.server.route.connect')
     def test_splitting(self, mock_connect):
 
@@ -244,13 +242,13 @@ class DownloadTaskTestCase(unittest.TestCase):
             """
             Utility urllib HTTP reponse object.
             """
-        
+
             def getcode(self):
                 return 200
 
             def info(self):
                 return {'Content-Type': settings.MIMETYPE_TEXT}
-        
+
         # class HTTPResponseOK
 
         reference_result = (
@@ -260,7 +258,6 @@ class DownloadTaskTestCase(unittest.TestCase):
             '2000-06-16T00:00:00|\n'
             'CH|DAVOX|46.7805|9.87952|1830.0|Davos, Dischmatal, GR|'
             '2002-07-24T00:00:00|')
-
 
         download = route.DownloadTask(
             self.url,
@@ -288,10 +285,11 @@ class DownloadTaskTestCase(unittest.TestCase):
         self.assertEqual(ofd.getvalue().decode('utf-8'), reference_result)
         # TODO(damb): check mock calls; will be implemented as soon as we are
         # using the requests library
-        #print(mock_connect.mock_calls)
+        # print(mock_connect.mock_calls)
 
 
 # class DownloadTaskTestCase
+
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':

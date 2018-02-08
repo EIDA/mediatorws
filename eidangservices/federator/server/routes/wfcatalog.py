@@ -4,21 +4,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-federator).
-# 
+#
 # eida-federator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-federator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -28,7 +28,7 @@
 """
 This file is part of the EIDA mediator/federator webservices.
 """
-import datetime 
+import datetime
 import logging
 
 from flask import request
@@ -55,7 +55,8 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @use_args(schema.WFCatalogSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('query',)
     )
     def get(self, wfcatalog_args, stream_epochs):
@@ -65,11 +66,11 @@ class WFCatalogResource(general_request.GeneralResource):
         # request.method == 'GET'
 
         # sanity check - starttime and endtime must be specified
-        if not stream_epochs or stream_epochs[0].starttime is None or stream_epochs[0].endtime is None:
+        if (not stream_epochs or stream_epochs[0].starttime is None or
+                stream_epochs[0].endtime is None):
             raise httperrors.BadRequestError(
-                    settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
-                    datetime.datetime.utcnow()
-            )
+                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
+                datetime.datetime.utcnow())
 
         self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 
@@ -88,7 +89,8 @@ class WFCatalogResource(general_request.GeneralResource):
 
     @utils.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('form',)
     )
     def post(self, wfcatalog_args, stream_epochs):
