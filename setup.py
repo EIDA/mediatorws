@@ -56,16 +56,16 @@ _entry_points = {
 }
 _includes = ('*')
 _deps = [
-        'fasteners>=0.14.1',
-        'Flask>=0.12.2',
-        'Flask-RESTful>=0.3.6',
-        # TODO(damb): Seems not to work for Python 2.7
-        # 'mock:python_version<"3.3"',
-        'future>=0.16.0',
-        'intervaltree>=2.1',
-        'marshmallow==3.0.0b4',
-        'python-dateutil>=2.6.1',
-        'webargs>=1.8.1', ]
+    'fasteners>=0.14.1',
+    'Flask>=0.12.2',
+    'Flask-RESTful>=0.3.6',
+    # TODO(damb): Seems not to work for Python 2.7
+    # 'mock:python_version<"3.3"',
+    'future>=0.16.0',
+    'intervaltree>=2.1',
+    'marshmallow==3.0.0b4',
+    'python-dateutil>=2.6.1',
+    'webargs>=1.8.1', ]
 
 _test_deps = ['pytest']
 if sys.version_info[:2] < (3, 3):
@@ -98,16 +98,16 @@ if 'federator' == subsys:
                  'eidangservices.utils.tests',
                  '*.federator', 'federator.*', '*.federator.*')
     _deps = [
-            'fasteners>=0.14.1',
-            'Flask>=0.12.2',
-            'Flask-RESTful>=0.3.6',
-            # TODO(damb): Seems not to work for Python 2.7
-            # 'mock:python_version<"3.3"',
-            'future>=0.16.0',
-            'intervaltree>=2.1',
-            'marshmallow==3.0.0b4',
-            'python-dateutil>=2.6.1',
-            'webargs>=1.8.1', ]
+        'fasteners>=0.14.1',
+        'Flask>=0.12.2',
+        'Flask-RESTful>=0.3.6',
+        # TODO(damb): Seems not to work for Python 2.7
+        # 'mock:python_version<"3.3"',
+        'future>=0.16.0',
+        'intervaltree>=2.1',
+        'marshmallow==3.0.0b4',
+        'python-dateutil>=2.6.1',
+        'webargs>=1.8.1', ]
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
@@ -134,16 +134,15 @@ elif 'stationlite' == subsys:
     # NOTE(damb): Currently dependencies for stationlite executables are not
     # resolved.
     _deps = [
-            'Flask>=0.12.2',
-            'Flask-RESTful>=0.3.6',
-            'Flask-SQLAlchemy>=2.3.2',
-            'future>=0.16.0',
-            'intervaltree>=2.1',
-            'marshmallow==3.0.0b4',
-            'python-dateutil>=2.6.1',
-            'requests>=2.18.4',
-            'webargs>=1.8.1',
-            ]
+        'Flask>=0.12.2',
+        'Flask-RESTful>=0.3.6',
+        'Flask-SQLAlchemy>=2.3.2',
+        'future>=0.16.0',
+        'intervaltree>=2.1',
+        'marshmallow==3.0.0b4',
+        'python-dateutil>=2.6.1',
+        'requests>=2.18.4',
+        'webargs>=1.8.1', ]
 
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
 
@@ -191,21 +190,20 @@ setup(
     url="https://github.com/EIDA/mediatorws",
     platforms=['Linux', ],
     classifiers=[
-          "Development Status :: 3 - Alpha",
-          "Framework :: Flask",
-          "Environment :: Web Environment",
-          "Intended Audience :: Science/Research",
-          "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-          "Operating System :: POSIX :: Linux",
-          "Programming Language :: Python :: 2",
-          "Programming Language :: Python :: 2.7",
-          "Programming Language :: Python :: 3",
-          "Programming Language :: Python :: 3.4",
-          "Programming Language :: Python :: 3.5",
-          "Programming Language :: Python :: 3.6",
-          "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
-          "Topic :: Scientific/Engineering",
-    ],
+        "Development Status :: 3 - Alpha",
+        "Framework :: Flask",
+        "Environment :: Web Environment",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
+        "Topic :: Scientific/Engineering", ],
     packages=find_packages(include=_includes),
     include_package_data=True,
     install_requires=_deps,
