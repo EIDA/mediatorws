@@ -107,6 +107,10 @@ doc-clean:
 ls:
 	@echo "SERVICES available: \n$(SERVICES_ALL)"
 
+.PHONY: pep8
+pep8:
+	-tox -e pep8
+
 # install services
 %.install: %.MANIFEST
 	$(MAKE) build-clean
