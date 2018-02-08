@@ -5,21 +5,21 @@
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices (eida-stationlite).
-# 
+#
 # eida-stationlite is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # eida-stationlite is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ----
-# 
+#
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
 #
@@ -36,12 +36,12 @@ This file is part of the EIDA mediator/federator webservices.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import argparse
 import logging
 import logging.config
-import logging.handlers # needed for handlers defined in logging.conf
+import logging.handlers  # needed for handlers defined in logging.conf
 import os
 import sys
 
@@ -51,7 +51,7 @@ from flask_restful import Api
 
 from eidangservices import settings, utils
 
-from eidangservices.stationlite.engine import db
+from eidangservices.stationlite.engine import db # noqa
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
 
@@ -69,7 +69,7 @@ __version__ = utils.get_version("stationlite")
 logger_configured = False
 
 DEFAULT_DBFILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 
+    os.path.dirname(os.path.abspath(__file__)),
     '../example/db/stationlite_2017-10-20.db')
 
 # ----------------------------------------------------------------------------
@@ -92,10 +92,10 @@ def build_parser(parents=[]):
     parser.add_argument('-p', '--port', metavar='PORT', type=int,
                         default=settings.EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
                         help=('server port (only considered when serving '
-                        'locally i.e. with --start-local)'))
-    parser.add_argument('-D', '--db', type=str, default=DEFAULT_DBFILE, 
+                              'locally i.e. with --start-local)'))
+    parser.add_argument('-D', '--db', type=str, default=DEFAULT_DBFILE,
                         help='Database (SQLite) file.')
-    parser.add_argument('--debug', action='store_true', default=False, 
+    parser.add_argument('--debug', action='store_true', default=False,
                         help="Run in debug mode.")
     parser.add_argument('--logging-conf', dest='path_logging_conf',
                         metavar='LOGGING_CONF', type=utils.real_file_path,
@@ -106,7 +106,7 @@ def build_parser(parents=[]):
 # build_parser ()
 
 def register_teardowns(app):
-    
+
     @app.teardown_appcontext
     def close_db(error):
         """Closes the database again at the end of the request."""
@@ -133,25 +133,26 @@ def setup_app(args):
     app = Flask(__name__)
     api = Api(errors=errors)
 
-    ## routing service endpoint
-    
+    # routing service endpoint
+    # ----
+
     # query method
     api.add_resource(
-        StationLiteResource, "%s%s" % (settings.EIDA_STATIONLITE_PATH, 
-            settings.FDSN_QUERY_METHOD_TOKEN))
+        StationLiteResource, "%s%s" %
+        (settings.EIDA_STATIONLITE_PATH, settings.FDSN_QUERY_METHOD_TOKEN))
 
     sqlalchemy_uri = "sqlite:///{}".format(args.db)
-    
+
     app.config.update(
         PORT=args.port,
         DB=args.db,
         SQLALCHEMY_DATABASE_URI=sqlalchemy_uri)
-    
+
     #app.app_context().push()
     api.init_app(app)
-    
+
     register_teardowns(app)
-    
+
     return app
 
 # setup_app ()
@@ -165,10 +166,10 @@ def main():
     #   - implement WSGI compatibility
     #   - check how database handling is coordinated
     global logger_configured
-    
-    c_parser = argparse.ArgumentParser(formatter_class=\
-                                        argparse.RawDescriptionHelpFormatter,
-                                       add_help=False)
+
+    c_parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        add_help=False)
 
     c_parser.add_argument("-c", "--config",
                           dest="config_file",
@@ -176,7 +177,7 @@ def main():
                           metavar="PATH",
                           type=utils.realpath,
                           help=("path to EIDA NG webservices configuration "
-                          "file (default: '%(default)s')"))
+                                "file (default: '%(default)s')"))
 
     args, remaining_argv = c_parser.parse_known_args()
 
@@ -186,7 +187,7 @@ def main():
     try:
         defaults = dict(config_parser.items(
             settings.EIDA_STATIONLITE_CONFIG_SECTION))
-    except:
+    except Exception:
         pass
 
     parser = build_parser(parents=[c_parser])
@@ -240,6 +241,7 @@ def main():
     # TODO(damb): prepare also for mod_wsgi
 
 # main ()
+
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':

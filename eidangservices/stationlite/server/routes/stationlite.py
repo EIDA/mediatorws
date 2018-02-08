@@ -38,7 +38,7 @@ from webargs.flaskparser import use_args
 import eidangservices as eidangws
 from eidangservices import settings, utils
 from eidangservices.utils import httperrors
-from eidangservices.utils.sncl import StreamEpochs, StreamEpochsHandler
+from eidangservices.utils.sncl import StreamEpochsHandler
 
 from eidangservices.stationlite.engine import dbquery
 from eidangservices.stationlite.server import schema
@@ -47,7 +47,7 @@ from eidangservices.stationlite import misc
 
 class StationLiteResource(Resource):
     """Service query for routing."""
-    
+
     LOGGER = 'flask.app.stationlite.stationlite_resource'
 
     def __init__(self):
@@ -58,7 +58,8 @@ class StationLiteResource(Resource):
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('query',)
     )
     def get(self, args, stream_epochs):
@@ -73,12 +74,13 @@ class StationLiteResource(Resource):
             raise httperrors.NoDataError()
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
-        
+
     # get ()
 
     @utils.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(context={'request': request}),
+        eidangws.utils.schema.ManyStreamEpochSchema(
+            context={'request': request}),
         locations=('form',)
     )
     def post(self, args, stream_epochs):
@@ -139,7 +141,7 @@ class StationLiteResource(Resource):
         # convert the result to EIDAWS routing POST format
         response = '\n\n'.join(
             url+'\n'+'\n'.join(str(stream_epoch) for stream_epoch in
-                stream_epochs) for url, stream_epochs in routes)
+                               stream_epochs) for url, stream_epochs in routes)
         if response:
             response += '\n'
 

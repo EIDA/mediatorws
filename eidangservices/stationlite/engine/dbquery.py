@@ -32,19 +32,15 @@ DB query tools for stationlite web service.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import *
+from builtins import * # noqa
 
 import collections
 import datetime
-import dateutil
 import logging
-import os
 
-from sqlalchemy import (
-    MetaData, Table, Column, Integer, Float, String, Unicode, DateTime, 
-    ForeignKey, create_engine, insert, select, update, and_, not_, func)
+from sqlalchemy import select
 
-from eidangservices import settings, utils
+from eidangservices import utils
 from eidangservices.sncl import StreamEpochs, StreamEpochsHandler
 
 logger = logging.getLogger('flask.app.stationlite.dbquery')
@@ -85,19 +81,19 @@ def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
         # NOTE(damb): compare to None for undefined endtime (i.e. device
         # currently operating)
         conj &= ((stream_epoch.starttime < tr.c.endtime) |
-                 (tr.c.endtime == None))
+                 (tr.c.endtime is None))
     if stream_epoch.endtime:
         conj &= (stream_epoch.endtime > tr.c.starttime)
 
     s = select([
-            tn.c.name, ts.c.name, tc.c.locationcode, tc.c.code,
-            tr.c.starttime, tr.c.endtime, te.c.url]).where(conj)
-    
+        tn.c.name, ts.c.name, tc.c.locationcode, tc.c.code,
+        tr.c.starttime, tr.c.endtime, te.c.url]).where(conj)
+
     rp = connection.execute(s).fetchall()
-    
+
     now = datetime.datetime.utcnow()
     routes = collections.defaultdict(StreamEpochsHandler)
-    
+
     for row in rp:
         #print('Query response: %r' % row)
         # NOTE(damb): Set endtime to 'now' if undefined (i.e. device currently
@@ -112,7 +108,6 @@ def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
                                      channel=row[tc.c.code],
                                      epochs=[(row[tr.c.starttime], endtime)])
 
-
         routes[row[te.c.url]].merge([stream_epochs])
 
     return [utils.Route(url=url, streams=streams)
@@ -122,14 +117,14 @@ def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
 
 
 def find_networks(connection, tables):
-    
+
     tn = tables['network']
-    
+
     s = select([tn.c.name])
-    
+
     rp = connection.execute(s)
     r = rp.fetchall()
-    
+
     return [x[0] for x in r]
 
 # ---- END OF <dbquery.py> ----
