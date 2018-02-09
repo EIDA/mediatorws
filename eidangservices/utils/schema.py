@@ -132,7 +132,8 @@ class StreamEpochSchema(Schema): # noqa
     channel = fields.Str(load_from='cha', missing='*',
                          validate=validate_net_sta_cha)
     starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
-    endtime = FDSNWSDateTime(format='fdsnws', load_from='end')
+    endtime = FDSNWSDateTime(format='fdsnws', load_from='end',
+                             allow_none=True)
 
     @post_load
     def make_stream_epoch(self, data):
@@ -181,8 +182,6 @@ class StreamEpochSchema(Schema): # noqa
             if starttime and starttime >= endtime:
                 raise ValidationError(
                         'endtime must be greater than starttime')
-        else:
-            raise ValidationError('missing context')
 
     class Meta:
         strict = True

@@ -41,7 +41,7 @@ import logging
 from sqlalchemy import select
 
 from eidangservices import utils
-from eidangservices.sncl import StreamEpochs, StreamEpochsHandler
+from eidangservices.utils.sncl import StreamEpochs, StreamEpochsHandler
 
 logger = logging.getLogger('flask.app.stationlite.dbquery')
 

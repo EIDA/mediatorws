@@ -28,26 +28,29 @@ EIDA_NODES = {
                 'server': 'http://geofon.gfz-potsdam.de',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://geofon.gfz-potsdam.de',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://geofon.gfz-potsdam.de/eidaws/wfcatalog/"\
                         "alpha/query',
-                    'server': 'http://geofon.gfz-potsdam.de'}
-                }
-            },
+                    'server': 'http://geofon.gfz-potsdam.de',
+                    'uri_path_query': "/eidaws/wfcatalog/alpha/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'CZ',
             'station': 'VRAC',
             'location': '--',
             'channel': 'HH?',
             'startdate': '2012-06-01T00:00:00'}
-        },
-        
+    },
+
     'odc': {
         'name': 'Orfeus Data Center',
         'services': {
@@ -60,25 +63,28 @@ EIDA_NODES = {
                 'server': 'http://www.orfeus-eu.org',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://www.orfeus-eu.org',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://www.orfeus-eu.org/eidaws/wfcatalog/1/query',
-                    'server': 'http://www.orfeus-eu.org'}
-                }
-            },
+                    'server': 'http://www.orfeus-eu.org',
+                    'uri_path_query': "/eidaws/wfcatalog/1/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'NL',
             'station': 'OPLO',
             'location': '01',
             'channel': 'BH?',
             'startdate': '2009-11-01T00:00:00'}
-        },
-        
+    },
+
     'eth': {
         'name': 'Swiss Seismological Service',
         'services': {
@@ -89,25 +95,28 @@ EIDA_NODES = {
                 'server': 'http://eida.ethz.ch',
                 'station': True,
                 'dataselect': True,
-                'event': True}, 
+                'event': True},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://eida.ethz.ch',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': '',
-                    'server': ''}
-                }
-            },
+                    'server': 'http://eida.ethz.ch',
+                    'uri_path_query': '/eidaws/wfcatalog/1/query'}
+            }
+        },
         'testquerysncls': {
             'network': 'CH',
             'station': 'DAVOX',
             'location': '--',
             'channel': 'HH?',
             'startdate': '2002-08-01T00:00:00'}
-        },
-        
+    },
+
     'resif': {
         'name': u'Réseau sismologique & géodésique français',
         'services': {
@@ -118,24 +127,28 @@ EIDA_NODES = {
                 'server': 'http://ws.resif.fr',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': False,
+                    'server': 'http://ws.resif.fr',
+                    'uri_path_config': '/eida_routing.xml',
+                    'uri_path_config_vnet': '/eida_routing.xml',
                     'static_file': 'http://ws.resif.fr/eida_routing.xml'},
                 'wfcatalog': {
                     'url': 'http://ws.resif.fr/eidaws/wfcatalog/1/query',
-                    'server': 'http://ws.resif.fr'}
-                }
-            },
+                    'server': 'http://ws.resif.fr',
+                    'uri_path_query': "/eidaws/wfcatalog/1/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'FR',
             'station': 'SJAF',
             'location': '00',
             'channel': 'HH?',
             'startdate': '2007-02-01T00:00:00'}
-        },
-        
+    },
+
     'ingv': {
         'name': 'Italian Seismic Data Center',
         'services': {
@@ -143,28 +156,31 @@ EIDA_NODES = {
                 'server': 'eida.ingv.it',
                 'port': 18002},
             'fdsn': {
-                'server': 'http://webservices.rm.ingv.it',
+                'server': 'http://webservices.ingv.it',
                 'station': True,
                 'dataselect': True,
-                'event': True}, 
+                'event': True},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': ' http://eida.ingv.it',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://catalog.data.ingv.it/wfcatalog/1/query',
-                    'server': 'http://catalog.data.ingv.it'}
-                }
-            },
+                    'server': 'http://catalog.data.ingv.it',
+                    'uri_path_query': "/wfcatalog/1/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'IV',
             'station': 'BOB',
             'location': '--',
             'channel': 'HHZ',
             'startdate': '2003-08-01T00:00:00'}
-        },
-        
+    },
+
     'bgr': {
         'name': 'BGR Hannover',
         'services': {
@@ -175,25 +191,28 @@ EIDA_NODES = {
                 'server': 'http://eida.bgr.de',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://eida.bgr.de',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://eida.bgr.de/eidaws/wfcatalog/alpha/query',
-                    'server': 'http://eida.bgr.de'}
-                }
-            },
+                    'server': 'http://eida.bgr.de',
+                    'uri_path_query': "/eidaws/wfcatalog/alpha/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'GR',
             'station': 'BFO',
             'location': '--',
             'channel': 'HH?',
             'startdate': '1991-01-01T00:00:00'}
-        },
-        
+    },
+
     'lmu': {
         'name': 'BayernNetz',
         'services': {
@@ -204,26 +223,29 @@ EIDA_NODES = {
                 'server': 'http://erde.geophysik.uni-muenchen.de',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://erde.geophysik.uni-muenchen.de',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://erde.geophysik.uni-muenchen.de/eidaws/"\
                         "wfcatalog/1/query',
-                    'server': 'http://erde.geophysik.uni-muenchen.de'}
-                }
-            },
+                    'server': 'http://erde.geophysik.uni-muenchen.de',
+                    'uri_path_query': "/eidaws/wfcatalog/1/query"}
+            }
+        },
         'testquerysncls': {
             'network': 'BW',
             'station': 'ZUGS',
             'location': '--',
             'channel': 'EHZ',
             'startdate': '2006-03-01T00:00:00'}
-        },
-        
+    },
+
     'ipgp': {
         'name': 'INSTITUT DE PHYSIQUE DU GLOBE DE PARIS Data Center',
         'services': {
@@ -234,25 +256,28 @@ EIDA_NODES = {
                 'server': 'http://eida.ipgp.fr',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://eidaws.ipgp.fr',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': '',
-                    'server': ''}
-                }
-            },
+                    'server': '',
+                    'uri_path_query': ''}
+            }
+        },
         'testquerysncls': {
             'network': 'MQ',
             'station': 'LPM',
             'location': '00',
             'channel': 'HH?',
             'startdate': '2013-05-01T00:00:00'}
-        },
-        
+    },
+
     'niep': {
         'name': 'National Institute for Earth Physics Romania',
         'services': {
@@ -263,25 +288,28 @@ EIDA_NODES = {
                 'server': 'http://eida-sc3.infp.ro',
                 'station': True,
                 'dataselect': True,
-                'event': True}, 
+                'event': True},
             'eida': {
                 'routing': {
-                    'service': False,
-                    'static_file': 'http://eida-routing.infp.ro/eidaws/"\
-                        "routing/1/routing.xml'},
+                    'service': True,
+                    'server': 'http://eida-sc3.infp.ro',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
+                    'static_file': ''},
                 'wfcatalog': {
                     'url': '',
-                    'server': ''}
-                }
-            },
+                    'server': '',
+                    'uri_path_query': ''}
+            }
+        },
         'testquerysncls': {
             'network': 'RO',
             'station': 'MLR',
             'location': '--',
             'channel': 'HH?',
             'startdate': '2001-04-01T00:00:00'}
-        },
-        
+    },
+
     'koeri': {
         'name': 'Bogazici University Kandilli Observatory and ERI',
         'services': {
@@ -292,25 +320,28 @@ EIDA_NODES = {
                 'server': 'http://eida-service.koeri.boun.edu.tr',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'server': 'http://eida.koeri.boun.edu.tr',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': '',
-                    'server': ''}
-                }
-            },
+                    'server': '',
+                    'uri_path_query': ''}
+            }
+        },
         'testquerysncls': {
             'network': 'KO',
             'station': 'ELL',
             'location': '--',
             'channel': 'BH?',
             'startdate': '2006-10-01T00:00:00'}
-        },
-        
+    },
+
     'noa': {
         'name': 'National Observatory of Athens, Institute of Geodynamics',
         'services': {
@@ -321,40 +352,43 @@ EIDA_NODES = {
                 'server': 'http://eida.gein.noa.gr',
                 'station': True,
                 'dataselect': True,
-                'event': False}, 
+                'event': False},
             'eida': {
                 'routing': {
                     'service': True,
                     'server': 'http://eida.gein.noa.gr',
+                    'uri_path_config': '/eidaws/routing/1/localconfig',
+                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': '',
-                    'server': ''}
-                }
-            },
+                    'url': 'http://eida.gein.noa.gr/eidaws/wfcatalog/1/query',
+                    'server': 'http://eida.gein.noa.gr',
+                    'uri_path_query': '/eidaws/wfcatalog/1/query'}
+            }
+        },
         'testquerysncls': {
             'network': 'HL',
             'station': 'IDI',
             'location': '--',
             'channel': 'HH?',
             'startdate': '2011-01-01T00:00:00'}
-        }
     }
+}
 
 
 OTHER_SERVERS = {
     'iris': {
         'name': 'IRIS Data Management Center',
         'services': {
-            
+
             # is there an IRIS arclink server?
             'fdsn': {
                 'server': 'http://service.iris.edu',
                 'station': True,
                 'dataselect': True,
                 'event': True}
-            },
-        
+        },
+
         # HHZ, HH1, HH2 (100 sps) ??
         'testquerysncls': {
             'network': 'IU',
@@ -363,19 +397,19 @@ OTHER_SERVERS = {
             'channel': 'BH?',
             'startdate': '2013-10-01T00:00:00'}
     },
-    
+
     # service.ncedc.org
     'ncedc': {
         'name': 'Northern California Earthquake Data Center',
         'services': {
-            
+
             'fdsn': {
                 'server': 'http://service.ncedc.org',
                 'station': True,
                 'dataselect': True,
                 'event': True}
-            },
-        
+        },
+
         # ????
         'testquerysncls': {
             'network': 'BK',
@@ -384,30 +418,29 @@ OTHER_SERVERS = {
             'channel': 'BH?',
             'startdate': '2010-09-01T00:00:00'}
     },
-    
+
     # scedc.caltech.edu/
     # disabled, because it seems to have strict surge protection, and does not
     # provide POST
     #'scedc': {
-        #'name': 'SCEDC',
-        #'services': {
-            
-            #'fdsn': {
-                #'server': 'http://service.scedc.caltech.edu',
-                #'station': True,
-                #'dataselect': True,
-                #'event': True}
-            #},
-        
-        #'testquerysncls': {
-            #'network': 'CI',
-            #'station': 'CJM',
-            #'location': '--',
-            #'channel': 'HH?',
-            #'startdate': '2011-11-01T00:00:00'}
+    #   'name': 'SCEDC',
+    #   'services': {
+    #
+    #       'fdsn': {
+    #           'server': 'http://service.scedc.caltech.edu',
+    #           'station': True,
+    #           'dataselect': True,
+    #           'event': True}
+    #   },
+    #
+    #   'testquerysncls': {
+    #       'network': 'CI',
+    #       'station': 'CJM',
+    #       'location': '--',
+    #       'channel': 'HH?',
+    #       'startdate': '2011-11-01T00:00:00'}
     #},
 
-        
     # www.moho.iag.usp.br
     'usp': {
         'name': u'Centro de Sismologia da Universidade de São Paulo',
@@ -415,21 +448,21 @@ OTHER_SERVERS = {
             'arclink': {
                 'server': 'seisrequest.iag.usp.br',
                 'port': 18001},
-            
+
             'fdsn': {
                 'server': 'http://seisrequest.iag.usp.br',
                 'station': True,
                 'dataselect': True,
                 'event': False}
-            },
-        
+        },
+
         'testquerysncls': {
             'network': 'BR',
             'station': 'SALV',
             'location': '--',
             'channel': 'HH?',
             'startdate': '2012-06-01T00:00:00'}
-    }   
+    }
 }
 
 
@@ -512,6 +545,8 @@ EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
 EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
 
 # ----
+EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
+# ----
 IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'
 IRIS_FDSNWS_PORT = 80
 
@@ -538,7 +573,7 @@ FDSN_STATION_WADL_FILENAME = 'station.wadl'
 FDSN_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
 
 MIMETYPE_MSEED = 'application/vnd.fdsn.mseed'
-MIMETYPE_TEXT = 'text/plain' 
+MIMETYPE_TEXT = 'text/plain'
 MIMETYPE_JSON = 'application/json'
 MIMETYPE_XML = 'application/xml'
 
@@ -554,10 +589,10 @@ STATION_RESPONSE_TEXT_HEADER = \
     '#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime'
 
 STATIONXML_RESOURCE_METADATA_ELEMENTS = (
-    '{http://www.fdsn.org/xml/station/1}Source', 
+    '{http://www.fdsn.org/xml/station/1}Source',
     '{http://www.fdsn.org/xml/station/1}Created',
-    '{http://www.fdsn.org/xml/station/1}Sender', 
-    '{http://www.fdsn.org/xml/station/1}Module', 
+    '{http://www.fdsn.org/xml/station/1}Sender',
+    '{http://www.fdsn.org/xml/station/1}Module',
     '{http://www.fdsn.org/xml/station/1}ModuleURI')
 STATIONXML_NETWORK_ELEMENT = '{http://www.fdsn.org/xml/station/1}Network'
 STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'

@@ -65,4 +65,13 @@
 #
 # TODO(damb): add configuration parameter description
 #
+
+# ----------------------------------------------------------------------------
+[CONFIG_STATIONLITE_HARVEST]
+# Configuration section for the EIDA StationLite Harvesting. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. 
+#
+# TODO(damb): add configuration parameter description
+
 # ---- END OF <eidangws_config> ----

@@ -33,6 +33,8 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import contextlib
+import datetime
 import functools
 
 from collections import namedtuple
@@ -44,6 +46,31 @@ import eidangservices as eidangws
 Epochs = IntervalTree
 
 # ----------------------------------------------------------------------------
+@contextlib.contextmanager
+def none_as_max(endtime):
+    """
+    Use ``datetime.datetime.max`` instead of ``None``.
+    """
+    # convert endtime to datetime.datetime.max if None
+    end = endtime
+    if end is None:
+        end = datetime.datetime.max
+    yield end
+
+# none_as_max ()
+
+@contextlib.contextmanager
+def max_as_none(endtime):
+    """
+    Convert ``datetime.datetime.max`` to ``None``.
+    """
+    end = endtime
+    if end == datetime.datetime.max:
+        end = None
+    yield end
+
+# max_as_none ()
+
 def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
                             like_escape='/'):
     """
@@ -59,8 +86,8 @@ def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
 
     # NOTE(damb): first escape the *like_single* character, then replace '?'
     return str_old.replace(
-            like_single, like_escape+like_single).replace(
-            '?', like_single).replace('*', like_multiple)
+        like_single, like_escape+like_single).replace(
+        '?', like_single).replace('*', like_multiple)
 
 # fdsnws_to_sql_wildcards ()
 
@@ -92,6 +119,14 @@ class Stream(namedtuple('Stream',
                                station=station,
                                location=location,
                                channel=channel)
+
+    @classmethod
+    def from_route_attrs(cls, **kwargs):
+        return super().__new__(cls,
+                               network=kwargs.get('networkCode', '*'),
+                               station=kwargs.get('stationCode', '*'),
+                               location=kwargs.get('locationCode', '*'),
+                               channel=kwargs.get('streamCode', '*'))
 
     def __eq__(self, other):
         return self.id() == other.id()
@@ -404,7 +439,7 @@ class StreamEpochsHandler(object):
 
     def modify_with_temporal_constraints(self, start=None, end=None):
         """
-        modfiy epochs by performing a real intersection
+        modify epochs by performing a real intersection
         """
         # perform a real intersection i.e.
         # ------..----..--------
@@ -466,7 +501,7 @@ class StreamEpochsHandler(object):
         return iter([StreamEpochs.from_stream(
                     Stream(**self.__stream_id_to_dict(stream_id)),
                     epochs=stream_epochs)
-                    for stream_id, stream_epochs in self.d.items()])
+            for stream_id, stream_epochs in self.d.items()])
 
     def __repr__(self):
         return '<StreamEpochsHandler(streams=%r)>' % list(self)

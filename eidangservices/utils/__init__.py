@@ -81,6 +81,8 @@ class ExitCodes:
 
 
 class CustomParser(argparse.ArgumentParser):
+    # TODO(damb): As soon as eidangservices.utils.app is ready this class is
+    # removed.
 
     def error(self, message):
         sys.stderr.write('USAGE ERROR: %s\n' % message)
@@ -237,6 +239,21 @@ def real_file_path(path):
     return path
 
 # real_file_path ()
+
+
+def real_dir_path(path):
+    """
+    check if directory exists
+    :returns: realpath in case the directory exists
+    :rtype: str
+    :raises argparse.ArgumentTypeError: if directory does not exist
+    """
+    path = realpath(path)
+    if not os.path.isdir(path):
+        raise argparse.ArgumentTypeError
+    return path
+
+# real_dir_path ()
 
 
 def from_fdsnws_datetime(datestring, use_dateutil=True):

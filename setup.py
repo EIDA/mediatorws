@@ -48,14 +48,26 @@ _version = '0.9.1'
 _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
-_entry_points = {
+
+_entry_points_federator = {
     'console_scripts': [
         'eida-federator = eidangservices.federator.server.app:main',
+    ]}
+_entry_points_stationlite = {
+    'console_scripts': [
         'eida-stationlite = eidangservices.stationlite.server.app:main',
-    ]
-}
+        ('eida-stationlite-harvest = '
+         'eidangservices.stationlite.harvest.harvest:main'),
+        ('eida-stationlite-db-init = '
+         'eidangservices.stationlite.harvest.misc:db_init'),
+    ]}
+_entry_points = _entry_points_federator.copy()
+_entry_points['console_scripts'].append(
+    _entry_points_stationlite['console_scripts'])
+
 _includes = ('*')
-_deps = [
+# XXX(damb): Take care for possible dependency conflicts.
+_deps_federator = [
     'fasteners>=0.14.1',
     'Flask>=0.12.2',
     'Flask-RESTful>=0.3.6',
@@ -66,6 +78,20 @@ _deps = [
     'marshmallow==3.0.0b7',
     'python-dateutil>=2.6.1',
     'webargs==2.0.0', ]
+_deps_stationlite = [
+    'Flask>=0.12.2',
+    'Flask-RESTful>=0.3.6',
+    'Flask-SQLAlchemy>=2.3.2',
+    'future>=0.16.0',
+    'intervaltree>=2.1',
+    'marshmallow==3.0.0b7',
+    'python-dateutil>=2.6.1',
+    'SQLAlchemy>=1.2.0',
+    'requests>=2.18.4',
+    'webargs==2.0.0', ]
+_deps = _deps_federator
+_deps.extend(_deps_stationlite)
+_deps = list(set(_deps))
 
 _test_deps = ['pytest']
 if sys.version_info[:2] < (3, 3):
@@ -89,25 +115,11 @@ if 'federator' == subsys:
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
                      "fabian.euchner@sed.ethz.ch")
     _description = ("EIDA NG Federator webservice")
-    _entry_points = {
-        'console_scripts': [
-            'eida-federator = eidangservices.federator.server.app:main',
-        ]
-    }
+    _entry_points = _entry_points_federator
     _includes = ('eidangservices', 'eidangservices.utils',
                  'eidangservices.utils.tests',
                  '*.federator', 'federator.*', '*.federator.*')
-    _deps = [
-        'fasteners>=0.14.1',
-        'Flask>=0.12.2',
-        'Flask-RESTful>=0.3.6',
-        # TODO(damb): Seems not to work for Python 2.7
-        # 'mock:python_version<"3.3"',
-        'future>=0.16.0',
-        'intervaltree>=2.1',
-        'marshmallow==3.0.0b7',
-        'python-dateutil>=2.6.1',
-        'webargs==2.0.0', ]
+    _deps = _deps_federator
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
@@ -125,25 +137,11 @@ elif 'stationlite' == subsys:
     _includes = ('eidangservices', 'eidangservices.utils',
                  'eidangservices.utils.tests',
                  '*.stationlite', 'stationlite.*', '*.stationlite.*')
-    _entry_points = {
-        'console_scripts': [
-            'eida-stationlite = eidangservices.stationlite.server.app:main',
-        ]
-    }
+    _entry_points = _entry_points_stationlite
 
-    # NOTE(damb): Currently dependencies for stationlite executables are not
-    # resolved.
-    _deps = [
-        'Flask>=0.12.2',
-        'Flask-RESTful>=0.3.6',
-        'Flask-SQLAlchemy>=2.3.2',
-        'future>=0.16.0',
-        'intervaltree>=2.1',
-        'marshmallow==3.0.0b7',
-        'python-dateutil>=2.6.1',
-        'requests>=2.18.4',
-        'webargs==2.0.0', ]
-
+    _deps = _deps_stationlite
+    if sys.version_info[:2] < (3, 3):
+        _deps.append('mock')
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
 
 elif 'mediator' == subsys:
