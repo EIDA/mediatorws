@@ -34,7 +34,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 from marshmallow import (Schema, fields, validate, validates_schema,
-                         ValidationError)
+                         pre_load, ValidationError)
 
 from eidangservices.utils.schema import FDSNWSBool, Latitude, Longitude
 
@@ -46,10 +46,6 @@ class StationLiteSchema(Schema):
     The parameters defined correspond to the definition
     `https://www.orfeus-eu.org/data/eida/webservices/routing/`
     """
-    minlatitude = Latitude(load_from='minlat', missing=-90.)
-    maxlatitude = Latitude(load_from='maxlat', missing=90.)
-    minlongitude = Longitude(load_from='minlon', missing=-180.)
-    maxlongitude = Longitude(load_from='maxlon', missing=180.)
     format = fields.Str(
         # NOTE(damb): formats different from 'post' are not implemented yet.
         # missing='xml'
@@ -60,6 +56,47 @@ class StationLiteSchema(Schema):
         missing='dataselect',
         validate=validate.OneOf(['dataselect', 'station', 'wfcatalog']))
     alternative = FDSNWSBool(missing='false')
+
+    # geographic (rectangular spatial) options
+    # XXX(damb): Default values are defined and assigned within merge_keys ()
+    minlatitude = Latitude()
+    minlat = Latitude(load_only=True)
+    maxlatitude = Latitude()
+    maxlat = Latitude(load_only=True)
+    minlongitude = Longitude()
+    minlon = Latitude(load_only=True)
+    maxlongitude = Longitude()
+    maxlon = Latitude(load_only=True)
+
+    @pre_load
+    def merge_keys(self, data):
+        """
+        Merge both alternative field parameter values and assign default
+        values.
+
+        .. note::
+            The default webargs parser does not provide this feature by
+            default such that `load_from` fields parameters are exclusively
+            parsed.
+
+        :param dict data: data
+        """
+        _mappings = [
+            ('minlat', 'minlatitude', -90.),
+            ('maxlat', 'maxlatitude', 90.),
+            ('minlon', 'minlongitude', -180.),
+            ('maxlon', 'maxlongitude', 180.)]
+
+        for alt_key, key, missing in _mappings:
+            if alt_key in data and key in data:
+                data.pop(alt_key)
+            elif alt_key in data and key not in data:
+                data[key] = data[alt_key]
+                data.pop(alt_key)
+            else:
+                data[key] = missing
+
+    # merge_keys ()
 
     @validates_schema
     def validate_spatial(self, data):

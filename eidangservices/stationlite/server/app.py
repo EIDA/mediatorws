@@ -38,207 +38,150 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-import argparse
-import logging
-import logging.config
-import logging.handlers  # needed for handlers defined in logging.conf
 import os
 import sys
+import traceback
 
-from flask import Flask, g
 from flask_restful import Api
-#from flask_sqlalchemy import SQLAlchemy
 
 from eidangservices import settings, utils
-
-from eidangservices.stationlite.engine import db # noqa
+from eidangservices.stationlite.server import create_app
+from eidangservices.stationlite.engine import db, orm
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
-
-try:
-    # Python 2.x
-    import ConfigParser as configparser
-except ImportError:
-    # Python 3:
-    import configparser
+from eidangservices.utils.app import CustomParser, App, AppError
+from eidangservices.utils.error import Error, ErrorWithTraceback
 
 
 __version__ = utils.get_version("stationlite")
 
 # ----------------------------------------------------------------------------
-logger_configured = False
-
 DEFAULT_DBFILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     '../example/db/stationlite_2017-10-20.db')
 
 # ----------------------------------------------------------------------------
-def build_parser(parents=[]):
+class StationLiteWebservice(App):
     """
-    Set up the stationlite commandline argument parser.
-
-    :param list parents: list of parent parsers
-    :returns: parser
-    :rtype: :py:class:`argparse.ArgumentParser`
-    """
-    parser = utils.CustomParser(
-        prog="eida-stationlite",
-        description='Launch EIDA stationlite web service.',
-        parents=parents)
-    parser.add_argument('--version', '-V', action='version',
-                        version='%(prog)s version ' + __version__)
-    parser.add_argument('--start-local', action='store_true', default=False,
-                        help="start a local WSGI server (not for production)")
-    parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                        default=settings.EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
-                        help=('server port (only considered when serving '
-                              'locally i.e. with --start-local)'))
-    parser.add_argument('-D', '--db', type=str, default=DEFAULT_DBFILE,
-                        help='Database (SQLite) file.')
-    parser.add_argument('--debug', action='store_true', default=False,
-                        help="Run in debug mode.")
-    parser.add_argument('--logging-conf', dest='path_logging_conf',
-                        metavar='LOGGING_CONF', type=utils.real_file_path,
-                        help="path to a logging configuration file")
-
-    return parser
-
-# build_parser ()
-
-def register_teardowns(app):
-
-    @app.teardown_appcontext
-    def close_db(error):
-        """Closes the database again at the end of the request."""
-        if hasattr(g, 'db_connection'):
-            g.db_connection.close()
-
-# register_teardowns ()
-
-def setup_app(args):
-    """
-    Build the Flask app.
-
-    :param dict args: app configuration arguments
-    :rtype :py:class:`flask.Flask`:
+    Implementation of the EIDA StationLite webservice.
     """
 
-    errors = {
-        'NODATA': {
-            'message': "Empty dataset.",
-            'status': 204,
-        },
-    }
+    def build_parser(self, parents=[]):
+        """
+        Set up the stationlite commandline argument parser.
 
-    app = Flask(__name__)
-    api = Api(errors=errors)
+        :param list parents: list of parent parsers
+        :returns: parser
+        :rtype: :py:class:`argparse.ArgumentParser`
+        """
+        parser = utils.CustomParser(
+            prog="eida-stationlite",
+            description='Launch EIDA stationlite web service.',
+            parents=parents)
+        parser.add_argument('--version', '-V', action='version',
+                            version='%(prog)s version ' + __version__)
+        parser.add_argument('--start-local', action='store_true', default=False,
+                            help="start a local WSGI server (not for production)")
+        parser.add_argument('-p', '--port', metavar='PORT', type=int,
+                            default=settings.EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
+                            help=('server port (only considered when serving '
+                                  'locally i.e. with --start-local)'))
+        parser.add_argument('-D', '--db', type=utils.real_file_path,
+                            default=DEFAULT_DBFILE, required=True,
+                            help='Database (SQLite) file.')
+        parser.add_argument('--debug', action='store_true', default=False,
+                            help="Run in debug mode.")
 
-    # routing service endpoint
-    # ----
+        return parser
 
-    # query method
-    api.add_resource(
-        StationLiteResource, "%s%s" %
-        (settings.EIDA_STATIONLITE_PATH, settings.FDSN_QUERY_METHOD_TOKEN))
+    # build_parser ()
 
-    sqlalchemy_uri = "sqlite:///{}".format(args.db)
+    def run(self):
+        """
+        Run application.
+        """
 
-    app.config.update(
-        PORT=args.port,
-        DB=args.db,
-        SQLALCHEMY_DATABASE_URI=sqlalchemy_uri)
+        # TODO(damb):
+        #   - implement WSGI compatibility
+        exit_code = utils.ExitCodes.EXIT_SUCCESS
+        try:
+            app = self.setup_app()
+        
+            if self.args.start_local:
+                # run local Flask WSGI server (not for production)
+                self.logger.info('Serving with local WSGI server.')
+                app.run(threaded=True, debug=self.args.debug, port=self.args.port)
+        
+            # TODO(damb): prepare also for mod_wsgi
+            pass
+        except Error as err:
+            self.logger.error(err)
+            exit_code = utils.ExitCodes.EXIT_ERROR
+        except Exception as err:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.critical('Local Exception: %s' % err)
+            self.logger.critical('Traceback information: ' +
+                                 repr(traceback.format_exception(
+                                     exc_type, exc_value, exc_traceback)))
+            exit_code = utils.ExitCodes.EXIT_ERROR
 
-    #app.app_context().push()
-    api.init_app(app)
+        sys.exit(utils.ExitCodes.EXIT_ERROR)
 
-    register_teardowns(app)
+    # run ()
 
-    return app
+    def setup_app(self):
+        """
+        Setup and configure the Flask app with its API.
 
-# setup_app ()
+        :returns: The configured Flask application instance.
+        :rtype :py:class:`flask.Flask`:
+        """
+
+        errors = {
+            'NODATA': {
+                'message': "Empty dataset.",
+                'status': 204,
+            },
+        }
+
+        api = Api(errors=errors)
+        app_config = {
+            'PORT': self.args.port,
+            'DB': self.args.db,
+            'SQLALCHEMY_DATABASE_URI':  "sqlite:///{}".format(self.args.db)
+        }
+        api.add_resource(
+            StationLiteResource, "%s%s" %
+            (settings.EIDA_ROUTING_PATH, settings.FDSN_QUERY_METHOD_TOKEN))
+        
+        app = create_app(config_dict=app_config)
+        api.init_app(app)
+        return app
+
+    # setup_app ()
+
+# class StationLiteWebservice
+
 
 # ----------------------------------------------------------------------------
 def main():
     """
     main function for EIDA stationlite webservice
     """
-    # TODO(damb):
-    #   - implement WSGI compatibility
-    #   - check how database handling is coordinated
-    global logger_configured
 
-    c_parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        add_help=False)
+    app = StationLiteWebservice(log_id='STL')
 
-    c_parser.add_argument("-c", "--config",
-                          dest="config_file",
-                          default=settings.PATH_EIDANGWS_CONF,
-                          metavar="PATH",
-                          type=utils.realpath,
-                          help=("path to EIDA NG webservices configuration "
-                                "file (default: '%(default)s')"))
-
-    args, remaining_argv = c_parser.parse_known_args()
-
-    config_parser = configparser.ConfigParser()
-    config_parser.read(args.config_file)
-    defaults = {}
     try:
-        defaults = dict(config_parser.items(
-            settings.EIDA_STATIONLITE_CONFIG_SECTION))
-    except Exception:
-        pass
+        app.configure(
+            settings.PATH_EIDANGWS_CONF,
+            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
+    except AppError as err:
+        # handle errors during the application configuration
+        print('ERROR: Application configuration failed "%s".' % err,
+              file=sys.stderr)
+        sys.exit(utils.ExitCodes.EXIT_ERROR)
 
-    parser = build_parser(parents=[c_parser])
-    # set defaults taken from configuration file
-    parser.set_defaults(**defaults)
-    # set the config_file default explicitly since adding the c_parser as a
-    # parent would change the args.config_file to default=PATH_IROUTED_CONF
-    # within the child parser
-    parser.set_defaults(config_file=args.config_file)
-
-    args = parser.parse_args(remaining_argv)
-
-    # configure logger
-    if args.path_logging_conf:
-        try:
-            logging.config.fileConfig(args.path_logging_conf)
-            logger = logging.getLogger()
-            logger_configured = True
-            logger.info('Using logging configuration read from "%s"',
-                        args.path_logging_conf)
-        except Exception as err:
-            print('WARNING: Setup logging failed for "%s" with "%s".' %
-                  (args.path_logging_conf, err), file=sys.stderr)
-            # NOTE(damb): Provide fallback syslog logger.
-            logger = logging.getLogger()
-            fallback_handler = logging.handlers.SysLogHandler('/dev/log',
-                                                              'local0')
-            fallback_handler.setLevel(logging.WARN)
-            fallback_formatter = logging.Formatter(
-                fmt=("<STL> %(asctime)s %(levelname)s %(name)s %(process)d "
-                     "%(filename)s:%(lineno)d - %(message)s"),
-                datefmt="%Y-%m-%dT%H:%M:%S%z")
-            fallback_handler.setFormatter(fallback_formatter)
-            logger.addHandler(fallback_handler)
-            logger_configured = True
-            logger.warning('Setup logging failed with %s. '
-                           'Using fallback logging configuration.' % err)
-
-    app = setup_app(args)
-
-    if defaults and logger_configured:
-        logger.debug("Default configuration from '%s': %s.",
-                     args.config_file, defaults)
-
-    if args.start_local:
-        # run local Flask WSGI server (not for production)
-        if logger_configured:
-            logger.info('Serving with local WSGI server.')
-        app.run(threaded=True, debug=args.debug, port=args.port)
-
-    # TODO(damb): prepare also for mod_wsgi
+    app.run()
 
 # main ()
 

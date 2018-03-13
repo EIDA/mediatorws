@@ -116,7 +116,7 @@ class FDSNWSDateTime(fields.DateTime):
 # class FDSNWSDateTime
 
 # -----------------------------------------------------------------------------
-class StreamEpochSchema(Schema): # noqa
+class StreamEpochSchema(Schema):
     """
     A StreamEpoch Schema. The name *StreamEpoch* refers to the *FDSNWS* POST
     format. A StreamEpoch is a line consisting of:
@@ -147,7 +147,13 @@ class StreamEpochSchema(Schema): # noqa
                 del data['starttime']
             if data.get('endtime') is None:
                 del data['endtime']
-            return data
+        elif self.context.get('routing'):
+            if (data.get('endtime') is None or 
+                    utils.from_fdsnws_datetime(
+                        data.get('endtime')) == datetime.datetime.max):
+                del data['endtime']
+
+        return data
 
     @post_dump
     def replace_empty_location(self, data):

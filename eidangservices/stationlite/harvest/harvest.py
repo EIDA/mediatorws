@@ -32,22 +32,18 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-import argparse
-import contextlib
-import datetime
-import io
 import logging
 import sys
 import traceback
 
-import requests
-
-from intervaltree import IntervalTree
 from lxml import etree
-from sqlalchemy import create_engine, or_
+from obspy import read_inventory
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from eidangservices import settings, utils
+from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
+                                             node_generator, RequestsError)
+
 from eidangservices.stationlite.engine import db, orm
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ErrorWithTraceback
@@ -57,66 +53,7 @@ from eidangservices.utils.schema import StreamEpochSchema
 
 __version__ = utils.get_version("stationlite")
 
-Epochs = IntervalTree
-
-# TODO(damb): Move to settings.py
-STATIONXML_NS = '{http://www.fdsn.org/xml/station/1}'
-STATIONXML_NETWORK_ELEMENT = '{}Network'.format(STATIONXML_NS)
-STATIONXML_STATION_ELEMENT = '{}Station'.format(STATIONXML_NS)
-STATIONXML_CHANNEL_ELEMENT = '{}Channel'.format(STATIONXML_NS)
-
-STATIONXML_LATITUDE_ELEMENT = '{}Latitude'.format(STATIONXML_NS)
-STATIONXML_LONGITUDE_ELEMENT = '{}Longitude'.format(STATIONXML_NS)
-STATIONXML_DESCRIPTION_ELEMENT = '{}Description'.format(STATIONXML_NS)
-
-XPATH_STATION_DESCRIPTION_ELEMENT = '/{}Site/{}Description'.format(
-    STATIONXML_NS, STATIONXML_NS)
-
 # ----------------------------------------------------------------------------
-def db_engine(url):
-    """
-    check if url is a valid url
-    """
-    try:
-        return create_engine(url)
-    except Exception:
-        raise argparse.ArgumentTypeError('Invalid database URL.')
-
-# path_relative ()
-
-@contextlib.contextmanager
-def binary_stream_request(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-
-        if response.status_code != 200:
-            raise ResponseCodeNot200(response.status_code)
-
-        yield io.BytesIO(response.content)
-
-    except requests.exceptions.RequestException as err:
-        raise RequestsError(err)
-
-# binary_stream_request ()
-
-def node_generator(exclude=[]):
-
-    nodes = list(settings.EIDA_NODES)
-
-    for node in nodes:
-        if node not in exclude:
-            yield node, settings.EIDA_NODES[node]
-
-# node_generator ()
-
-# ----------------------------------------------------------------------------
-class RequestsError(Error):
-    """Base request error ({})."""
-
-class ResponseCodeNot200(RequestsError):
-    """Response code not OK ({})."""
-
 class NothingToDo(Error):
     """Nothing to do."""
 
@@ -142,7 +79,7 @@ class Harvester(object):
         """Error while parsing routing configuration ({})."""
 
     class IntegrityError(HarvesterError):
-        """IntegritiyError ({})."""
+        """IntegrityError ({})."""
 
     def __init__(self, node_id, url_routing_config):
         self.node_id = node_id
@@ -212,9 +149,6 @@ class RoutingHarvester(Harvester):
     class StationXMLParsingError(Harvester.HarvesterError):
         """Error while parsing StationXML: ({})"""
 
-    class InvalidCoordinateParameter(StationXMLParsingError):
-        """Error while parsing coordinate parameter: ({})"""
-
     def __init__(self, node_id, url_routing_config, url_fdsn_station):
         super().__init__(node_id, url_routing_config)
         self.url_fdsn_station = url_fdsn_station
@@ -259,13 +193,14 @@ class RoutingHarvester(Harvester):
                 # TODO(damb): Request might be too large. Implement fix.
                 nets = []
                 stas = []
-                cha_epochs = []
-                with binary_stream_request(
-                        _url_fdsn_station) as station_xml:
-                    nets, stas, cha_epochs = self._harvest_from_stationxml(
-                        session, station_xml)
+                chas = []
+                with binary_stream_request(_url_fdsn_station) as station_xml:
+                    nets, stas, chas = \
+                        self._harvest_from_stationxml(session, station_xml)
 
-                # NOTE(damb): only consider CACHED_SERVICEs
+                # NOTE(damb): currently only consider CACHED_SERVICEs
+                # TODO(damb): To be refactored - use the Station service
+                # defined within <route></route>
                 for service_element in route_element.iter(*_cached_services):
                     # only consider priority=1
                     priority = service_element.get('priority')
@@ -290,14 +225,14 @@ class RoutingHarvester(Harvester):
                     except (NoResultFound, MultipleResultsFound) as err:
                         raise self.IntegrityError(err)
 
-                    self.logger.debug('Harvesting routes for %r '
+                    self.logger.debug('Processing routes for %r '
                                       '(service=%s, endpoint=%s).' %
                                       (stream, service_element.tag,
                                        endpoint.url))
 
                     for net in nets:
-                        self.logger.debug('Populating Network<->Node relation '
-                                '{}<->{}.'.format(net, self.node))
+                        self.logger.debug('Checking Network<->Node relation '
+                                          '{}<->{}.'.format(net, self.node))
                         try:
                             _ = session.query(orm.NodeNetworkInventory).\
                                 filter(orm.NodeNetworkInventory.network ==
@@ -308,8 +243,10 @@ class RoutingHarvester(Harvester):
                         except NoResultFound:
                             # create a new relation - it will be
                             # automatically added to the session
-                            _ = orm.NodeNetworkInventory(network=net,
+                            r = orm.NodeNetworkInventory(network=net,
                                                          node=self.node)
+                            self.logger.debug(
+                                'Created relation {0!r}'.format(r))
                         except MultipleResultsFound as err:
                             raise self.IntegrityError(err)
 
@@ -326,258 +263,273 @@ class RoutingHarvester(Harvester):
                         raise self.RoutingConfigXMLParsingError(err)
 
                     # configure routings
-                    for cha_epoch in cha_epochs:
+                    for cha_epoch in chas:
                         self.logger.debug(
-                            'Populating ChannelEpoch<->Endpoint relation '
+                            'Checking ChannelEpoch<->Endpoint relation '
                             '{}<->{} ...'.format(cha_epoch, endpoint))
-                        routing = session.query(orm.Routing).\
-                            filter(orm.Routing.endpoint == endpoint).\
-                            filter(orm.Routing.channel_epoch == cha_epoch).\
-                            scalar()
+                        try:
+                            # TODO(damb): Check for overlapping Routing
+                            # instance and update (i.e. delete - insert)
+                            # TODO TODO TODO
+                            routing = session.query(orm.Routing).\
+                                filter(orm.Routing.endpoint == endpoint).\
+                                filter(orm.Routing.channel_epoch ==
+                                       cha_epoch).\
+                                filter(orm.Routing.starttime ==
+                                       routing_starttime).\
+                                filter(orm.Routing.endtime ==
+                                       routing_endtime).\
+                                one_or_none()
+                        except MultipleResultsFound as err:
+                            raise self.IntegrityError(err)
 
-                        if not routing:
+                        if routing is None:
                             routing = orm.Routing(
                                 endpoint=endpoint,
                                 channel_epoch=cha_epoch,
                                 starttime=routing_starttime,
                                 endtime=routing_endtime)
-                        # update times if reconfigured@localconfig
-                        if routing.starttime != routing_starttime:
-                            routing.starttime = routing_starttime
-                        if routing.endtime != routing_endtime:
-                            routing.endtime = routing_endtime
+                            self.logger.debug(
+                                'Created routing {0!r}'.format(routing))
 
-                    # TODO(damb): Show stats for updated/inserted elements
+        # TODO(damb): Show stats for updated/inserted elements
 
     # harvest ()
 
     def _harvest_from_stationxml(self, session, station_xml):
+        """
+        Create/update Network, Station and ChannelEpoch objects from a
+        station.xml file.
+
+        :param :cls:`sqlalchemy.orm.sessionSession` session: SQLAlchemy session
+        :param :cls:`io.BinaryIO` station_xml: Station XML file stream
+        """
+
+        try:
+            inventory = read_inventory(station_xml, format='STATIONXML')
+        except Exception as err:
+            raise self.StationXMLParsingError(err)
+
         nets = []
         stas = []
-        cha_epochs = []
-        # parse station xml response for networks
-        for event, network_element in etree.iterparse(
-                station_xml, events=('end',), tag=STATIONXML_NETWORK_ELEMENT):
+        chas = []
+        for inv_network in inventory.networks:
+            self.logger.debug("Processing network: {0!r}".format(
+                              inv_network))
+            net = self._emerge_network(session, inv_network)
+            nets.append(net)
 
-            if event == 'end':
-                self.logger.debug("Processing network element: {}".format(
-                    network_element))
-                if (network_element.get('code') is None or
-                        network_element.get('startDate') is None):
-                    raise self.StationXMLParsingError(network_element)
+            for inv_station in inv_network.stations:
+                self.logger.debug("Processing station: {0!r}".format(
+                                  inv_station))
+                sta = self._emerge_station(session, inv_station)
+                stas.append(sta)
 
-                net = self._emerge_network(session, network_element)
-                nets.append(net)
+                for inv_channel in inv_station.channels:
+                    self.logger.debug(
+                        "Processing channel: {0!r}".format(inv_channel))
+                    cha_epoch = self._emerge_channelepoch(
+                        session, inv_channel, net, sta)
+                    chas.append(cha_epoch)
 
-                # loop over station elements
-                for station_element in network_element.iter(
-                        STATIONXML_STATION_ELEMENT):
-
-                    self.logger.debug("Processing station element: {}".format(
-                                      station_element))
-                    if (station_element.get('code') is None or
-                            station_element.get('startDate') is None):
-                        raise self.StationXMLParsingError(station_element)
-
-                    sta = self._emerge_station(session, station_element)
-                    stas.append(sta)
-
-                    # loop over channel elements
-                    for channel_element in station_element.iter(
-                            STATIONXML_CHANNEL_ELEMENT):
-
-                        self.logger.debug("Processing channel element: {}".\
-                                          format(channel_element))
-                        if (channel_element.get('code') is None or
-                                channel_element.get('startDate') is None):
-                            raise self.StationXMLParsingError(channel_element)
-
-                        cha_epoch = self._emerge_channelepoch(session,
-                                                              channel_element)
-                        cha_epochs.append(cha_epoch)
-
-                        # associate ChannelEpoch<->Station
-                        sta.channel_epochs.append(cha_epoch)
-                        # associate ChannelEpoch<->Network
-                        try:
-                            _ = session.query(
-                                orm.ChannelEpochNetworkRelation).\
-                                filter(
-                                    orm.ChannelEpochNetworkRelation.network ==
-                                    net).\
-                                filter(
-                                    orm.ChannelEpochNetworkRelation.\
-                                    channel_epoch == cha_epoch).\
-                                one()
-                        except NoResultFound:
-                            _ = orm.ChannelEpochNetworkRelation(
-                                network=net, channel_epoch=cha_epoch)
-                        except MultipleResultsFound as err:
-                            raise self.IntegrityError(err)
-
-                return nets, stas, cha_epochs
+        return nets, stas, chas
 
     # _harvest_from_stationxml ()
 
-    def _emerge_network(self, session, network_element):
+    def _emerge_network(self, session, network):
         """
         Factory method for a orm.Network object.
         """
-        net_code = network_element.get('code')
-        net_description = network_element[0].text
-        net_start = utils.from_fdsnws_datetime(
-            network_element.get('startDate'))
-        net_end = network_element.get('endDate')
-        if net_end is not None:
-            net_end = utils.from_fdsnws_datetime(net_end)
+        try:
+            net = session.query(orm.Network).\
+                filter(orm.Network.name == network.code).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
 
-        net = session.query(orm.Network).\
-            filter(orm.Network.name == net_code).\
-            scalar()
+        end_date = network.end_date
+        if end_date is not None:
+            end_date = end_date.datetime
 
         # check if network already available - else create a new one
-        if net:
-            self.logger.debug("Updating '{}'".format(net))
-            # check for available network_epoch - else create a new one
-            net_epoch = session.query(orm.NetworkEpoch).join(orm.Network).\
-                filter(orm.NetworkEpoch.description == net_description).\
-                filter(orm.NetworkEpoch.starttime == net_start).\
-                filter(orm.NetworkEpoch.endtime == net_end).\
-                scalar()
-
-            if not net_epoch:
-                net_epoch = orm.NetworkEpoch(
-                    description=net_description,
-                    starttime=net_start,
-                    endtime=net_end)
-                net.network_epochs.append(net_epoch)
-                self.logger.debug(
-                    "Created new network_epoch object '{}'".format(
-                        net_epoch))
-
-        else:
-            net = orm.Network(name=net_code)
+        if net is None:
+            net = orm.Network(name=network.code)
             net_epoch = orm.NetworkEpoch(
-                description=net_description,
-                starttime=net_start,
-                endtime=net_end)
+                description=network.description,
+                starttime=network.start_date.datetime,
+                endtime=end_date)
             net.network_epochs.append(net_epoch)
             self.logger.debug("Created new network object '{}'".format(net))
 
             session.add(net)
 
+        else:
+            self.logger.debug("Updating '{}'".format(net))
+            # check for available network_epoch - else create a new one
+            try:
+                net_epoch = session.query(orm.NetworkEpoch).join(orm.Network).\
+                    filter(orm.NetworkEpoch.network == net).\
+                    filter(orm.NetworkEpoch.description ==
+                           network.description).\
+                    filter(orm.NetworkEpoch.starttime ==
+                           network.start_date.datetime).\
+                    filter(orm.NetworkEpoch.endtime == end_date).\
+                    one_or_none()
+            except MultipleResultsFound as err:
+                raise self.IntegrityError(err)
+
+            if net_epoch is None:
+                net_epoch = orm.NetworkEpoch(
+                    description=network.description,
+                    starttime=network.start_date.datetime,
+                    endtime=end_date)
+                net.network_epochs.append(net_epoch)
+                self.logger.debug(
+                    "Created new network_epoch object '{}'".format(
+                        net_epoch))
+
         return net
 
     # _emerge_network ()
 
-    def _emerge_station(self, session, station_element):
+    def _emerge_station(self, session, station):
         """
         Factory method for a orm.Station object.
         """
-        sta_code = station_element.get('code')
         try:
-            sta_description = station_element.find(
-                XPATH_STATION_DESCRIPTION_ELEMENT)
-        except Exception:
-            sta_description = ''
-        sta_start = utils.from_fdsnws_datetime(
-            station_element.get('startDate'))
-        sta_end = station_element.get('endDate')
+            sta = session.query(orm.Station).\
+                filter(orm.Station.name == station.code).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
 
-        try:
-            sta_lat = float(station_element.find(
-                STATIONXML_LATITUDE_ELEMENT).text)
-            sta_lon = float(station_element.find(
-                STATIONXML_LONGITUDE_ELEMENT).text)
-        except Exception:
-            raise self.InvalidCoordinateParameter(station_element)
-
-        if sta_end is not None:
-            sta_end = utils.from_fdsnws_datetime(sta_end)
-
-        sta = session.query(orm.Station).\
-            filter(orm.Station.name == sta_code).\
-            scalar()
+        end_date = station.end_date
+        if end_date is not None:
+            end_date = end_date.datetime
 
         # check if station already available - else create a new one
-        if sta:
-            self.logger.debug("Updating '{}'".format(sta))
-            # check for available station_epoch - else create a new one
-            sta_epoch = session.query(orm.StationEpoch).join(orm.Station).\
-                filter(orm.StationEpoch.description == sta_description).\
-                filter(orm.StationEpoch.starttime == sta_start).\
-                filter(orm.StationEpoch.endtime == sta_end).\
-                filter(orm.StationEpoch.latitude == sta_lat).\
-                filter(orm.StationEpoch.longitude == sta_lon).\
-                scalar()
-
-            if not sta_epoch:
-                station_epoch = orm.StationEpoch(
-                    description=sta_description,
-                    starttime=sta_start,
-                    endtime=sta_end,
-                    latitude=sta_lat,
-                    longitude=sta_lon)
-                sta.station_epochs.append(station_epoch)
-                self.logger.debug(
-                    "Created new station_epoch object '{}'".format(
-                        station_epoch))
-
-        else:
-            sta = orm.Station(name=sta_code)
+        if sta is None:
+            sta = orm.Station(name=station.code)
             station_epoch = orm.StationEpoch(
-                description=sta_description,
-                starttime=sta_start,
-                endtime=sta_end,
-                latitude=sta_lat,
-                longitude=sta_lon)
+                description=station.description,
+                starttime=station.start_date.datetime,
+                endtime=end_date,
+                latitude=station.latitude,
+                longitude=station.longitude)
             sta.station_epochs.append(station_epoch)
             self.logger.debug("Created new station object '{}'".format(sta))
 
             session.add(sta)
 
+        else:
+            self.logger.debug("Updating '{}'".format(sta))
+            # check for available station_epoch - else create a new one
+            try:
+                sta_epoch = session.query(orm.StationEpoch).\
+                    filter(orm.StationEpoch.station == sta).\
+                    filter(orm.StationEpoch.description ==
+                           station.description).\
+                    filter(orm.StationEpoch.starttime ==
+                           station.start_date.datetime).\
+                    filter(orm.StationEpoch.endtime == end_date).\
+                    filter(orm.StationEpoch.latitude == station.latitude).\
+                    filter(orm.StationEpoch.longitude == station.longitude).\
+                    one_or_none()
+            except MultipleResultsFound as err:
+                raise self.IntegrityError(err)
+
+            if sta_epoch is None:
+                station_epoch = orm.StationEpoch(
+                    description=station.description,
+                    starttime=station.start_date.datetime,
+                    endtime=end_date,
+                    latitude=station.latitude,
+                    longitude=station.longitude)
+                sta.station_epochs.append(station_epoch)
+                self.logger.debug(
+                    "Created new station_epoch object '{}'".format(
+                        station_epoch))
+
         return sta
 
     # _emerge_station ()
 
-    def _emerge_channelepoch(self, session, channel_element):
+    def _emerge_channelepoch(self, session, channel, network, station):
         """
         Factory method for a orm.ChannelEpoch object.
         """
-        cha_code = channel_element.get('code')
-        cha_loc = channel_element.get('locationCode')
-        cha_start = utils.from_fdsnws_datetime(
-            channel_element.get('startDate'))
-        cha_end = channel_element.get('endDate')
+        end_date = channel.end_date
+        if end_date is not None:
+            end_date = end_date.datetime
+
+        # check for available, overlapping channel_epoch (not identical)
+        # XXX(damb) Overlapping orm.ChannelEpochs regarding time constraints
+        # are updated (i.e. implemented as: delete - insert).
+        query = session.query(orm.ChannelEpoch).\
+            filter(orm.ChannelEpoch.network == network).\
+            filter(orm.ChannelEpoch.station == station).\
+            filter(orm.ChannelEpoch.channel == channel.code).\
+            filter(orm.ChannelEpoch.locationcode == channel.location_code)
+
+        # check if overlapping with ChannelEpoch already existing
+        if end_date is None:
+            query = query.\
+                filter(((orm.ChannelEpoch.starttime <
+                         channel.start_date.datetime) &
+                        (orm.ChannelEpoch.endtime.is_(None) |
+                         (channel.start_date.datetime <
+                          orm.ChannelEpoch.endtime))) |
+                       (orm.ChannelEpoch.starttime >
+                        channel.start_date.datetime))
+        else:
+            query = query.\
+                filter(((orm.ChannelEpoch.starttime <
+                         channel.start_date.datetime) &
+                       (orm.ChannelEpoch.endtime.is_(None) |
+                        (channel.start_date.datetime <
+                         orm.ChannelEpoch.endtime))) |
+                       ((orm.ChannelEpoch.starttime >
+                         channel.start_date.datetime) &
+                        (end_date > orm.ChannelEpoch.starttime)))
+
+        cha_epochs = query.all()
+
+        if cha_epochs:
+            self.logger.debug('Found overlapping orm.ChannelEpoch objects '
+                              '{}'.format(cha_epochs))
+        # delete overlapping epochs including the corresponding orm.Routing
+        # entries
+        for cha_epoch in cha_epochs:
+            _ = session.query(orm.Routing).\
+                filter(orm.Routing.channel_epoch == cha_epoch).delete()
+            if session.delete(cha_epoch):
+                self.logger.debug(
+                    'Removed {0!r} (matching query: {}).'.format(
+                        cha_epoch, query))
+
+        # check for an identical orm.ChannelEpoch
         try:
-            cha_lat = float(channel_element.find(
-                STATIONXML_LATITUDE_ELEMENT).text)
-            cha_lon = float(channel_element.find(
-                STATIONXML_LONGITUDE_ELEMENT).text)
-        except Exception:
-            raise self.InvalidCoordinateParameter(channel_element)
+            cha_epoch = session.query(orm.ChannelEpoch).\
+                filter(orm.ChannelEpoch.channel == channel.code).\
+                filter(orm.ChannelEpoch.locationcode ==
+                       channel.location_code).\
+                filter(orm.ChannelEpoch.starttime ==
+                       channel.start_date.datetime).\
+                filter(orm.ChannelEpoch.endtime == end_date).\
+                filter(orm.ChannelEpoch.station == station).\
+                filter(orm.ChannelEpoch.network == network).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
 
-        if cha_end is not None:
-            cha_end = utils.from_fdsnws_datetime(cha_end)
-
-        # check for available channel_epoch - else create a new one
-        cha_epoch = session.query(orm.ChannelEpoch).\
-            filter(orm.ChannelEpoch.channel == cha_code).\
-            filter(orm.ChannelEpoch.locationcode == cha_loc).\
-            filter(orm.ChannelEpoch.starttime == cha_start).\
-            filter(orm.ChannelEpoch.endtime == cha_end).\
-            filter(orm.ChannelEpoch.latitude == cha_lat).\
-            filter(orm.ChannelEpoch.longitude == cha_lon).\
-            scalar()
-
-        if not cha_epoch:
+        if cha_epoch is None:
             cha_epoch = orm.ChannelEpoch(
-                channel=cha_code,
-                locationcode=cha_loc,
-                starttime=cha_start,
-                endtime=cha_end,
-                latitude=cha_lat,
-                longitude=cha_lon)
+                channel=channel.code,
+                locationcode=channel.location_code,
+                starttime=channel.start_date.datetime,
+                endtime=end_date,
+                station=station,
+                network=network)
             self.logger.debug("Created new channel_epoch object '{}'".format(
                               cha_epoch))
             session.add(cha_epoch)
@@ -601,9 +553,6 @@ class VNetHarvester(Harvester):
     class VNetHarvesterError(Harvester.HarvesterError):
         """Base error for virtual netowork harvesting ({})."""
 
-    class GET:
-        method = 'GET'
-
     def __init__(self, node_id, url_vnet_config):
         super().__init__(node_id, url_vnet_config)
 
@@ -613,7 +562,7 @@ class VNetHarvester(Harvester):
 
         vnet_tag = '{}vnetwork'.format(self.NS_ROUTINGXML)
         stream_tag = '{}stream'.format(self.NS_ROUTINGXML)
-        se_schema = StreamEpochSchema(context={'request': self.GET})
+        se_schema = StreamEpochSchema()
 
         self.logger.debug('Harvesting virtual networks for %s.' % self.node)
 
@@ -623,8 +572,7 @@ class VNetHarvester(Harvester):
                                                    tag=vnet_tag):
             if event == 'end' and len(vnet_element):
 
-                vnet = self._emerge_network(session, vnet_element,
-                                            is_virtual=True)
+                vnet = self._emerge_streamepoch_group(session, vnet_element)
 
                 for stream_element in vnet_element.iter(tag=stream_tag):
                     self.logger.debug("Processing stream element: {}".\
@@ -643,16 +591,12 @@ class VNetHarvester(Harvester):
                         stream_epoch))
 
                     sql_stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
+
                     # check if the stream epoch definition is valid i.e. there
                     # must be at least one matching ChannelEpoch
                     query = session.query(orm.ChannelEpoch).\
-                        join(orm.ChannelEpochNetworkRelation).\
                         join(orm.Network).\
                         join(orm.Station).\
-                        filter(
-                            orm.ChannelEpochNetworkRelation.\
-                            channel_epoch_ref ==
-                            orm.ChannelEpoch.oid).\
                         filter(orm.Network.name.like(
                                sql_stream_epoch.network)).\
                         filter(orm.Station.name.like(
@@ -661,178 +605,144 @@ class VNetHarvester(Harvester):
                                sql_stream_epoch.location)).\
                         filter(orm.ChannelEpoch.channel.like(
                                sql_stream_epoch.channel)).\
-                        filter(or_((orm.ChannelEpoch.endtime >
-                                    sql_stream_epoch.starttime),
-                                   (orm.ChannelEpoch.endtime.is_(None))))
+                        filter(orm.ChannelEpoch.endtime.is_(None) |
+                               (orm.ChannelEpoch.endtime >
+                                sql_stream_epoch.starttime))
 
                     if sql_stream_epoch.endtime:
                         query = query.\
                             filter(orm.ChannelEpoch.starttime <
                                    sql_stream_epoch.endtime)
 
-                    channel_epochs = query.all()
-                    if not channel_epochs:
+                    cha_epochs = query.all()
+                    if not cha_epochs:
                         self.logger.warn(
                             'No ChannelEpoch matching stream epoch '
                             '{0!r}'.format(stream_epoch))
                         continue
 
-                    for channel_epoch in channel_epochs:
-
+                    for cha_epoch in cha_epochs:
                         self.logger.debug(
                             'Processing virtual network configuration for '
-                            'ChannelEpoch object {0!r}.'.format(channel_epoch))
+                            'ChannelEpoch object {0!r}.'.format(cha_epoch))
+                        self._emerge_streamepoch(
+                            session, cha_epoch, stream_epoch, vnet)
 
-                        # TODO(damb): fetch processed relations for stats
-                        self._emerge_vnet_relation(
-                            session, vnet, channel_epoch, sql_stream_epoch)
-
-            # populate VNetwork<->Node
-            self.logger.debug('Populating relation Network<->Node '
-                              '{}<->{} ...'.format(vnet, self.node))
-            try:
-                _ = session.query(orm.NodeNetworkInventory).\
-                    filter(orm.NodeNetworkInventory.network ==
-                           vnet).\
-                    filter(orm.NodeNetworkInventory.node ==
-                           self.node).\
-                    one()
-            except NoResultFound:
-                # create a new relation - it will be
-                # automatically added to the session
-                _ = orm.NodeNetworkInventory(network=vnet,
-                                             node=self.node)
-            except MultipleResultsFound as err:
-                raise self.IntegrityError(err)
+        # TODO(damb): Show stats for updated/inserted elements
 
     # harvest ()
 
-    def _emerge_network(self, session, element, is_virtual=False):
+    def _emerge_streamepoch_group(self, session, element):
         """
-        Factory method for a orm.Network
+        Factory method for a orm.StreamEpochGroup
         """
         net_code = element.get('networkCode')
         if not net_code:
             raise self.VNetHarvesterError("Missing 'networkCode' attribute.")
 
-        net = session.query(orm.Network).\
-            filter(orm.Network.name == net_code).\
-            scalar()
-
-        # check if network already available - else create a new one
-        if net:
-            self.logger.debug("Updating network object '{}'".format(net))
-        else:
-            net = orm.Network(name=net_code,
-                              is_virtual=is_virtual)
-            self.logger.debug("Created new network object '{}'".format(net))
-            session.add(net)
-
-        return net
-
-    # _emerge_network ()
-
-    def _emerge_vnet_relation(
-            self, session, vnet, channel_epoch, stream_epoch):
-        """
-        Factory method for a orm.ChannelEpochNetworkRelation object.
-        """
-        network_relation = None
         try:
-            network_relation = session.query(
-                orm.ChannelEpochNetworkRelation).\
-                filter(
-                    orm.ChannelEpochNetworkRelation.channel_epoch ==
-                    channel_epoch).\
-                filter(orm.ChannelEpochNetworkRelation.network ==
-                       vnet).one_or_none()
+            vnet = session.query(orm.StreamEpochGroup).\
+                filter(orm.StreamEpochGroup.name == net_code).\
+                one_or_none()
         except MultipleResultsFound as err:
             raise self.IntegrityError(err)
 
-        if network_relation is None:
-            # reset time constraint parameters if necessary
-            start = stream_epoch.starttime
-            if stream_epoch.starttime < channel_epoch.starttime:
-                start = channel_epoch.starttime
-                self.logger.info(
-                    'Resetting starttime for stream epoch {0!r}.'.format(
-                        stream_epoch))
-            end = stream_epoch.endtime
-            if (channel_epoch.endtime is not None and
-                stream_epoch.endtime is None and
-                    stream_epoch.starttime > channel_epoch.endtime):
-                end = channel_epoch.endtime
-
-            # create a new relation
-            epoch = orm.Epoch(starttime=start, endtime=end)
+        # check if network already available - else create a new one
+        if vnet is None:
+            vnet = orm.StreamEpochGroup(name=net_code)
             self.logger.debug(
-                'Creating new ChannelEpochNetworkRelation object with '
-                'Epochs {}.'.format([epoch]))
+                "Created new StreamEpochGroup object '{}'".format(vnet))
+            session.add(vnet)
 
-            return orm.ChannelEpochNetworkRelation(
-                network=vnet,
-                channel_epoch=channel_epoch,
-                epochs=[epoch])
+        else:
+            self.logger.debug(
+                "Updating orm.StreamEpochGroup object '{}'".format(vnet))
 
-        # update existing relation
-        orig_epochs = network_relation.epochs
-        epochs = Epochs.from_tuples([e._as_datetime_tuple() for e in
-                                     orig_epochs])
-        end = stream_epoch.endtime
+        return vnet
+
+    # _emerge_streamepoch_group()
+
+    def _emerge_streamepoch(self, session, channel_epoch, stream_epoch, vnet):
+        """
+        Factory method for a orm.StreamEpoch object.
+        """
+        # check if overlapping with a StreamEpoch already existing
+        # XXX(damb)_ Overlapping orm.StreamEpoch objects regarding time
+        # constraints are updated (i.e. implemented as: delete - insert).
+        query = session.query(orm.StreamEpoch).\
+            join(orm.Network).\
+            join(orm.Station).\
+            filter(orm.Network.name == channel_epoch.network.name).\
+            filter(orm.Station.name == channel_epoch.station.name).\
+            filter(orm.StreamEpoch.stream_epoch_group == vnet).\
+            filter(orm.StreamEpoch.channel ==
+                   channel_epoch.channel).\
+            filter(orm.StreamEpoch.location ==
+                   channel_epoch.locationcode)
+
         if stream_epoch.endtime is None:
-            end = datetime.datetime.max
-        epochs.addi(start, end)
-        epochs.merge_overlaps()
+            query = query.\
+                filter(((orm.StreamEpoch.starttime < stream_epoch.starttime) &
+                        (orm.StreamEpoch.endtime.is_(None) |
+                         (stream_epoch.starttime < orm.StreamEpoch.endtime))) |
+                       (orm.StreamEpoch.starttime > stream_epoch.starttime))
+        else:
+            query = query.\
+                filter(((orm.StreamEpoch.starttime < stream_epoch.starttime) &
+                        (orm.StreamEpoch.endtime.is_(None) |
+                         (stream_epoch.starttime < orm.StreamEpoch.endtime))) |
+                       ((orm.StreamEpoch.starttime > stream_epoch.starttime) &
+                        (stream_epoch.endtime > orm.StreamEpoch.starttime)))
 
-        epochs = [(v.begin, v.end) if v.end != datetime.datetime.max
-                  else (v.begin, None) for v in sorted(epochs)]
+        stream_epochs = query.all()
 
-        # check if epoch already in DB
-        new_epochs = []
-        for s, e in epochs:
-            try:
-                epoch = session.query(orm.Epoch).\
-                    filter(orm.Epoch.starttime == s).\
-                    filter(orm.Epoch.endtime == e).\
-                    one_or_none()
-                if epoch is None:
-                    new_epochs.append(orm.Epoch(starttime=s,
-                                                endtime=e))
-            except MultipleResultsFound as err:
-                raise self.IntegrityError(err)
+        if stream_epochs:
+            self.logger.debug('Found overlapping orm.StreamEpoch objects '
+                              '{}'.format(stream_epochs))
 
-        network_relation.epochs = new_epochs
+        for se in stream_epochs:
+            if session.delete(se):
+                self.logger.debug(
+                    'Removed orm.StreamEpoch {0!r}'
+                    '(matching query: {}).'.format(se, query))
 
-        # remove orphaned entries
-        # TODO(damb): wrap into function
-        orphaned_epochs = [e for e in new_epochs if e not in orig_epochs]
-        for e in orphaned_epochs:
-            # remove orphaned relations in link table
-            orphaned_relations = session.query(
-                orm.vnet_relation_epoch_relation).\
-                filter(orm.vnet_relation_epoch_relation.c.vnet_relation_ref ==
-                       network_relation.oid).\
-                filter(orm.vnet_relation_epoch_relation.c.epoch_ref == e.oid).\
-                all()
-            for r in orphaned_relations:
-                session.delete(r)
-            # check if the orphaned epoch still has a reference in the link
-            # table
-            relations = session.query(
-                orm.vnet_relation_epoch_relation).\
-                filter(orm.vnet_relation_epoch_relation.c.epoch_ref == e.oid).\
-                all()
-            if not relations:
-                session.delete(e)
-        session.commit()
+        # check for an identical orm.StreamEpoch
+        try:
+            se = session.query(orm.StreamEpoch).\
+                join(orm.Network).\
+                join(orm.Station).\
+                filter(orm.Network.name == channel_epoch.network.name).\
+                filter(orm.Station.name == channel_epoch.station.name).\
+                filter(orm.StreamEpoch.stream_epoch_group == vnet).\
+                filter(orm.StreamEpoch.channel == channel_epoch.channel).\
+                filter(orm.StreamEpoch.location ==
+                       channel_epoch.locationcode).\
+                filter(orm.StreamEpoch.starttime == stream_epoch.starttime).\
+                filter(orm.StreamEpoch.endtime == stream_epoch.endtime).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
 
-        self.logger.debug(
-            'Updated ChannelEpochNetworkRelation object {} with Epochs '
-            '{}.'.format())
+        if se is None:
+            se = orm.StreamEpoch(
+                channel=channel_epoch.channel,
+                location=channel_epoch.locationcode,
+                starttime=stream_epoch.starttime,
+                endtime=stream_epoch.endtime,
+                station=channel_epoch.station,
+                network=channel_epoch.network,
+                stream_epoch_group=vnet)
+            self.logger.debug(
+                "Created new StreamEpoch object instance {0!r}".format(se))
+            session.add(se)
 
-        return network_relation
+        else:
+            self.logger.debug(
+                "Found existing StreamEpoch object instance {0!r}".format(se))
 
-    # _emerge_vnet_relation ()
+        return se
+
+    # _emerge_streamepoch()
 
 # class VNetHarvester
 
@@ -860,8 +770,7 @@ class StationLiteHarvestApp(App):
                             help=('URL indicating the database dialect and '
                                   'connection arguments'))
         parser.add_argument('--nodes-exclude', nargs='+',
-                            type=str, metavar='NODES',
-                            default=' '.join(sorted(settings.EIDA_NODES)),
+                            type=str, metavar='NODES', default='',
                             choices=sorted(settings.EIDA_NODES),
                             help=('Whitespace-separated list of nodes to be '
                                   'excluded. (choices: {%(choices)s})'))
@@ -891,7 +800,7 @@ class StationLiteHarvestApp(App):
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
 
         exit_code = utils.ExitCodes.EXIT_SUCCESS
-        if not self.args.no_routes and not self.args.no_vnetworks:
+        if self.args.no_routes and self.args.no_vnetworks:
             raise NothingToDo()
 
         try:
@@ -901,74 +810,20 @@ class StationLiteHarvestApp(App):
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
-            self.logger.debug('Nodes to be processed: {}'.format(
-                [n for n, _ in node_generator(
-                    exclude=self.args.nodes_exclude)]))
+            if not self.args.no_routes:
+                self._harvest_routes(Session)
+            else:
+                self.logger.warn(
+                    'Disabled processing <route></route> information.')
 
             if not self.args.no_vnetworks:
+                self._harvest_vnetworks(Session)
+            else:
                 self.logger.warn(
-                    'Deleting virtual network related entries from DB ...')
-                db.delete_vnetworks()
+                    'Disabled processing <vnetwork></vnetwork> '
+                    'information.')
 
-
-            for node_name, node_par in node_generator(
-                    exclude=self.args.nodes_exclude):
-                url_routing_config = (
-                    node_par['services']['eida']['routing']['server'] +
-                    node_par['services']['eida']['routing']['uri_path_config'])
-                url_vnet_config = (
-                    node_par['services']['eida']['routing']['server'] +
-                    node_par['services']['eida']['routing']\
-                            ['uri_path_config_vnet'])
-                url_fdsn_station = (
-                    node_par['services']['fdsn']['server'] +
-                    settings.FDSN_STATION_PATH +
-                    settings.FDSN_QUERY_METHOD_TOKEN)
-
-                if not self.args.no_routes:
-                    self.logger.info(
-                        'Processing routes from EIDA node %r.' % node_name)
-                    try:
-                        # harvest the routing configuration
-                        h = RoutingHarvester(
-                            node_name, url_routing_config, url_fdsn_station)
-
-                        session=Session()
-                        # XXX(damb): Maintain sessions within the scope of a
-                        # harvesting process.
-                        h.configure(session)
-
-                        with db.session_guard(session) as _session:
-                            h.harvest(_session)
-
-                    except RequestsError as err:
-                        self.logger.warning(str(err))
-                else:
-                    self.logger.warn(
-                        'Disabled processing <route></route> '
-                        'information for %r.' % node_name)
-
-                if not self.args.no_vnetworks:
-                    self.logger.info(
-                        'Processing vnetworks from EIDA node %r.' % node_name)
-                    try:
-                        # harvest virtual network configuration
-                        h = VNetHarvester(node_name, url_vnet_config)
-                        session=Session()
-                        # XXX(damb): Maintain sessions within the scope of a
-                        # harvesting process.
-                        h.configure(session)
-
-                        with db.session_guard(session) as _session:
-                            h.harvest(_session)
-
-                    except RequestsError as err:
-                        self.logger.warning(str(err))
-                else:
-                    self.logger.warn(
-                        'Disabled processing <vnetwork></vnetwork> '
-                        'information for %r.' % node_name)
-
+        # TODO(damb): signal handling
         except Error as err:
             self.logger.error(err)
             exit_code = utils.ExitCodes.EXIT_ERROR
@@ -980,11 +835,85 @@ class StationLiteHarvestApp(App):
                                      exc_type, exc_value, exc_traceback)))
             exit_code = utils.ExitCodes.EXIT_ERROR
 
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(utils.ExitCodes.EXIT_SUCCESS)
 
     # run ()
 
+    def _harvest_routes(self, Session):
+        """
+        Harvest the EIDA node's <route></route> information.
+
+        :param :cls:`sqlalchemy.orm.session.Session` Session: A configured
+        Session class reference.
+        """
+        for node_name, node_par in node_generator(
+                exclude=self.args.nodes_exclude):
+            url_routing_config = (
+                node_par['services']['eida']['routing']['server'] +
+                node_par['services']['eida']['routing']\
+                        ['uri_path_config'])
+            url_fdsn_station = (
+                node_par['services']['fdsn']['server'] +
+                settings.FDSN_STATION_PATH +
+                settings.FDSN_QUERY_METHOD_TOKEN)
+
+            self.logger.info(
+                'Processing routes from EIDA node %r.' % node_name)
+            try:
+                # TODO(damb): Do not pass the fdsn_station information
+                # to the RoutingHarvester. The Harvester should fetch
+                # this information from every single <route></route>.
+                # harvest the routing configuration
+                h = RoutingHarvester(
+                    node_name, url_routing_config, url_fdsn_station)
+
+                session=Session()
+                # XXX(damb): Maintain sessions within the scope of a
+                # harvesting process.
+                h.configure(session)
+
+                with db.session_guard(session) as _session:
+                    h.harvest(_session)
+
+            except RequestsError as err:
+                self.logger.warning(str(err))
+
+    # _harvest_routes ()
+
+    def _harvest_vnetworks(self, Session):
+        """
+        Harvest the EIDA node's <vnetwork></vnetwork> information.
+
+        :param :cls:`sqlalchemy.orm.session.Session` Session: A configured
+        Session class reference.
+        """
+        for node_name, node_par in node_generator(
+                exclude=self.args.nodes_exclude):
+            url_vnet_config = (
+                node_par['services']['eida']['routing']['server'] +
+                node_par['services']['eida']['routing']\
+                        ['uri_path_config_vnet'])
+
+            self.logger.info(
+                'Processing vnetworks from EIDA node %r.' % node_name)
+            try:
+                # harvest virtual network configuration
+                h = VNetHarvester(node_name, url_vnet_config)
+                session=Session()
+                # XXX(damb): Maintain sessions within the scope of a
+                # harvesting process.
+                h.configure(session)
+
+                with db.session_guard(session) as _session:
+                    h.harvest(_session)
+
+            except RequestsError as err:
+                self.logger.warning(str(err))
+
+    # _harvest_vnetworks ()
+
 # class StationLiteHarvestApp
+
 
 # ----------------------------------------------------------------------------
 def main():

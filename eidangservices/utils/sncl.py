@@ -60,6 +60,19 @@ def none_as_max(endtime):
 # none_as_max ()
 
 @contextlib.contextmanager
+def none_as_now(endtime, now=datetime.datetime.utcnow()):
+    """
+    Use ``datetime.datetime.max`` instead of ``None``.
+    """
+    # convert endtime to datetime.datetime.max if None
+    end = endtime
+    if end is None:
+        end = now
+    yield end
+
+# none_as_now ()
+
+@contextlib.contextmanager
 def max_as_none(endtime):
     """
     Convert ``datetime.datetime.max`` to ``None``.
@@ -70,6 +83,18 @@ def max_as_none(endtime):
     yield end
 
 # max_as_none ()
+
+@contextlib.contextmanager
+def max_as_empty(endtime):
+    """
+    Convert ``datetime.datetime.max`` to ``None``.
+    """
+    end = endtime
+    if end == datetime.datetime.max:
+        end = ''
+    yield end
+
+# max_as_empty ()
 
 def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
                             like_escape='/'):
@@ -170,6 +195,15 @@ class StreamEpoch(namedtuple('StreamEpoch',
                                  channel=channel),
                    starttime=starttime,
                    endtime=endtime)
+    
+    @classmethod
+    def from_orm(cls, stream_epoch):
+        return cls(stream=Stream(network=stream_epoch.network.name,
+                                 station=stream_epoch.station.name,
+                                 location=stream_epoch.location,
+                                 channel=stream_epoch.channel),
+                   starttime=stream_epoch.starttime,
+                   endtime=stream_epoch.endtime)
 
     def id(self, sep='.'):
         return self.stream.id(sep=sep)
@@ -245,7 +279,9 @@ class StreamEpoch(namedtuple('StreamEpoch',
                 (self.stream, self.starttime, self.endtime))
 
     def __str__(self):
-        return '%s %s %s' % (str(self.stream), self.starttime, self.endtime)
+        se_schema = eidangws.utils.schema.StreamEpochSchema()
+        stream_epoch = se_schema.dump(self)
+        return ' '.join(stream_epoch.values())
 
 # class StreamEpoch
 
@@ -348,6 +384,32 @@ class StreamEpochs(object):
 
     # fdsnws_to_sql_wildcards ()
 
+    def modify_with_temporal_constraints(self, start=None, end=None):
+        """
+        modify epochs by performing a real intersection
+        """
+        # perform a real intersection i.e.
+        # ------..----..--------
+        #           +
+        #    ---------------
+        #           =
+        #    ---..----..----
+        _start = start
+        _end = end
+
+        if _start is None:
+            _start = self.epochs.begin()
+        if _end is None:
+            _end = self.epochs.end()
+
+        # slice at new boundaries
+        self.epochs.slice(_start)
+        self.epochs.slice(_end)
+        # search and assign the overlap
+        self.epochs = Epochs(sorted(self.epochs.search(_start, _end)))
+
+    # modify_with_temporal_constraints ()
+
     @property
     def network(self):
         return self._stream.network
@@ -416,7 +478,7 @@ class StreamEpochs(object):
 
     def __str__(self):
         se_schema = eidangws.utils.schema.StreamEpochSchema(many=True)
-        stream_epochs = se_schema.dump(list(self)).data
+        stream_epochs = se_schema.dump(list(self))
         return '\n'.join([' '.join(stream_epoch.values())
                          for stream_epoch in stream_epochs])
 
@@ -448,20 +510,12 @@ class StreamEpochsHandler(object):
         #           =
         #    ---..----..----
         for stream_id, epochs in self.d.items():
+            se = StreamEpochs.from_stream(
+                Stream(**self.__stream_id_to_dict(stream_id)),
+                epochs=epochs)
+            se.modify_with_temporal_constraints(start, end)
 
-            _start = start
-            _end = end
-
-            if _start is None:
-                _start = epochs.begin()
-            if _end is None:
-                _end = epochs.end()
-
-            # slice at new boundaries
-            epochs.slice(_start)
-            epochs.slice(_end)
-            # search and assign the overlap
-            self.d[stream_id] = Epochs(sorted(epochs.search(_start, _end)))
+            self.d[se.id()] = se.epochs
 
     # modify_with_temporal_constraints ()
 

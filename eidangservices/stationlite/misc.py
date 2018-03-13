@@ -29,31 +29,34 @@
 This file is part of the EIDA mediator/federator webservices.
 
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-from flask import current_app, g, make_response
+from builtins import * # noqa
 
-from eidangservices.stationlite.engine import db
+import argparse
+import contextlib
+import io
+
+import requests
+
+from flask import make_response
+
+from sqlalchemy import create_engine
+
+import eidangservices as eidangws
+from eidangservices import settings
+from eidangservices.utils.error import Error
 
 
 # -----------------------------------------------------------------------------
-def get_db():
-    """
-    Opens a new database connection if there is none yet for the
-    current application context.
-    """
+class RequestsError(Error):
+    """Base request error ({})."""
 
-    if not hasattr(g, 'db_connection'):
+class ResponseCodeNot200(RequestsError):
+    """Response code not OK ({})."""
 
-        g.db_engine, g.db_connection = db.get_engine_and_connection(
-            current_app.config['SQLALCHEMY_DATABASE_URI'])
-
-        g.db_tables = db.get_db_tables(g.db_engine)
-
-    return g.db_engine, g.db_connection, g.db_tables
-
-# get_db ()
-
-
+# -----------------------------------------------------------------------------
 def get_response(output, mimetype):
     """Return Response object for output and mimetype."""
 
@@ -62,5 +65,58 @@ def get_response(output, mimetype):
     return response
 
 # get_response ()
+
+def db_engine(url):
+    """
+    check if url is a valid url
+    """
+    try:
+        return create_engine(url)
+    except Exception:
+        raise argparse.ArgumentTypeError('Invalid database URL.')
+
+# db_engine ()
+
+@contextlib.contextmanager
+def binary_stream_request(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        if response.status_code != 200:
+            raise ResponseCodeNot200(response.status_code)
+
+        yield io.BytesIO(response.content)
+
+    except requests.exceptions.RequestException as err:
+        raise RequestsError(err)
+
+# binary_stream_request ()
+
+def node_generator(exclude=[]):
+
+    nodes = list(settings.EIDA_NODES)
+
+    for node in nodes:
+        if node not in exclude:
+            yield node, settings.EIDA_NODES[node]
+
+# node_generator ()
+
+# -----------------------------------------------------------------------------
+class RoutingContext:
+    """
+    Context wrapper object for StreamEpoch/StreamEpochs classes.
+    """
+
+    def __init__(self, stream_epoch):
+        self._stream_epoch = stream_epoch
+
+    def __str__(self):
+        se_schema = eidangws.utils.schema.StreamEpochSchema(
+            context={'routing': True})
+        return ' '.join(se_schema.dump(self._stream_epoch).values())
+
+# class RoutingContext
 
 # ---- END OF <misc.py> ----

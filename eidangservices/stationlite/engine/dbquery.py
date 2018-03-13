@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # This is <dbquery.py>
@@ -35,22 +34,86 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import collections
+import contextlib
 import datetime
 import logging
 
-from sqlalchemy import select
-
 from eidangservices import utils
-from eidangservices.utils.sncl import StreamEpochs, StreamEpochsHandler
+from eidangservices.utils.sncl import (StreamEpochs, StreamEpochsHandler,
+                                       none_as_max)
+
+from eidangservices.stationlite.engine import orm
 
 logger = logging.getLogger('flask.app.stationlite.dbquery')
 
 # ----------------------------------------------------------------------------
-def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
+@contextlib.contextmanager
+def vnetwork(session, stream_epoch, like_escape='/'):
+    yield resolve_vnetwork(session, stream_epoch, like_escape)
+
+def resolve_vnetwork(session, stream_epoch, like_escape='/'):
+    """
+    Resolve a stream epoch regarding virtual networks.
+
+    :returns: List of :cls:`eidangservices.utils.sncl.StreamEpoch` object
+    instances.
+    :rtype: list
+    """
+    _stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
+    logger.debug(
+        '(VNET) Processing request for (SQL) {0!r}'.format(stream_epoch))
+
+    query = session.query(orm.StreamEpoch).\
+        join(orm.StreamEpochGroup).\
+        join(orm.Station).\
+        filter(orm.StreamEpochGroup.name.like(_stream_epoch.network,
+                                              escape=like_escape)).\
+        filter(orm.Station.name.like(_stream_epoch.station,
+                                     escape=like_escape)).\
+        filter(orm.StreamEpoch.channel.like(_stream_epoch.channel,
+                                            escape=like_escape)).\
+        filter(orm.StreamEpoch.location.like(_stream_epoch.location,
+                                             escape=like_escape))
+
+    if _stream_epoch.starttime:
+        # NOTE(damb): compare to None for undefined endtime (i.e. instrument
+        # currently operating)
+        query = query.\
+            filter((orm.StreamEpoch.endtime > _stream_epoch.starttime) |
+                   (orm.StreamEpoch.endtime == None))  # noqa
+    if _stream_epoch.endtime:
+        query = query.\
+            filter(orm.StreamEpoch.starttime < _stream_epoch.endtime)
+
+    # slice the stream epoch
+    sliced_ses = []
+    for s in query.all():
+        #print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
+        with none_as_max(s.endtime) as end:
+            se = StreamEpochs(
+                network=s.network.name,
+                station=s.station.name,
+                location=s.location,
+                channel=s.channel,
+                epochs=[(s.starttime, end)])
+            se.modify_with_temporal_constraints(start=_stream_epoch.starttime,
+                                                end=_stream_epoch.endtime)
+            sliced_ses.append(se)
+
+    logger.debug(
+        'Found {0!r} matching {0!r}'.format(sorted(sliced_ses),
+                                            stream_epoch))
+
+    return [se for ses in sliced_ses for se in ses]
+
+# resolve_vnetwork ()
+
+def find_streamepochs_and_routes(session, stream_epoch, service,
                                  like_escape='/'):
     """
     Return routes for a given stream epoch.
 
+    :param :cls:``
     :param :py:class:`sncl.StreamEpoch`: StreamEpoch the database query is
     performed with
     :param str service: String specifying the webservice
@@ -59,72 +122,62 @@ def find_streamepochs_and_routes(connection, tables, stream_epoch, service,
     :returns: List of :py:class:`utils.Route` objects
     :rtype list:
     """
-    tn = tables['network']
-    ts = tables['station']
-    tc = tables['channel']
-    tr = tables['routing']
-    te = tables['endpoint']
-    tsv = tables['service']
+    logger.debug('Processing request for (SQL) {0!r}'.format(stream_epoch))
+    _stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
 
-    conj = (tn.c.name.like(stream_epoch.network, escape=like_escape) &
-            ts.c.name.like(stream_epoch.station, escape=like_escape) &
-            tc.c.locationcode.like(stream_epoch.location, escape=like_escape) &
-            tc.c.code.like(stream_epoch.channel, escape=like_escape) &
-            (tc.c.network_ref == tn.c.oid) &
-            (tc.c.station_ref == ts.c.oid) &
-            (tr.c.channel_ref == tc.c.oid) &
-            (tr.c.endpoint_ref == te.c.oid) &
-            (te.c.service_ref == tsv.c.oid) &
-            (service == tsv.c.name))
+    query = session.query(orm.ChannelEpoch.channel,
+                          orm.ChannelEpoch.locationcode,
+                          orm.Network.name,
+                          orm.Station.name,
+                          orm.Routing.starttime,
+                          orm.Routing.endtime,
+                          orm.Endpoint.url).\
+        join(orm.Routing).\
+        join(orm.Endpoint).\
+        join(orm.Service).\
+        filter((orm.Routing.channel_epoch_ref == orm.ChannelEpoch.oid) &
+               (orm.Routing.endpoint_ref == orm.Endpoint.oid)).\
+        filter(orm.Network.name.like(_stream_epoch.network,
+                                     escape=like_escape)).\
+        filter(orm.Station.name.like(_stream_epoch.station,
+                                     escape=like_escape)).\
+        filter(orm.ChannelEpoch.channel.like(_stream_epoch.channel,
+                                             escape=like_escape)).\
+        filter(orm.ChannelEpoch.locationcode.like(_stream_epoch.location,
+                                                  escape=like_escape)).\
+        filter(orm.Service.name == service)
 
-    if stream_epoch.starttime:
+    if _stream_epoch.starttime:
         # NOTE(damb): compare to None for undefined endtime (i.e. device
         # currently operating)
-        conj &= ((stream_epoch.starttime < tr.c.endtime) |
-                 (tr.c.endtime is None))
-    if stream_epoch.endtime:
-        conj &= (stream_epoch.endtime > tr.c.starttime)
-
-    s = select([
-        tn.c.name, ts.c.name, tc.c.locationcode, tc.c.code,
-        tr.c.starttime, tr.c.endtime, te.c.url]).where(conj)
-
-    rp = connection.execute(s).fetchall()
+        query = query.\
+            filter((orm.ChannelEpoch.endtime > _stream_epoch.starttime) |
+                   (orm.ChannelEpoch.endtime == None))  # noqa
+    if _stream_epoch.endtime:
+        query = query.\
+            filter(orm.ChannelEpoch.starttime < _stream_epoch.endtime)
 
     now = datetime.datetime.utcnow()
     routes = collections.defaultdict(StreamEpochsHandler)
 
-    for row in rp:
-        #print('Query response: %r' % row)
+    for row in query.all():
+        print('Query response: {0!r}'.format(row))
         # NOTE(damb): Set endtime to 'now' if undefined (i.e. device currently
         # acquiring data).
-        endtime = row[tr.c.endtime]
-        if endtime is None:
-            endtime = now
+        with none_as_max(row[5]) as end:
+            stream_epochs = StreamEpochs(
+                network=row[2],
+                station=row[3],
+                location=row[1],
+                channel=row[0],
+                epochs=[(row[4], end)])
 
-        stream_epochs = StreamEpochs(network=row[tn.c.name],
-                                     station=row[ts.c.name],
-                                     location=row[tc.c.locationcode],
-                                     channel=row[tc.c.code],
-                                     epochs=[(row[tr.c.starttime], endtime)])
-
-        routes[row[te.c.url]].merge([stream_epochs])
+            routes[row[6]].merge([stream_epochs])
 
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]
 
 # find_streamepochs_and_routes ()
 
-
-def find_networks(connection, tables):
-
-    tn = tables['network']
-
-    s = select([tn.c.name])
-
-    rp = connection.execute(s)
-    r = rp.fetchall()
-
-    return [x[0] for x in r]
 
 # ---- END OF <dbquery.py> ----

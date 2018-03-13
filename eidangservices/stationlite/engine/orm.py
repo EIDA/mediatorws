@@ -34,11 +34,9 @@ from builtins import * # noqa
 import datetime
 
 from sqlalchemy import (Column, Integer, Float, String, Unicode, DateTime,
-                        ForeignKey, Boolean, Table)
-from sqlalchemy.ext.declarative import declarative_base
+                        ForeignKey, Table)
+from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.orm import relationship
-
-ORMBase = declarative_base()
 
 # -----------------------------------------------------------------------------
 LENGTH_CHANNEL_CODE = 3
@@ -48,46 +46,49 @@ LENGTH_STD_CODE = 32
 LENGTH_URL = 256
 
 # -----------------------------------------------------------------------------
-node_service_relation = Table(
-    'node_service_relation', ORMBase.metadata,
-    Column('node_ref', Integer, ForeignKey('services.oid')),
-    Column('service_ref', Integer, ForeignKey('nodes.oid')))
+class Base(object):
 
-vnet_relation_epoch_relation = Table(
-    'vnet_relation_epoch_relation', ORMBase.metadata,
-    Column(
-        'vnet_relation_ref',
-        Integer,
-        ForeignKey('channelepoch_network_relation.oid')),
-    Column('epoch_ref', Integer, ForeignKey('epochs.oid')))
-
-
-class Epoch(ORMBase):
-    __tablename__ = 'epochs'
+    @declared_attr
+    def __tablename__(cls):
+        return cls.__name__.lower()
 
     oid = Column(Integer, primary_key=True)
-    starttime = Column(DateTime, nullable=False, index=True)
-    endtime = Column(DateTime, index=True)
 
-    # Many to Many: ChannelEpochNetworkRelation<->Epoch
-    vnet_relations = relationship('ChannelEpochNetworkRelation',
-                                  secondary=vnet_relation_epoch_relation,
-                                  back_populates='epochs')
+# class Base
 
-    def _as_datetime_tuple(self):
-        return (self.starttime,
-                datetime.datetime.max if self.endtime is None else \
-                self.endtime)
+class EpochMixin(object):
 
-    def __repr__(self):
-        return '<Epoch(start=%r, end=%r)>' % (self.starttime,
-                                              self.endtime)
+    @declared_attr
+    def starttime(cls):
+       return Column(DateTime, nullable=False, index=True)
 
-# class Epoch
+    @declared_attr
+    def endtime(cls):
+        return Column(DateTime, index=True)
+
+# class EpochMixin
+
+
+class LastSeenMixin(object):
+
+    @declared_attr
+    def lastseen(cls):
+        return Column(DateTime, default=datetime.datetime.utcnow,
+                      onupdate=datetime.datetime.utcnow)
+
+# class LastSeenMixin
+
+
+# -----------------------------------------------------------------------------
+ORMBase = declarative_base(cls=Base)
+
+node_service_relation = Table(
+    'node_service_relation', ORMBase.metadata,
+    Column('node_ref', Integer, ForeignKey('service.oid')),
+    Column('service_ref', Integer, ForeignKey('node.oid')))
 
 
 class Node(ORMBase):
-    __tablename__ = 'nodes'
 
     oid = Column(Integer, primary_key=True)
     name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
@@ -105,16 +106,11 @@ class Node(ORMBase):
 # class Node
 
 
-class NodeNetworkInventory(ORMBase):
-    __tablename__ = 'node_network_inventory'
+class NodeNetworkInventory(LastSeenMixin, ORMBase):
 
     # association object pattern
-    node_ref = Column(Integer, ForeignKey('nodes.oid'),
-                      primary_key=True)
-    network_ref = Column(Integer, ForeignKey('networks.oid'),
-                         primary_key=True)
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
+    node_ref = Column(Integer, ForeignKey('node.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'))
 
     node = relationship('Node', back_populates='networks')
     network = relationship('Network', back_populates='nodes')
@@ -123,146 +119,104 @@ class NodeNetworkInventory(ORMBase):
 
 
 class Network(ORMBase):
-    __tablename__ = 'networks'
 
-    oid = Column(Integer, primary_key=True)
     name = Column(String(LENGTH_STD_CODE), nullable=False, index=True)
-    is_virtual = Column(Boolean, default=False)
 
     network_epochs = relationship('NetworkEpoch', back_populates='network')
     nodes = relationship('NodeNetworkInventory', back_populates='network')
-    # many to many ChannelEpoch<->Network
-    channel_epochs = relationship('ChannelEpochNetworkRelation',
+    channel_epochs = relationship('ChannelEpoch',
                                   back_populates='network')
+    stream_epochs = relationship('StreamEpoch', back_populates='network')
 
     def __repr__(self):
-        return '<Network(name=%s, is_virtual=%s)>' % (self.name,
-                                                      self.is_virtual)
+        return '<Network(code=%s)>' % self.name
 
 # class Network
 
 
-class NetworkEpoch(ORMBase):
-    __tablename__ = 'networkepochs'
+class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    oid = Column(Integer, primary_key=True)
-    network_ref = Column(Integer, ForeignKey('networks.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'))
     description = Column(Unicode(LENGTH_DESCRIPTION))
-    starttime = Column(DateTime, index=True)
-    endtime = Column(DateTime, index=True)
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
 
     network = relationship('Network', back_populates='network_epochs')
 
 # class NetworkEpoch
 
 
-class ChannelEpochNetworkRelation(ORMBase):
-    # association object pattern
-    __tablename__ = 'channelepoch_network_relation'
+class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    oid = Column(Integer, primary_key=True)
-    channel_epoch_ref = Column(Integer, ForeignKey('channelepochs.oid'))
-    network_ref = Column(Integer, ForeignKey('networks.oid'))
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
-
-    # Many to Many: ChannelEpochNetworkRelation<->Epoch
-    epochs = relationship('Epoch',
-                          secondary=vnet_relation_epoch_relation,
-                          back_populates='vnet_relations')
-
-    channel_epoch = relationship('ChannelEpoch', back_populates='networks')
-    network = relationship('Network', back_populates='channel_epochs')
-
-# ChannelEpochNetworkRelation
-
-
-class ChannelEpoch(ORMBase):
-    __tablename__ = 'channelepochs'
-
-    oid = Column(Integer, primary_key=True)
-    station_ref = Column(Integer, ForeignKey('stations.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'))
+    station_ref = Column(Integer, ForeignKey('station.oid'))
     channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
                      index=True)
     locationcode = Column(String(LENGTH_LOCATION_CODE), nullable=False,
                           index=True)
-    starttime = Column(DateTime, nullable=False, index=True)
-    endtime = Column(DateTime, index=True)
-    longitude = Column(Float, nullable=False, index=True)
-    latitude = Column(Float, nullable=False, index=True)
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
 
+    network = relationship('Network',
+                           back_populates='channel_epochs')
     station = relationship('Station',
                            back_populates='channel_epochs')
 
     # many to many ChannelEpoch<->Endpoint
     endpoints = relationship('Routing', back_populates='channel_epoch')
 
-    # many to many ChannelEpoch<->Network
-    networks = relationship('ChannelEpochNetworkRelation',
-                            back_populates='channel_epoch')
+    def __repr__(self):
+        return ('<ChannelEpoch(code=%r, location_code=%r, starttime=%r, '
+                'endtime=%r)>' %
+                (self.channel, self.locationcode, self.starttime,
+                 self.endtime))
 
 # class ChannelEpoch
 
 
 class Station(ORMBase):
-    __tablename__ = 'stations'
 
-    oid = Column(Integer, primary_key=True)
     name = Column(String(LENGTH_STD_CODE), nullable=False, index=True)
 
     station_epochs = relationship('StationEpoch', back_populates='station')
 
     channel_epochs = relationship('ChannelEpoch', back_populates='station')
+    stream_epochs = relationship('StreamEpoch', back_populates='station')
+
+    def __repr__(self):
+        return '<Station(code=%s)>' % self.name
 
 # class Station
 
 
-class StationEpoch(ORMBase):
-    __tablename__ = 'stationepochs'
+class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    oid = Column(Integer, primary_key=True)
-    station_ref = Column(Integer, ForeignKey('stations.oid'))
+    station_ref = Column(Integer, ForeignKey('station.oid'))
     description = Column(Unicode(LENGTH_DESCRIPTION))
     longitude = Column(Float, nullable=False, index=True)
     latitude = Column(Float, nullable=False, index=True)
-    starttime = Column(DateTime, index=True)
-    endtime = Column(DateTime, index=True)
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
 
     station = relationship('Station', back_populates='station_epochs')
 
 # class StationEpoch
 
 
-class Routing(ORMBase):
+class Routing(EpochMixin, LastSeenMixin, ORMBase):
     # association object pattern
     __tablename__ = 'routings'
 
-    channel_epoch_ref = Column(Integer, ForeignKey('channelepochs.oid'),
-                               primary_key=True)
-    endpoint_ref = Column(Integer, ForeignKey('endpoints.oid'),
-                          primary_key=True)
-    starttime = Column(DateTime, index=True)
-    endtime = Column(DateTime, index=True)
-    lastseen = Column(DateTime, default=datetime.datetime.utcnow,
-                      onupdate=datetime.datetime.utcnow)
+    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'))
+    endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'))
 
     channel_epoch = relationship('ChannelEpoch', back_populates='endpoints')
     endpoint = relationship('Endpoint', back_populates='channel_epochs')
+
+    def __repr__(self):
+        return ('<Routing(url=%s, starttime=%r, endtime=%r)>' %
+                (self.endpoint.url, self.starttime, self.endtime))
 
 # class Routing
 
 
 class Endpoint(ORMBase):
-    __tablename__ = 'endpoints'
 
-    oid = Column(Integer, primary_key=True)
-    service_ref = Column(Integer, ForeignKey('services.oid'))
+    service_ref = Column(Integer, ForeignKey('service.oid'))
     url = Column(String(LENGTH_URL), nullable=False)
 
     # many to many ChannelEpoch<->Endpoint
@@ -277,9 +231,7 @@ class Endpoint(ORMBase):
 
 
 class Service(ORMBase):
-    __tablename__ = 'services'
 
-    oid = Column(Integer, primary_key=True)
     name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
     standard = Column(String(LENGTH_STD_CODE), nullable=False)
 
@@ -293,6 +245,47 @@ class Service(ORMBase):
         return '<Service(name=%s, standard=%s)>' % (self.name, self.standard)
 
 # class Service
+
+
+class StreamEpochGroup(ORMBase):
+
+    name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
+
+    stream_epochs = relationship('StreamEpoch',
+                                 back_populates='stream_epoch_group')
+
+    def __repr__(self):
+        return '<StreamEpochGroup(code=%s)>' % self.name
+
+# class StreamEpochGroup
+
+# TODO(damb): Find a way to map sncl.StreamEpoch to orm.StreamEpoch more
+# elegantly
+class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
+
+    network_ref = Column(Integer, ForeignKey('network.oid'))
+    station_ref = Column(Integer, ForeignKey('station.oid'))
+    stream_epoch_group_ref = Column(Integer,
+                                    ForeignKey('streamepochgroup.oid'))
+    channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
+                     index=True)
+    location = Column(String(LENGTH_LOCATION_CODE), nullable=False,
+                      index=True)
+
+    station = relationship('Station',
+                           back_populates='stream_epochs')
+    network = relationship('Network',
+                           back_populates='stream_epochs')
+    stream_epoch_group = relationship('StreamEpochGroup',
+                                      back_populates='stream_epochs')
+
+    def __repr__(self):
+        return ('<StreamEpoch(network=%r, station=%r, channel=%r, '
+                'location=%r, starttime=%r, endtime=%r)>' %
+                (self.network, self.station, self.channel, self.location,
+                 self.starttime, self.endtime))
+
+# class StreamEpoch
 
 
 # ---- END OF <orm.py> ----

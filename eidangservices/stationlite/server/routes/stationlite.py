@@ -28,6 +28,11 @@
 """
 Implementation of a *StationLite* resource.
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
+
 import collections
 import logging
 
@@ -40,9 +45,10 @@ from eidangservices import settings, utils
 from eidangservices.utils import httperrors
 from eidangservices.utils.sncl import StreamEpochsHandler
 
-from eidangservices.stationlite.engine import dbquery
-from eidangservices.stationlite.server import schema
 from eidangservices.stationlite import misc
+from eidangservices.stationlite.engine import dbquery
+from eidangservices.stationlite.server import db
+from eidangservices.stationlite.server import schema
 
 
 class StationLiteResource(Resource):
@@ -67,7 +73,7 @@ class StationLiteResource(Resource):
         Process a *StationLite* GET request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
+        self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
         response = self._process_request(args, stream_epochs)
         if not response:
@@ -88,7 +94,7 @@ class StationLiteResource(Resource):
         Process a *StationLite* POST request.
         """
         self.logger.debug('StationLiteSchema: %s' % args)
-        self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
+        self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
         response = self._process_request(args, stream_epochs)
         if not response:
@@ -99,20 +105,23 @@ class StationLiteResource(Resource):
     # post ()
 
     def _process_request(self, args, stream_epochs):
+        # resolve virtual network streamepochs
+        vnet_stream_epochs = []
+        for stream_epoch in stream_epochs:
+            self.logger.debug(
+                'Resolving {0!r} regarding VNET.'.format(stream_epoch))
+            vnet_stream_epochs.extend(
+                dbquery.resolve_vnetwork(db.session, stream_epoch))
 
-        db_engine, db_connection, db_tables = misc.get_db()
+        stream_epochs.extend(vnet_stream_epochs)
 
         # collect results for each stream epoch
         routes = []
         for stream_epoch in stream_epochs:
             self.logger.debug('Processing request for %r' % (stream_epoch,))
-
-            stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
-            self.logger.debug('Processing request for (SQL) %r' %
-                              (stream_epoch,))
             # query
             _routes = dbquery.find_streamepochs_and_routes(
-                db_connection, db_tables, stream_epoch, args['service'])
+                db.session, stream_epoch, args['service'])
 
             # adjust stream_epoch regarding time_constraints
             for url, streams in _routes:
@@ -131,6 +140,9 @@ class StationLiteResource(Resource):
 
         self.logger.debug('StationLite routes (merged): %r' % merged_routes)
 
+        for url, stream_epochs in merged_routes.items():
+            merged_routes[url] = [se for ses in stream_epochs for se in ses]
+
         # sort response
         routes = [utils.Route(url=url,
                               streams=sorted(stream_epochs))
@@ -139,9 +151,13 @@ class StationLiteResource(Resource):
         routes.sort()
 
         # convert the result to EIDAWS routing POST format
-        response = '\n\n'.join(
-            url+'\n'+'\n'.join(str(stream_epoch) for stream_epoch in
-                               stream_epochs) for url, stream_epochs in routes)
+        response=''
+        for url, stream_epoch_lst in routes:
+            if response:
+                response += '\n\n'
+            response += url + '\n' + '\n'.join(str(misc.RoutingContext(se)) for se in
+                                               stream_epoch_lst)
+
         if response:
             response += '\n'
 
