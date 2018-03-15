@@ -58,7 +58,7 @@ class DataselectResource(general_request.GeneralResource):
 
         # serialize objects
         s = schema.DataselectSchema()
-        args = s.dump(args).data
+        args = s.dump(args)
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
@@ -81,7 +81,7 @@ class DataselectResource(general_request.GeneralResource):
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         s = schema.DataselectSchema()
-        args = s.dump(args).data
+        args = s.dump(args)
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         return self._process_request(args, stream_epochs,

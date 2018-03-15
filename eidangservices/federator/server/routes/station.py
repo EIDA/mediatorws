@@ -55,7 +55,7 @@ class StationResource(general_request.GeneralResource):
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         s = schema.StationSchema()
-        station_args = s.dump(station_args).data
+        station_args = s.dump(station_args)
         self.logger.debug('StationSchema (serialized): %s' % station_args)
 
         # process request
@@ -78,7 +78,7 @@ class StationResource(general_request.GeneralResource):
 
         # serialize objects
         s = schema.StationSchema()
-        station_args = s.dump(station_args).data
+        station_args = s.dump(station_args)
         self.logger.debug('StationSchema (serialized): %s' % station_args)
 
         return self._process_request(station_args, stream_epochs,

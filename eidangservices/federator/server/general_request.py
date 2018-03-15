@@ -78,7 +78,7 @@ class GeneralResource(Resource):
         postdata = None
         se_schema = eidangws.utils.schema.StreamEpochSchema(
             many=True, context={'request': request})
-        stream_epochs = se_schema.dump(stream_epochs).data
+        stream_epochs = se_schema.dump(stream_epochs)
         self.logger.debug('StreamEpochs (serialized): %s' % stream_epochs)
 
         if post:

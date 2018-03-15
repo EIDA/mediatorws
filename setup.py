@@ -63,9 +63,9 @@ _deps = [
     # 'mock:python_version<"3.3"',
     'future>=0.16.0',
     'intervaltree>=2.1',
-    'marshmallow==3.0.0b4',
+    'marshmallow==3.0.0b7',
     'python-dateutil>=2.6.1',
-    'webargs>=1.8.1', ]
+    'webargs==2.0.0', ]
 
 _test_deps = ['pytest']
 if sys.version_info[:2] < (3, 3):
@@ -105,9 +105,9 @@ if 'federator' == subsys:
         # 'mock:python_version<"3.3"',
         'future>=0.16.0',
         'intervaltree>=2.1',
-        'marshmallow==3.0.0b4',
+        'marshmallow==3.0.0b7',
         'python-dateutil>=2.6.1',
-        'webargs>=1.8.1', ]
+        'webargs==2.0.0', ]
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
@@ -139,10 +139,10 @@ elif 'stationlite' == subsys:
         'Flask-SQLAlchemy>=2.3.2',
         'future>=0.16.0',
         'intervaltree>=2.1',
-        'marshmallow==3.0.0b4',
+        'marshmallow==3.0.0b7',
         'python-dateutil>=2.6.1',
         'requests>=2.18.4',
-        'webargs>=1.8.1', ]
+        'webargs==2.0.0', ]
 
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
 

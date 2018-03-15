@@ -111,17 +111,17 @@ class FDSNWSParser(FlaskParser):
                 if val:
                     if not raw:
                         return val.split(
-                                    settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR)
+                            settings.FDSNWS_QUERY_LIST_SEPARATOR_CHAR)
                     return val
             return None
 
         # _get_values ()
 
         # preprocess the req.args multidict regarding SNCL parameters
-        networks = _get_values(('net', 'networks')) or ['*']
-        stations = _get_values(('sta', 'stations')) or ['*']
-        locations = _get_values(('loc', 'locations')) or ['*']
-        channels = _get_values(('cha', 'channels')) or ['*']
+        networks = _get_values(('net', 'network')) or ['*']
+        stations = _get_values(('sta', 'station')) or ['*']
+        locations = _get_values(('loc', 'location')) or ['*']
+        channels = _get_values(('cha', 'channel')) or ['*']
 
         stream_epochs = []
         for prod in itertools.product(networks, stations, locations, channels):
@@ -165,7 +165,7 @@ class FDSNWSParser(FlaskParser):
 
         for line in req_buffer:
             check_param = line.split(
-                                settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
+                settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
             if len(check_param) == 2:
 
                 # add query params
@@ -176,13 +176,12 @@ class FDSNWSParser(FlaskParser):
                 stream_epoch = line.split()
                 if len(stream_epoch) == 6:
                     stream_epoch = {
-                            'net': stream_epoch[0],
-                            'sta': stream_epoch[1],
-                            'loc': stream_epoch[2],
-                            'cha': stream_epoch[3],
-                            'start': stream_epoch[4],
-                            'end': stream_epoch[5]
-                            }
+                        'net': stream_epoch[0],
+                        'sta': stream_epoch[1],
+                        'loc': stream_epoch[2],
+                        'cha': stream_epoch[3],
+                        'start': stream_epoch[4],
+                        'end': stream_epoch[5]}
                     param_dict['stream_epochs'].append(stream_epoch)
             else:
                 # self.logger.warn("Ignoring illegal POST line: %s" % line)
@@ -200,7 +199,7 @@ use_fdsnws_args = fdsnws_parser.use_args
 use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 
 # -----------------------------------------------------------------------------
-def get_version(namespace_pkg_name=None): #noqa
+def get_version(namespace_pkg_name=None):
     """
     fetch version string
 

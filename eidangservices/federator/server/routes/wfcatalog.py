@@ -76,7 +76,7 @@ class WFCatalogResource(general_request.GeneralResource):
 
         # serialize objects
         s = schema.WFCatalogSchema()
-        wfcatalog_args = s.dump(wfcatalog_args).data
+        wfcatalog_args = s.dump(wfcatalog_args)
         self.logger.debug('WFCatalogSchema (serialized): %s' %
                           wfcatalog_args)
 
@@ -105,7 +105,7 @@ class WFCatalogResource(general_request.GeneralResource):
 
         # serialize objects
         s = schema.WFCatalogSchema()
-        wfcatalog_args = s.dump(wfcatalog_args).data
+        wfcatalog_args = s.dump(wfcatalog_args)
         self.logger.debug('WFCatalogSchema (serialized): %s' % wfcatalog_args)
 
         return self._process_request(wfcatalog_args, stream_epochs,

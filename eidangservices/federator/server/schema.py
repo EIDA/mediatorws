@@ -36,7 +36,7 @@ from builtins import * # noqa
 import functools
 
 from marshmallow import (Schema, SchemaOpts, fields, validate, ValidationError,
-                         post_load, validates_schema)
+                         pre_load, post_load, validates_schema)
 
 from eidangservices import settings
 from eidangservices.utils.schema import (Percentage, NotEmptyString,
@@ -139,14 +139,20 @@ class StationSchema(ServiceSchema):
     endafter = FDSNWSDateTime(format='fdsnws')
 
     # geographic (rectangular spatial) options
-    minlatitude = Latitude(load_from='minlat')
-    maxlatitude = Latitude(load_from='maxlat')
-    minlongitude = Longitude(load_from='minlon')
-    maxlongitude = Longitude(load_from='maxlon')
+    minlatitude = Latitude()
+    minlat = Latitude(load_only=True)
+    maxlatitude = Latitude()
+    maxlat = Latitude(load_only=True)
+    minlongitude = Longitude()
+    minlon = Latitude(load_only=True)
+    maxlongitude = Longitude()
+    maxlon = Latitude(load_only=True)
 
     # geographic (circular spatial) options
-    latitude = Latitude(load_from='lat')
-    longitude = Longitude(load_from='lon')
+    latitude = Latitude()
+    lat = Latitude(load_only=True)
+    longitude = Longitude()
+    lon = Latitude(load_only=True)
     minradius = Radius()
     maxradius = Radius()
 
@@ -159,6 +165,31 @@ class StationSchema(ServiceSchema):
     includeavailability = FDSNWSBool(missing='false')
     updateafter = FDSNWSDateTime(format='fdsnws')
     matchtimeseries = FDSNWSBool(missing='false')
+
+    @pre_load
+    def merge_keys(self, data):
+        """
+        Merge alternative field parameter values.
+
+        .. note::
+            The default webargs parser does not provide this feature by
+            default such that `load_from` fields parameters are exclusively
+            parsed.
+        """
+        _mappings = [
+            ('minlat', 'minlatitude'),
+            ('maxlat', 'maxlatitude'),
+            ('minlon', 'minlongitude'),
+            ('maxlon', 'maxlongitude'),
+            ('lat', 'latitude'),
+            ('lon', 'longitude')]
+
+        for alt_key, key in _mappings:
+            if alt_key in data and key not in data:
+                data[key] = data[alt_key]
+                data.pop(alt_key)
+
+    # merge_keys ()
 
     @validates_schema
     def validate_spatial_params(self, data):
