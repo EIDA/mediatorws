@@ -26,10 +26,13 @@
 # 
 # port=PORT
 # ----
-# Set the routing service identifier. (default: gfz) (choices: gfz, odc, eth,
-# resif, ingv, bgr, lmu, ipgp, niep, koeri, noa)
+# Set the routing service url and identifier. (default:
+# http://geofon.gfz-potsdam.de/eidaws/routing/1/)
 #
-# routing=SERVICE_ID
+# For a complete list of routing services see:
+# https://www.orfeus-eu.org/data/eida/webservices/
+#
+# routing_url=SERVICE_URL/IDENTIFIER
 # ----
 # Set the routing/federating service request timeout in seconds. 
 #

@@ -166,9 +166,10 @@ def process_request(
         cred = {}
         authdata = None
 
+        # XXX(damb): Currently the /query part of the URL path is handled by
+        # route.RoutingURL
         url = route.RoutingURL(
-            urlparse.urlparse(
-                get_routing_url(current_app.config['ROUTING_SERVICE'])),
+            urlparse.urlparse(current_app.config['ROUTING_SERVICE']),
             query_params)
         dest = open(path_tempfile, 'wb')
 
@@ -194,27 +195,3 @@ def process_request(
         return None
 
 # process_request ()
-
-
-def get_routing_url(routing_service):
-    """
-    Utility function. Get routing URL for routing service abbreviation.
-
-    :param str routing_service: Routing service identifier
-    :return: URL of the EIDA routing service
-    :rtype: str
-
-    In case an unknown identifier was passed the URL of a default EIDA routing
-    service is returned.
-    """
-
-    try:
-        server = settings.EIDA_NODES[routing_service]['services']['eida']\
-            ['routing']['server']
-    except KeyError:
-        server = settings.EIDA_NODES[settings.DEFAULT_ROUTING_SERVICE]\
-            ['services']['eida']['routing']['server']
-
-    return "%s%s" % (server, settings.EIDA_ROUTING_PATH)
-
-# get_routing_url ()

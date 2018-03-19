@@ -38,8 +38,7 @@ import tempfile
 import unittest
 
 from eidangservices import settings
-from eidangservices.utils import ExitCodes
-from eidangservices.federator.server.app import build_parser
+from eidangservices.federator.server.app import FederatorWebservice
 
 try:
     import mock
@@ -49,7 +48,7 @@ except ImportError:
 # -----------------------------------------------------------------------------
 class CLITestCase(unittest.TestCase):
     def setUp(self):
-        self.parser = build_parser()
+        self.parser = FederatorWebservice().build_parser()
 
     def tearDown(self):
         self.parser = None
@@ -78,16 +77,13 @@ class CLITestCase(unittest.TestCase):
     @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_routing(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.routing, settings.DEFAULT_ROUTING_SERVICE)
-        args = self.parser.parse_args(['-R', 'eth'])
-        self.assertEqual(args.routing, 'eth')
-        args = self.parser.parse_args(['--routing', 'eth'])
-        self.assertEqual(args.routing, 'eth')
-        with self.assertRaises(SystemExit) as cm:
-            args = self.parser.parse_args(['--routing', 'hte'])
-            # NOTE(damb): Supress output with
-            # python -m unittest -b federator.tests.test_cli.CLITestCase
-        self.assertEqual(cm.exception.code, ExitCodes.EXIT_ERROR)
+        self.assertEqual(args.routing, settings.DEFAULT_ROUTING_URL)
+        args = self.parser.parse_args(
+            ['-R', 'http://eida.ethz.ch/eidaws/routing/1/'])
+        self.assertEqual(args.routing, 'http://eida.ethz.ch/eidaws/routing/1/')
+        args = self.parser.parse_args(
+            ['--routing-url', 'http://eida.ethz.ch/eidaws/routing/1/'])
+        self.assertEqual(args.routing, 'http://eida.ethz.ch/eidaws/routing/1/')
 
     # test_routing ()
 
@@ -147,22 +143,6 @@ class CLITestCase(unittest.TestCase):
         os.rmdir(path_tempdir)
 
     # test_tempdir ()
-
-    @mock.patch('sys.stderr', open(os.devnull, 'w'))
-    @mock.patch('sys.stderr', open(os.devnull, 'w'))
-    def test_logging_conf(self):
-        fd, path_logging_conf = tempfile.mkstemp()
-
-        args = self.parser.parse_args(['--logging-conf', path_logging_conf])
-        self.assertEqual(args.path_logging_conf, path_logging_conf)
-        # TODO
-        with self.assertRaises(SystemExit) as cm:
-            args = self.parser.parse_args(['--logging-conf', ''])
-        self.assertEqual(cm.exception.code, ExitCodes.EXIT_ERROR)
-
-        os.remove(path_logging_conf)
-
-    # test_logging_conf
 
 # class CLITestCase
 

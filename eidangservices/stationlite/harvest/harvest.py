@@ -502,6 +502,7 @@ class RoutingHarvester(Harvester):
         for cha_epoch in cha_epochs:
             _ = session.query(orm.Routing).\
                 filter(orm.Routing.channel_epoch == cha_epoch).delete()
+
             if session.delete(cha_epoch):
                 self.logger.debug(
                     'Removed {0!r} (matching query: {}).'.format(

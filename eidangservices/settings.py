@@ -494,6 +494,7 @@ FDSN_EVENT_SERVICES = {
 }
 
 DEFAULT_ROUTING_SERVICE = 'gfz'
+DEFAULT_ROUTING_URL = 'http://geofon.gfz-potsdam.de/eidaws/routing/1/'
 DEFAULT_EVENT_SERVICE = 'usgs'
 
 SERVER_NAME_MEDIATOR = 'EIDA Mediator (alpha)'
