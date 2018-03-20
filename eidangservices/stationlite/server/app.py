@@ -49,6 +49,8 @@ from eidangservices.stationlite.server import create_app
 from eidangservices.stationlite.engine import db, orm
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
+from eidangservices.stationlite.server.routes.misc import \
+    StationLiteVersionResource
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ErrorWithTraceback
 
@@ -150,10 +152,16 @@ class StationLiteWebservice(App):
             'DB': self.args.db,
             'SQLALCHEMY_DATABASE_URI':  "sqlite:///{}".format(self.args.db)
         }
+        # query method
         api.add_resource(
             StationLiteResource, "%s%s" %
             (settings.EIDA_ROUTING_PATH, settings.FDSN_QUERY_METHOD_TOKEN))
         
+        # version method
+        api.add_resource(StationLiteVersionResource, "%s%s" %
+                         (settings.EIDA_ROUTING_PATH,
+                          settings.FDSN_VERSION_METHOD_TOKEN))
+
         app = create_app(config_dict=app_config)
         api.init_app(app)
         return app
