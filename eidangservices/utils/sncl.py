@@ -37,7 +37,7 @@ import contextlib
 import datetime
 import functools
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 from intervaltree import IntervalTree
 
@@ -134,6 +134,8 @@ class Stream(namedtuple('Stream',
     """
     __slots__ = ()
 
+    FIELDS_SHORT = ('net', 'sta', 'loc', 'cha')
+
     def id(self, sep='.'):
         # TODO(damb): configure separator globally (i.e. in settings module)
         return sep.join([self.network, self.station, self.location,
@@ -152,6 +154,13 @@ class Stream(namedtuple('Stream',
                                station=kwargs.get('stationCode', '*'),
                                location=kwargs.get('locationCode', '*'),
                                channel=kwargs.get('streamCode', '*'))
+
+    def _asdict(self, short_keys=False):
+        """Return a new OrderedDict which maps field names to their values."""
+        fields = self.FIELDS_SHORT if short_keys else self._fields
+        return OrderedDict(zip(fields, self))
+
+    # _asdict ()
 
     def __eq__(self, other):
         return self.id() == other.id()
@@ -179,6 +188,8 @@ class StreamEpoch(namedtuple('StreamEpoch',
     """
 
     __slots__ = ()
+
+    FIELDS_SHORT = ('net', 'sta', 'loc', 'cha', 'start', 'end')
 
     def __new__(cls, stream, starttime=None, endtime=None):
         return super().__new__(cls,
@@ -236,6 +247,13 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     # fdsnws_to_sql_wildcards ()
 
+    def _asdict(self, short_keys=False):
+        """Return a new OrderedDict which maps field names to their values."""
+        fields = self.FIELDS_SHORT if short_keys else self._fields
+        return OrderedDict(zip(fields, self))
+
+    # _asdict ()
+
     @property
     def network(self):
         return self.stream.network
@@ -281,7 +299,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
     def __str__(self):
         se_schema = eidangws.utils.schema.StreamEpochSchema()
         stream_epoch = se_schema.dump(self)
-        return ' '.join(stream_epoch.values())
+        return ' '.join(str(v) for v in stream_epoch.values())
 
 # class StreamEpoch
 

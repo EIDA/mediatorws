@@ -11,6 +11,8 @@ import os
 
 # ----
 # general purpose constants
+PATH_VAR_RUN = '/var/run/'
+PATH_VAR_TMP = '/var/tmp/'
 PATH_LOCKDIR = '/var/lock/mediatorws/'
 PATH_EIDANGWS_CONF = '/var/www/mediatorws/config/eidangws_config'
 
@@ -291,10 +293,13 @@ EIDA_NODES = {
                 'event': True},
             'eida': {
                 'routing': {
-                    'service': True,
-                    'server': 'http://eida-sc3.infp.ro',
-                    'uri_path_config': '/eidaws/routing/1/localconfig',
-                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
+                    'service': False,
+                    #'server': 'http://eida-sc3.infp.ro',
+                    #'uri_path_config': '/eidaws/routing/1/localconfig',
+                    #'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
+                    'server': 'http://eida-routing.infp.ro/',
+                    'uri_path_config': '/eidaws/routing/1/routing.xml',
+                    'uri_path_config_vnet': '/eidaws/routing/1/routing.xml',
                     'static_file': ''},
                 'wfcatalog': {
                     'url': '',
@@ -547,6 +552,8 @@ EIDA_STATIONLITE_VERSION = '0.9.1'
 
 # ----
 EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
+EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
+    os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
 # ----
 IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'
 IRIS_FDSNWS_PORT = 80

@@ -67,8 +67,7 @@ _entry_points['console_scripts'].append(
 
 _includes = ('*')
 # XXX(damb): Take care for possible dependency conflicts.
-_deps_federator = [
-    'fasteners>=0.14.1',
+_deps_all = [
     'Flask>=0.12.2',
     'Flask-RESTful>=0.3.6',
     # TODO(damb): Seems not to work for Python 2.7
@@ -78,17 +77,15 @@ _deps_federator = [
     'marshmallow==3.0.0b7',
     'python-dateutil>=2.6.1',
     'webargs==2.0.0', ]
-_deps_stationlite = [
-    'Flask>=0.12.2',
-    'Flask-RESTful>=0.3.6',
+_deps_federator = _deps_all + [
+    'fasteners>=0.14.1', ]
+_deps_stationlite = _deps_all + [
+    'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
-    'future>=0.16.0',
-    'intervaltree>=2.1',
-    'marshmallow==3.0.0b7',
-    'python-dateutil>=2.6.1',
+    'obspy>=1.1.0',
+    'lxml>=4.2.0',
     'SQLAlchemy>=1.2.0',
-    'requests>=2.18.4',
-    'webargs==2.0.0', ]
+    'requests>=2.18.4', ]
 _deps = _deps_federator
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))

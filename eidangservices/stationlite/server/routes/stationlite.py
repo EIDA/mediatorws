@@ -113,6 +113,9 @@ class StationLiteResource(Resource):
             vnet_stream_epochs.extend(
                 dbquery.resolve_vnetwork(db.session, stream_epoch))
 
+        self.logger.debug('Stream epochs from VNETs: '
+                          '{0!r}'.format(vnet_stream_epochs))
+
         stream_epochs.extend(vnet_stream_epochs)
 
         # collect results for each stream epoch
@@ -155,8 +158,8 @@ class StationLiteResource(Resource):
         for url, stream_epoch_lst in routes:
             if response:
                 response += '\n\n'
-            response += url + '\n' + '\n'.join(str(misc.RoutingContext(se)) for se in
-                                               stream_epoch_lst)
+            response += url + '\n' + '\n'.join(str(misc.RoutingContext(se))
+                                               for se in stream_epoch_lst)
 
         if response:
             response += '\n'

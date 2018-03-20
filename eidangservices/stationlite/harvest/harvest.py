@@ -35,16 +35,20 @@ from builtins import * # noqa
 import logging
 import sys
 import traceback
+import warnings
 
+from fasteners import InterProcessLock
 from lxml import etree
-from obspy import read_inventory
+from obspy import read_inventory, UTCDateTime
+from sqlalchemy import inspect
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.exc import OperationalError
 
 from eidangservices import settings, utils
-from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
-                                             node_generator, RequestsError)
-
 from eidangservices.stationlite.engine import db, orm
+from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
+                                             node_generator, RequestsError,
+                                             NoContent)
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ErrorWithTraceback
 from eidangservices.utils.sncl import Stream
@@ -56,6 +60,9 @@ __version__ = utils.get_version("stationlite")
 # ----------------------------------------------------------------------------
 class NothingToDo(Error):
     """Nothing to do."""
+
+class AlreadyHarvesting(Error):
+    """There seems to be a harvesting process already in action ({})."""
 
 # ----------------------------------------------------------------------------
 class Harvester(object):
@@ -190,13 +197,19 @@ class RoutingHarvester(Harvester):
                 # ----
                 self.logger.debug('Resolving routing: (Request: %r).' %
                                   _url_fdsn_station)
-                # TODO(damb): Request might be too large. Implement fix.
                 nets = []
                 stas = []
                 chas = []
-                with binary_stream_request(_url_fdsn_station) as station_xml:
-                    nets, stas, chas = \
-                        self._harvest_from_stationxml(session, station_xml)
+                try:
+                    # TODO(damb): Request might be too large. Implement fix.
+                    with binary_stream_request(_url_fdsn_station) as \
+                            station_xml:
+                        nets, stas, chas = \
+                            self._harvest_from_stationxml(session, station_xml)
+
+                except NoContent as err:
+                    self.logger.warning(str(err))
+                    continue
 
                 # NOTE(damb): currently only consider CACHED_SERVICEs
                 # TODO(damb): To be refactored - use the Station service
@@ -264,33 +277,25 @@ class RoutingHarvester(Harvester):
 
                     # configure routings
                     for cha_epoch in chas:
+
+                        if inspect(cha_epoch).deleted:
+                            # In case a orm.ChannelEpoch object is marked as
+                            # deleted but harvested within the same harvesting
+                            # run this is a strong hint for an integrity issue
+                            # within the FDSN station InventoryXML.
+                            msg = ('InventoryXML integrity issue for '
+                                   '{0!r}'.format(cha_epoch))
+                            warnings.warn(msg)
+                            self.logger.warning(msg)
+                            continue
+
                         self.logger.debug(
                             'Checking ChannelEpoch<->Endpoint relation '
                             '{}<->{} ...'.format(cha_epoch, endpoint))
-                        try:
-                            # TODO(damb): Check for overlapping Routing
-                            # instance and update (i.e. delete - insert)
-                            # TODO TODO TODO
-                            routing = session.query(orm.Routing).\
-                                filter(orm.Routing.endpoint == endpoint).\
-                                filter(orm.Routing.channel_epoch ==
-                                       cha_epoch).\
-                                filter(orm.Routing.starttime ==
-                                       routing_starttime).\
-                                filter(orm.Routing.endtime ==
-                                       routing_endtime).\
-                                one_or_none()
-                        except MultipleResultsFound as err:
-                            raise self.IntegrityError(err)
 
-                        if routing is None:
-                            routing = orm.Routing(
-                                endpoint=endpoint,
-                                channel_epoch=cha_epoch,
-                                starttime=routing_starttime,
-                                endtime=routing_endtime)
-                            self.logger.debug(
-                                'Created routing {0!r}'.format(routing))
+                        _ = self._emerge_routing(
+                            session, cha_epoch, endpoint, routing_starttime,
+                            routing_endtime)
 
         # TODO(damb): Show stats for updated/inserted elements
 
@@ -476,7 +481,7 @@ class RoutingHarvester(Harvester):
             query = query.\
                 filter(((orm.ChannelEpoch.starttime <
                          channel.start_date.datetime) &
-                        (orm.ChannelEpoch.endtime.is_(None) |
+                        ((orm.ChannelEpoch.endtime == None) |  # noqa
                          (channel.start_date.datetime <
                           orm.ChannelEpoch.endtime))) |
                        (orm.ChannelEpoch.starttime >
@@ -485,7 +490,7 @@ class RoutingHarvester(Harvester):
             query = query.\
                 filter(((orm.ChannelEpoch.starttime <
                          channel.start_date.datetime) &
-                       (orm.ChannelEpoch.endtime.is_(None) |
+                       ((orm.ChannelEpoch.endtime == None) |  # noqa
                         (channel.start_date.datetime <
                          orm.ChannelEpoch.endtime))) |
                        ((orm.ChannelEpoch.starttime >
@@ -495,8 +500,8 @@ class RoutingHarvester(Harvester):
         cha_epochs = query.all()
 
         if cha_epochs:
-            self.logger.debug('Found overlapping orm.ChannelEpoch objects '
-                              '{}'.format(cha_epochs))
+            self.logger.warning('Found overlapping orm.ChannelEpoch objects '
+                                '{}'.format(cha_epochs))
         # delete overlapping epochs including the corresponding orm.Routing
         # entries
         for cha_epoch in cha_epochs:
@@ -504,7 +509,7 @@ class RoutingHarvester(Harvester):
                 filter(orm.Routing.channel_epoch == cha_epoch).delete()
 
             if session.delete(cha_epoch):
-                self.logger.debug(
+                self.logger.info(
                     'Removed {0!r} (matching query: {}).'.format(
                         cha_epoch, query))
 
@@ -538,6 +543,68 @@ class RoutingHarvester(Harvester):
         return cha_epoch
 
     # _emerge_channelepoch ()
+
+    def _emerge_routing(self, session, cha_epoch, endpoint, start, end):
+        """
+        Factory method for a orm.Routing object.
+        """
+        # check for available, overlapping routing(_epoch)(not identical)
+        # XXX(damb) Overlapping orm.Routing regarding time constraints
+        # are updated (i.e. implemented as: delete - insert).
+        query = session.query(orm.Routing).\
+            filter(orm.Routing.endpoint == endpoint).\
+            filter(orm.Routing.channel_epoch == cha_epoch)
+
+        # check if overlapping with ChannelEpoch already existing
+        if end is None:
+            query = query.\
+                filter(((orm.Routing.starttime < start) &
+                        ((orm.Routing.endtime == None) |  # noqa
+                         (start < orm.Routing.endtime))) |
+                       (orm.Routing.starttime > start))
+        else:
+            query = query.\
+                filter(((orm.Routing.starttime < start) &
+                       ((orm.Routing.endtime == None) |  # noqa
+                        (start < orm.Routing.endtime))) |
+                       ((orm.Routing.starttime > start) &
+                        (end > orm.Routing.starttime)))
+
+        routings = query.all()
+
+        if routings:
+            self.logger.warning('Found overlapping orm.Routing objects '
+                                '{}'.format(routings))
+
+        # delete overlapping orm.Routing entries
+        for routing in routings:
+            if session.delete(routing):
+                self.logger.info(
+                    'Removed {0!r} (matching query: {}).'.format(
+                        routing, query))
+
+        # check for an identical orm.Routing
+        try:
+            routing = session.query(orm.Routing).\
+                filter(orm.Routing.endpoint == endpoint).\
+                filter(orm.Routing.channel_epoch == cha_epoch).\
+                filter(orm.Routing.starttime == start).\
+                filter(orm.Routing.endtime == end).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
+
+        if routing is None:
+            routing = orm.Routing(
+                endpoint=endpoint,
+                channel_epoch=cha_epoch,
+                starttime=start,
+                endtime=end)
+            self.logger.debug('Created routing object {0!r}'.format(routing))
+
+        return routing
+
+    # _emerge_routing ()
 
 # class RoutingHarvester
 
@@ -581,13 +648,14 @@ class VNetHarvester(Harvester):
                     # convert attributes to dict
                     stream = Stream.from_route_attrs(
                         **dict(stream_element.attrib))
-                    attrs = stream._asdict()
-                    attrs['starttime'] = stream_element.get('start')
+                    attrs = stream._asdict(short_keys=True)
+                    attrs['start'] = stream_element.get('start')
                     endtime = stream_element.get('end')
-                    attrs['endtime'] = endtime if (endtime is None or
-                                                   endtime.strip()) else None
+                    attrs['end'] = endtime if (endtime is None or
+                                               endtime.strip()) else None
+
                     # deserialize to StreamEpoch object
-                    stream_epoch = se_schema.load(attrs).data
+                    stream_epoch = se_schema.load(attrs)
                     self.logger.debug("Processing {0!r} ...".format(
                         stream_epoch))
 
@@ -606,7 +674,7 @@ class VNetHarvester(Harvester):
                                sql_stream_epoch.location)).\
                         filter(orm.ChannelEpoch.channel.like(
                                sql_stream_epoch.channel)).\
-                        filter(orm.ChannelEpoch.endtime.is_(None) |
+                        filter((orm.ChannelEpoch.endtime == None) |  # noqa
                                (orm.ChannelEpoch.endtime >
                                 sql_stream_epoch.starttime))
 
@@ -684,13 +752,13 @@ class VNetHarvester(Harvester):
         if stream_epoch.endtime is None:
             query = query.\
                 filter(((orm.StreamEpoch.starttime < stream_epoch.starttime) &
-                        (orm.StreamEpoch.endtime.is_(None) |
+                        ((orm.StreamEpoch.endtime == None) |  # noqa
                          (stream_epoch.starttime < orm.StreamEpoch.endtime))) |
                        (orm.StreamEpoch.starttime > stream_epoch.starttime))
         else:
             query = query.\
                 filter(((orm.StreamEpoch.starttime < stream_epoch.starttime) &
-                        (orm.StreamEpoch.endtime.is_(None) |
+                        ((orm.StreamEpoch.endtime == None) |  # noqa
                          (stream_epoch.starttime < orm.StreamEpoch.endtime))) |
                        ((orm.StreamEpoch.starttime > stream_epoch.starttime) &
                         (stream_epoch.endtime > orm.StreamEpoch.starttime)))
@@ -698,12 +766,12 @@ class VNetHarvester(Harvester):
         stream_epochs = query.all()
 
         if stream_epochs:
-            self.logger.debug('Found overlapping orm.StreamEpoch objects '
-                              '{}'.format(stream_epochs))
+            self.logger.warning('Found overlapping orm.StreamEpoch objects '
+                                '{}'.format(stream_epochs))
 
         for se in stream_epochs:
             if session.delete(se):
-                self.logger.debug(
+                self.logger.info(
                     'Removed orm.StreamEpoch {0!r}'
                     '(matching query: {}).'.format(se, query))
 
@@ -766,6 +834,12 @@ class StationLiteHarvestApp(App):
                               parents=parents)
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
+        parser.add_argument('-P', '--pid-file', type=str,
+                            metavar='PATH', dest='path_pidfile',
+                            default=\
+                            settings.EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
+                            help=('Path to PID file. '
+                                  '(default: {%(default)s})'))
         parser.add_argument('-D', '--db', type=db_engine, required=True,
                             metavar='URL', dest='db_engine',
                             help=('URL indicating the database dialect and '
@@ -783,10 +857,12 @@ class StationLiteHarvestApp(App):
                             default=False, dest='no_vnetworks',
                             help=('Do not harvest <vnetwork></vnetwork> '
                                   'information.'))
-        # TODO(damb): equipe truncate flag with a threshold
-        #parser.add_argument('-t', '--truncate', action='store_true',
-        #                    default=False,
-        #                    help='Truncate DB (delete outdated information).')
+        parser.add_argument('-t', '--truncate', type=UTCDateTime,
+                            metavar='TIMESTAMP',
+                            help=('Truncate DB (delete outdated information). '
+                                  'The TIMESTAMP format must agree with '
+                                  'formats supported by obspy.UTCDateTime.'))
+
         return parser
 
     # build_parser ()
@@ -801,28 +877,52 @@ class StationLiteHarvestApp(App):
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
 
         exit_code = utils.ExitCodes.EXIT_SUCCESS
-        if self.args.no_routes and self.args.no_vnetworks:
-            raise NothingToDo()
 
         try:
+            pid_lock = InterProcessLock(self.args.path_pidfile)
+            pid_lock_gotten = pid_lock.acquire(blocking=False)
+            if not pid_lock_gotten:
+                raise AlreadyHarvesting(self.args.path_pidfile)
+            self.logger.debug('Aquired PID lock {0!r}'.format(
+                              self.args.path_pidfile))
+
+            if (self.args.no_routes and self.args.no_vnetworks and not
+                self.args.truncate):
+                raise NothingToDo()
+
             engine = self.args.db_engine
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
-            if not self.args.no_routes:
-                self._harvest_routes(Session)
-            else:
-                self.logger.warn(
-                    'Disabled processing <route></route> information.')
+            try:
+                if not self.args.no_routes:
+                    self._harvest_routes(Session)
+                else:
+                    self.logger.warn(
+                        'Disabled processing <route></route> information.')
 
-            if not self.args.no_vnetworks:
-                self._harvest_vnetworks(Session)
-            else:
-                self.logger.warn(
-                    'Disabled processing <vnetwork></vnetwork> '
-                    'information.')
+                if not self.args.no_vnetworks:
+                    self._harvest_vnetworks(Session)
+                else:
+                    self.logger.warn(
+                        'Disabled processing <vnetwork></vnetwork> '
+                        'information.')
+
+                self.logger.info('Finished harvesting successfully.')
+
+                if self.args.truncate:
+                    self.logger.warning('Removing outdated data.')
+                    session=Session()
+                    with db.session_guard(session) as _session:
+                        num_removed_rows = db.clean(_session, self.args.truncate)
+                        self.logger.info(
+                            'Number of rows removed: {}'.format(
+                                num_removed_rows))
+
+            except OperationalError as err:
+                raise db.StationLiteDBEngineError(err)
 
         # TODO(damb): signal handling
         except Error as err:
@@ -835,6 +935,12 @@ class StationLiteHarvestApp(App):
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
             exit_code = utils.ExitCodes.EXIT_ERROR
+        finally:
+            try:
+                if pid_lock_gotten:
+                    pid_lock.release()
+            except NameError:
+                pass
 
         sys.exit(utils.ExitCodes.EXIT_SUCCESS)
 
@@ -927,7 +1033,8 @@ def main():
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
-            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
+            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION,
+            capture_warnings=False)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,

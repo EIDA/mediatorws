@@ -82,7 +82,8 @@ class App(object):
 
     # __init__ ()
 
-    def configure(self, path_default_config, config_section=None):
+    def configure(self, path_default_config, config_section=None,
+                  capture_warnings=True):
         """
         Configure the application.
         """
@@ -123,6 +124,8 @@ class App(object):
         if not self.logger_configured:
             self.logger = logging.getLogger() 
             self.logger.addHandler(logging.NullHandler())
+
+        logging.captureWarnings(capture_warnings)
 
         return self.args
 

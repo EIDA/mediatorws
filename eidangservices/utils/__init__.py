@@ -39,7 +39,6 @@ import itertools
 import os
 import pkg_resources
 import re
-import sys
 
 import marshmallow as ma
 import webargs
@@ -79,18 +78,6 @@ class ExitCodes:
     EXIT_ERROR = 2
 
 # class ExitCodes
-
-
-class CustomParser(argparse.ArgumentParser):
-    # TODO(damb): As soon as eidangservices.utils.app is ready this class is
-    # removed.
-
-    def error(self, message):
-        sys.stderr.write('USAGE ERROR: %s\n' % message)
-        self.print_help()
-        sys.exit(ExitCodes.EXIT_ERROR)
-
-# class CustomParser
 
 
 class FDSNWSParser(FlaskParser):

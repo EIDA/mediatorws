@@ -38,7 +38,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-import os
+#import logging
 import sys
 import traceback
 
@@ -46,21 +46,15 @@ from flask_restful import Api
 
 from eidangservices import settings, utils
 from eidangservices.stationlite.server import create_app
-from eidangservices.stationlite.engine import db, orm
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
 from eidangservices.stationlite.server.routes.misc import \
     StationLiteVersionResource
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error, ErrorWithTraceback
+from eidangservices.utils.error import Error
 
 
 __version__ = utils.get_version("stationlite")
-
-# ----------------------------------------------------------------------------
-DEFAULT_DBFILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    '../example/db/stationlite_2017-10-20.db')
 
 # ----------------------------------------------------------------------------
 class StationLiteWebservice(App):
@@ -76,20 +70,23 @@ class StationLiteWebservice(App):
         :returns: parser
         :rtype: :py:class:`argparse.ArgumentParser`
         """
-        parser = utils.CustomParser(
+        parser = CustomParser(
             prog="eida-stationlite",
             description='Launch EIDA stationlite web service.',
             parents=parents)
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
-        parser.add_argument('--start-local', action='store_true', default=False,
-                            help="start a local WSGI server (not for production)")
+        parser.add_argument('--start-local', action='store_true',
+                            default=False,
+                            help=("start a local WSGI server "
+                                  "(not for production)"))
         parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
+                            default=settings.\
+                            EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
                             help=('server port (only considered when serving '
                                   'locally i.e. with --start-local)'))
         parser.add_argument('-D', '--db', type=utils.real_file_path,
-                            default=DEFAULT_DBFILE, required=True,
+                            required=True,
                             help='Database (SQLite) file.')
         parser.add_argument('--debug', action='store_true', default=False,
                             help="Run in debug mode.")
@@ -105,15 +102,21 @@ class StationLiteWebservice(App):
 
         # TODO(damb):
         #   - implement WSGI compatibility
+
+        # configure SQLAlchemy logging
+        # log_level = self.logger.getEffectiveLevel()
+        # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
         exit_code = utils.ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
-        
+
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
-                app.run(threaded=True, debug=self.args.debug, port=self.args.port)
-        
+                app.run(
+                    threaded=True, debug=self.args.debug, port=self.args.port)
+
             # TODO(damb): prepare also for mod_wsgi
             pass
         except Error as err:
@@ -150,13 +153,14 @@ class StationLiteWebservice(App):
         app_config = {
             'PORT': self.args.port,
             'DB': self.args.db,
-            'SQLALCHEMY_DATABASE_URI':  "sqlite:///{}".format(self.args.db)
+            'SQLALCHEMY_DATABASE_URI': "sqlite:///{}".format(self.args.db),
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False
         }
         # query method
         api.add_resource(
             StationLiteResource, "%s%s" %
             (settings.EIDA_ROUTING_PATH, settings.FDSN_QUERY_METHOD_TOKEN))
-        
+
         # version method
         api.add_resource(StationLiteVersionResource, "%s%s" %
                          (settings.EIDA_ROUTING_PATH,

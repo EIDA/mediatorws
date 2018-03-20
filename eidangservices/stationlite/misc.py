@@ -53,8 +53,11 @@ from eidangservices.utils.error import Error
 class RequestsError(Error):
     """Base request error ({})."""
 
-class ResponseCodeNot200(RequestsError):
+class ClientError(RequestsError):
     """Response code not OK ({})."""
+
+class NoContent(RequestsError):
+    """The request '{}' is not returning any content ({})."""
 
 # -----------------------------------------------------------------------------
 def get_response(output, mimetype):
@@ -83,8 +86,12 @@ def binary_stream_request(url):
         response = requests.get(url)
         response.raise_for_status()
 
+        if response.status_code == 204:
+            # TODO TODO TODO: url
+            raise NoContent(url, response.status_code)
+
         if response.status_code != 200:
-            raise ResponseCodeNot200(response.status_code)
+            raise ClientError(response.status_code)
 
         yield io.BytesIO(response.content)
 

@@ -225,270 +225,56 @@ def init(session):
 
 # init ()
 
-def delete_vnetworks(session):
+def clean(session, timestamp):
     """
-    Remove all virtual networks from the stationlite DB.
-
-    :param :cls:`sqlalchemy.orm.session.Session` session: SQLAlchemy session
-    instance.
-    """
-    # fetch all networks with 'is_virtual=True'
-    vnets = session.query(orm.Network).\
-        filter(orm.Network.is_virtual.is_(True)).\
-        all()
-    for vnet in vnets:
-        # delete NodeNetworkInventory from vnets
-        session.query(orm.NodeNetworkInventory).\
-            filter(orm.NodeNetworkInventory.network == vnet).\
-            delete()
-
-        for vnet_relation in session.query(orm.ChannelEpochNetworkRelation).\
-            filter(orm.ChannelEpochNetworkRelation.network == vnet).\
-                all():
-
-            delete_channel_epoch_network_relation(session, vnet_relation)
-
-    session.commit()
-
-# delete_vnetworks ()
-
-def merge(session):
-    """
-    Merge StreamEpochs regarding time constraints. When merging the
-    epoch's routing information is taken into consideration.
+    Clean DB from data older than timestamp.
 
     :param :cls:`sqlalchemy.orm.sessionSession` session: SQLAlchemy session
+    :param :cls:`obspy.UTCDateTime` Data older than timestamp will be removed.
+
+    :returns: Total number of removed rows.
+    :rtype int:
     """
-    class _Routing(collections.namedtuple('_Routing',
-                                          ['url', 'starttime', 'endtime'])):
-        """
-        A hashable py:class:`orm.Routing` adapter.
-        """
+    MAPPINGS_WITH_LASTSEEN = (orm.NodeNetworkInventory,
+                              orm.NetworkEpoch,
+                              orm.ChannelEpoch,
+                              orm.StationEpoch,
+                              orm.Routing,
+                              orm.StreamEpoch)
+    retval = 0
+    for m in MAPPINGS_WITH_LASTSEEN:
+        retval += session.query(m).\
+            filter(m.lastseen < timestamp.datetime).\
+            delete()
 
-        @classmethod
-        def from_orm(cls, routing):
-            return cls(url=routing.endpoint.url,
-                       starttime=routing.starttime,
-                       endtime=routing.endtime)
+    # NOTE(damb): If VNet/orm.StationEpochGroup has no StreamEpochs anymore
+    # remove also the orm.StreamEpochGroup.
+    # Currently virtual networks do not come along with a corresponding
+    # 'VirtualNetworkEpoch'.
+    vnets_active = set(
+        session.query(orm.StreamEpoch.stream_epoch_group_ref).all())
 
-        def _emerge_orm(self, session, cha_epoch):
-            try:
-                endpoint = session.query(orm.Endpoint).\
-                    filter(orm.Endpoint.url == self.url).\
-                    one()
-            except (NoResultFound, MultipleResultsFound) as err:
-                raise StationLiteDBEngineError(err)
+    if vnets_active:
+        # flatten result list
+        vnets_active = set(
+            [item for sublist in vnets_active for item in sublist])
 
-            routing = session.query(orm.Routing).\
-                filter(orm.Routing.endpoint == endpoint).\
-                filter(orm.Routing.channel_epoch == cha_epoch).\
-                filter(orm.Routing.starttime == self.starttime).\
-                filter(orm.Routing.endtime == self.endtime).\
-                scalar()
+    vnets_active = set(
+        session.query(orm.StreamEpochGroup).\
+            filter(orm.StreamEpochGroup.oid.in_(vnets_active)).\
+            all())
 
-            if not routing:
-                routing = orm.Routing(
-                    endpoint=endpoint,
-                    channel_epoch=cha_epoch,
-                    starttime=self.starttime,
-                    endtime=self.endtime)
 
-            session.add(routing)
-            return routing
+    vnets_all = set(session.query(orm.StreamEpochGroup).all())
 
-    # class _Routing
+    for vnet_not_active in (vnets_all - vnets_active):
+        logger.debug('Deleting VNET {0!r}'.format(vnet_not_active))
+        session.delete(vnet_not_active)
+        retval += 1
 
-    merged_routes = collections.defaultdict(StreamEpochsHandler)
-    # consider all orm.ChannelEpochs for a orm.Network
-    nets = session.query(orm.Network).all()
-    for net in nets:
-        for cha_epoch, routing in session.query(
-            orm.ChannelEpoch, orm.Routing).\
-            join(orm.ChannelEpochNetworkRelation).\
-            join(orm.Network).\
-            join(orm.Routing).\
-            filter((orm.ChannelEpochNetworkRelation.channel_epoch_ref ==
-                    orm.ChannelEpoch.oid) &
-                   (orm.ChannelEpochNetworkRelation.network_ref ==
-                    orm.Network.oid)).\
-            filter(orm.Network.name == net.name).\
-            filter(orm.Routing.channel_epoch_ref ==
-                   orm.ChannelEpoch.oid).\
-                all():
+    return retval
 
-            with none_as_max(cha_epoch.endtime) as end:
-                stream_epochs = StreamEpochs(
-                    network=net.name,
-                    station=cha_epoch.station.name,
-                    channel=cha_epoch.channel,
-                    location=cha_epoch.locationcode,
-                    epochs=[(cha_epoch.starttime,
-                             end)])
-                # use a hashable _Routing instance as key
-                merged_routes[_Routing.from_orm(routing)].merge(
-                    [stream_epochs])
+# clean ()
 
-    # TODO(damb): Use generators instead
-    # add previously merged ChannelEpochs to DB
-    for routing, stream_epochs_handlers in merged_routes.items():
-        lst_stream_epoch = [se for ses in sorted(stream_epochs_handlers)
-                            for se in ses]
 
-        for stream_epoch in lst_stream_epoch:
-            logger.debug(
-                'Processing StreamEpoch object {0!r}'.format(stream_epoch))
-            with max_as_none(stream_epoch.endtime) as end:
-                # checks if a orm.ChannelEpoch is already available
-                cha_epoch = session.query(orm.ChannelEpoch).\
-                    join(orm.ChannelEpochNetworkRelation).\
-                    join(orm.Network).\
-                    join(orm.Station).\
-                    filter(
-                        (orm.ChannelEpochNetworkRelation.channel_epoch_ref ==
-                         orm.ChannelEpoch.oid) &
-                        (orm.ChannelEpochNetworkRelation.network_ref ==
-                         orm.Network.oid)).\
-                    filter(orm.Network.name ==
-                           stream_epoch.network).\
-                    filter(orm.Station.name ==
-                           stream_epoch.station).\
-                    filter(orm.ChannelEpoch.channel ==
-                           stream_epoch.channel).\
-                    filter(orm.ChannelEpoch.locationcode ==
-                           stream_epoch.location).\
-                    filter(orm.ChannelEpoch.starttime ==
-                           stream_epoch.starttime).\
-                    filter(orm.ChannelEpoch.endtime == end).\
-                    scalar()
-
-                if cha_epoch is None:
-                    # create a new orm.ChannelEpoch including all relations
-
-                    try:
-                        net = session.query(orm.Network).\
-                            filter(orm.Network.name ==
-                                   stream_epoch.network).\
-                            one()
-                        sta = session.query(orm.Station).\
-                            filter(orm.Station.name ==
-                                   stream_epoch.station).\
-                            one()
-                        endpoint = session.query(orm.Endpoint).\
-                            filter(orm.Endpoint.url == routing.url).\
-                            one()
-                    except (NoResultFound, MultipleResultsFound) as err:
-                        raise StationLiteDBEngineError(err)
-
-                    cha_epoch = orm.ChannelEpoch(
-                        channel=stream_epoch.channel,
-                        locationcode=stream_epoch.location,
-                        starttime=stream_epoch.starttime,
-                        endtime=end,
-                        station=sta)
-
-                    session.add(cha_epoch)
-
-                    # create relations
-                    _ = orm.ChannelEpochNetworkRelation(
-                        channel_epoch=cha_epoch,
-                        network=net)
-                    _ = orm.Routing(
-                        channel_epoch=cha_epoch,
-                        endpoint=endpoint,
-                        starttime=routing.starttime,
-                        endtime=routing.endtime)
-                    logger.debug(
-                        "Created new channel_epoch object '{}'".format(
-                            cha_epoch))
-
-                    # delete the two orm.ChannelEpochs from the DB
-                    # responsible for the epoch borders of the newly
-                    # created merged orm.ChannelEpoch
-                    to_delete = session.query(orm.ChannelEpoch).\
-                        join(orm.ChannelEpochNetworkRelation).\
-                        join(orm.Network).\
-                        join(orm.Station).\
-                        join(orm.Routing).\
-                        filter(
-                            (orm.ChannelEpochNetworkRelation.\
-                             channel_epoch_ref == orm.ChannelEpoch.oid) &
-                            (orm.ChannelEpochNetworkRelation.network_ref ==
-                             orm.Network.oid)).\
-                        filter((orm.Routing.endpoint == endpoint) &
-                               (orm.Routing.channel_epoch_ref ==
-                                orm.ChannelEpoch.oid) &
-                               (orm.Routing.starttime ==
-                                routing.starttime) &
-                               (orm.Routing.endtime ==
-                                routing.endtime)).\
-                        filter(orm.Network.name ==
-                               stream_epoch.network).\
-                        filter(orm.Station.name ==
-                               stream_epoch.station).\
-                        filter(orm.ChannelEpoch.channel ==
-                               stream_epoch.channel).\
-                        filter(orm.ChannelEpoch.locationcode ==
-                               stream_epoch.location).\
-                        filter((orm.ChannelEpoch.starttime ==
-                                stream_epoch.starttime) |
-                               (orm.ChannelEpoch.endtime == end)).\
-                        all()
-
-                    # FIXME(damb): The orm.ChannelEpoch might have
-                    # additional relations to orm.Network objects via
-                    # orm.ChannelEpochNetworkRelation.
-
-                    print(to_delete)
-
-                    if len(to_delete) < 2:
-                        raise StationLiteDBEngineError(
-                            'Expected at least two orm.ChannelEpoch '
-                            'objects but found {}'.format(to_delete))
-
-                    for e in to_delete:
-                        logger.debug(
-                            'Trying to delete orm.ChannelEpoch object '
-                            '{}'.format(e))
-                        trydelete_channel_epoch(session, e, net,
-                                                endpoint,
-                                                routing.starttime,
-                                                routing.endtime)
-
-    # delete all orm.ChannelEpoch objects from the DB which are
-    # real subsets of another orm.ChannelEpoch
-    # TODO TODO TODO
-    """
-    for net in nets:
-        for cha_epoch in session.query(orm.ChannelEpoch).\
-            join(orm.ChannelEpochNetworkRelation).\
-            join(orm.Network).\
-            filter(orm.ChannelEpochNetworkRelation.channel_epoch_ref ==
-                   orm.ChannelEpoch.oid).\
-            filter(orm.Network.name == net.name).\
-                all():
-
-            to_delete = session.query(orm.ChannelEpoch).\
-                join(orm.ChannelEpochNetworkRelation).\
-                join(orm.Network).\
-                join(orm.Station).\
-                filter((orm.ChannelEpochNetworkRelation.channel_epoch_ref ==
-                        orm.ChannelEpoch.oid) &
-                       (orm.ChannelEpochNetworkRelation.network_ref ==
-                        orm.Network.oid)).\
-                filter(orm.Network.name == net.name).\
-                filter(orm.Station.name ==
-                       cha_epoch.station.name).\
-                filter(orm.ChannelEpoch.channel ==
-                       cha_epoch.channel).\
-                filter(orm.ChannelEpoch.locationcode ==
-                       cha_epoch.locationcode).\
-                filter((orm.ChannelEpoch.starttime >
-                        stream_epoch.starttime) &
-                       (orm.ChannelEpoch.endtime < end)).\
-                all()
-
-            for e in to_delete:
-                db.trydelete_channel_epoch(session, e, net)
-    """
-
-# merge ()
+# ---- END OF <db.py> ----

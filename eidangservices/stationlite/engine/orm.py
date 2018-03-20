@@ -162,10 +162,10 @@ class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
     endpoints = relationship('Routing', back_populates='channel_epoch')
 
     def __repr__(self):
-        return ('<ChannelEpoch(code=%r, location_code=%r, starttime=%r, '
-                'endtime=%r)>' %
-                (self.channel, self.locationcode, self.starttime,
-                 self.endtime))
+        return ('<ChannelEpoch(network=%r, station=%r, channel=%r, '
+                'location=%r, starttime=%r, endtime=%r)>' %
+                (self.network, self.station, self.channel,
+                 self.locationcode, self.starttime, self.endtime))
 
 # class ChannelEpoch
 
@@ -198,8 +198,6 @@ class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
 
 class Routing(EpochMixin, LastSeenMixin, ORMBase):
-    # association object pattern
-    __tablename__ = 'routings'
 
     channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'))
     endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'))
