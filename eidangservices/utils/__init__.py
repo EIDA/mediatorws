@@ -44,6 +44,7 @@ import sys
 import marshmallow as ma
 import webargs
 
+from flask import make_response
 from webargs.flaskparser import FlaskParser
 
 from eidangservices import settings
@@ -321,5 +322,18 @@ def convert_scnl_dicts_to_query_params(stream_epochs_dict):
     return retval
 
 # convert_scnl_dicts_to_query_params ()
+
+def get_version_response(version_string):
+    """
+    Return Response object for version string with correct mimetype.
+
+    :param str version_string: version string to be responded.
+    """
+
+    response = make_response(version_string)
+    response.headers['Content-Type'] = settings.VERSION_MIMETYPE
+    return response
+
+# get_version_response ()
 
 # ---- END OF <utils.py> ----
