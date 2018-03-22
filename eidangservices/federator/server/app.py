@@ -158,7 +158,7 @@ class FederatorWebservice(App):
                                      exc_type, exc_value, exc_traceback)))
             exit_code = utils.ExitCodes.EXIT_ERROR
 
-        sys.exit(utils.ExitCodes.EXIT_SUCCESS)
+        sys.exit(exit_code)
 
     # run ()
 

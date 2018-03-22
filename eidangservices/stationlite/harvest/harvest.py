@@ -942,7 +942,7 @@ class StationLiteHarvestApp(App):
             except NameError:
                 pass
 
-        sys.exit(utils.ExitCodes.EXIT_SUCCESS)
+        sys.exit(exit_code)
 
     # run ()
 
