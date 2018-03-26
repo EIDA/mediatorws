@@ -39,6 +39,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 #import logging
+import argparse
 import sys
 import traceback
 
@@ -51,10 +52,27 @@ from eidangservices.stationlite.server.routes.stationlite import \
 from eidangservices.stationlite.server.routes.misc import \
     StationLiteVersionResource
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error
+from eidangservices.utils.error import Error, ErrorWithTraceback
 
 
 __version__ = utils.get_version("stationlite")
+
+# -----------------------------------------------------------------------------
+class ModWSGIError(ErrorWithTraceback):
+    """Base mod_wsgi error ({})."""
+
+
+# ----------------------------------------------------------------------------
+def url(url):
+    """
+    check if SQLite URL is absolute.
+    """
+    if (url.startswith('sqlite:') and not
+            (url.startswith('////', 7) or url.startswith('///C:', 7))):
+        raise argparse.ArgumentTypeError('SQLite URL must be absolute.')
+    return url
+
+# url ()
 
 # ----------------------------------------------------------------------------
 class StationLiteWebservice(App):
@@ -74,6 +92,7 @@ class StationLiteWebservice(App):
             prog="eida-stationlite",
             description='Launch EIDA stationlite web service.',
             parents=parents)
+        # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
         parser.add_argument('--start-local', action='store_true',
@@ -85,11 +104,12 @@ class StationLiteWebservice(App):
                             EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
                             help=('server port (only considered when serving '
                                   'locally i.e. with --start-local)'))
-        parser.add_argument('-D', '--db', type=utils.real_file_path,
-                            required=True,
-                            help='Database (SQLite) file.')
-        parser.add_argument('--debug', action='store_true', default=False,
-                            help="Run in debug mode.")
+
+        # positional arguments
+        parser.add_argument('db_url', type=url, metavar='URL',
+                            help=('DB URL indicating the database dialect and '
+                                  'connection arguments. For SQlite only a '
+                                  'absolute file path is supported.'))
 
         return parser
 
@@ -110,15 +130,22 @@ class StationLiteWebservice(App):
         exit_code = utils.ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
+            print(self.args)
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
                 app.run(
-                    threaded=True, debug=self.args.debug, port=self.args.port)
+                    threaded=True, debug=True, port=self.args.port)
+            else:
+                try:
+                    from mod_wsgi import version  # noqa
+                    self.logger.info('Serving with mod_wsgi.')
+                except Exception as err:
+                    raise ModWSGIError(err)
 
-            # TODO(damb): prepare also for mod_wsgi
-            pass
+                return app
+
         except Error as err:
             self.logger.error(err)
             exit_code = utils.ExitCodes.EXIT_ERROR
@@ -152,8 +179,7 @@ class StationLiteWebservice(App):
         api = Api(errors=errors)
         app_config = {
             'PORT': self.args.port,
-            'DB': self.args.db,
-            'SQLALCHEMY_DATABASE_URI': "sqlite:///{}".format(self.args.db),
+            'SQLALCHEMY_DATABASE_URI': self.args.db_url,
             'SQLALCHEMY_TRACK_MODIFICATIONS': False
         }
         # query method
@@ -186,14 +212,15 @@ def main():
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
-            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
+            positional_required_args=['db_url'],
+            config_section=settings.EIDA_STATIONLITE_CONFIG_SECTION)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
               file=sys.stderr)
         sys.exit(utils.ExitCodes.EXIT_ERROR)
 
-    app.run()
+    return app.run()
 
 # main ()
 

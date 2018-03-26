@@ -174,14 +174,14 @@ def init(session):
             for s, v in node_par['services']['fdsn'].items():
                 _service = _lookup_service(_services, s, 'fdsn')
                 if v and _service:
-                    logger.debug("Adding service '%r' to '%r'" % (_service, n))
+                    logger.debug("Adding service '{}' to '{}'".format(_service, n))
                     n.services.append(_service)
 
             # eida services
             for s, v in node_par['services']['eida'].items():
                 _service = _lookup_service(_services, s, 'eida')
                 if v and _service:
-                    logger.debug("Adding service '%r' to '%r'" % (_service, n))
+                    logger.debug("Adding service '{}' to '{}'".format(_service, n))
                     n.services.append(_service)
 
         except KeyError as err:

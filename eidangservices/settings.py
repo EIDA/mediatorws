@@ -6,6 +6,10 @@ EIDA next generation web services settings.
 This file is part of the EIDA mediator/federator webservices.
 
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
 
 import os
 

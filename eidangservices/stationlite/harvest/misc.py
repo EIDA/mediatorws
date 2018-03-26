@@ -82,15 +82,18 @@ class StationLiteDBInitApp(App):
             prog="eida-stationlite-db-init",
             description='Create and initialize a DB for EIDA StationLite.',
             parents=parents)
+
+        # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
-        parser.add_argument('-D', '--db', type=path_relative, required=True,
-                            metavar='PATH',
-                            help='relative path to database (SQLite) file')
         parser.add_argument('-o', '--overwrite', action='store_true',
                             default=False,
                             help=('overwrite the SQLite DB file if already '
                                   'existent'))
+
+        # positional arguments
+        parser.add_argument('path_db', type=path_relative, metavar='PATH',
+                            help='relative path to database (SQLite) file')
 
         return parser
 
@@ -112,13 +115,13 @@ class StationLiteDBInitApp(App):
         try:
             self.logger.info('{}: Version {}'.format(type(self).__name__,
                                                      __version__))
-            if not self.args.overwrite and os.path.isfile(self.args.db):
-                raise self.DBAlreadyAvailable(self.args.db)
+            if not self.args.overwrite and os.path.isfile(self.args.path_db):
+                raise self.DBAlreadyAvailable(self.args.path_db)
 
-            if os.path.isfile(self.args.db):
-                os.remove(self.args.db)
+            if os.path.isfile(self.args.path_db):
+                os.remove(self.args.path_db)
 
-            engine = create_engine('sqlite:///{}'.format(self.args.db))
+            engine = create_engine('sqlite:///{}'.format(self.args.path_db))
             Session = db.ScopedSession()
             Session.configure(bind=engine)
             session = Session()
@@ -129,7 +132,7 @@ class StationLiteDBInitApp(App):
 
             db.init(session)
             self.logger.info(
-                "DB '{}' successfully initialized.".format(self.args.db))
+                "DB '{}' successfully initialized.".format(self.args.path_db))
 
         except Error as err:
             self.logger.error(err)
@@ -159,6 +162,7 @@ def db_init():
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
+            positional_required_args=['path_db'],
             config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
     except AppError as err:
         # handle errors during the application configuration

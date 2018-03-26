@@ -39,7 +39,9 @@ import logging.config
 import logging.handlers  # needed for handlers defined in logging.conf
 import sys
 
-from eidangservices import settings, utils
+from collections import OrderedDict
+
+from eidangservices import utils
 from eidangservices.utils.error import ErrorWithTraceback
 
 try:
@@ -83,9 +85,17 @@ class App(object):
     # __init__ ()
 
     def configure(self, path_default_config, config_section=None,
-                  capture_warnings=True):
+                  positional_required_args=[], capture_warnings=True):
         """
         Configure the application.
+
+        :param str path_default_config: Path to the default configuration file.
+        :param str config_section: Name of the configuration section in the
+        configuration file.
+        :param list positional_required_args: List of *argparse* `dest` values
+        of positional_required_args. If such a parameter was found in the
+        configuration file it is **always** appended to the
+        :param bool capture_warnings: Capture warnings.
         """
         c_parser = self._build_configfile_parser(path_default_config)
         args, remaining_argv = c_parser.parse_known_args()
@@ -111,6 +121,15 @@ class App(object):
         except argparse.ArgumentError as err:
             raise LoggingConfOptionAlreadyAvailable(err)
 
+        # fetch positional arguments from config file and keep them ordered
+        positional_required = OrderedDict()
+        for dest in positional_required_args:
+            try:
+                positional_required[dest] = defaults[dest]
+                defaults.pop(dest)
+            except KeyError:
+                pass
+
         # set defaults taken from configuration file
         self.parser.set_defaults(**defaults)
         # set the config_file default explicitly since adding the c_parser as a
@@ -118,11 +137,30 @@ class App(object):
         # within the child parser
         self.parser.set_defaults(config_file=args.config_file)
 
-        self.args = self.parser.parse_args(remaining_argv)
+        try:
+            def _error(msg):
+                sys.exit(utils.ExitCodes.EXIT_ERROR)
+
+            error_func = self.parser.error
+            self.parser.error = _error
+            self.args = self.parser.parse_args(remaining_argv)
+
+        except SystemExit as err:
+            # append positional required arguments if parsing at a first glance
+            # failed
+            if err.code == 0:
+                # terminate normally (for e.g. [-h|--help])
+                sys.exit(utils.ExitCodes.EXIT_SUCCESS)
+
+            for v in positional_required.values():
+                remaining_argv.append(v)
+
+            self.parser.error = error_func
+            self.args = self.parser.parse_args(remaining_argv)
 
         self._setup_logger()
         if not self.logger_configured:
-            self.logger = logging.getLogger() 
+            self.logger = logging.getLogger()
             self.logger.addHandler(logging.NullHandler())
 
         logging.captureWarnings(capture_warnings)
@@ -185,7 +223,6 @@ class App(object):
         self.logger_configured = True
 
     # _setup_fallback_logger ()
-
 
     def build_parser(self, parents=[]):
         """

@@ -274,7 +274,7 @@ def main():
               file=sys.stderr)
         sys.exit(utils.ExitCodes.EXIT_ERROR)
 
-    app.run()
+    return app.run()
 
 # main ()
 

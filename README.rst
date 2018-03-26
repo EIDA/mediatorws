@@ -8,23 +8,33 @@ EIDA NG Mediator/Federator webservices
 
 |BuildStatus|_ (py27, py34, py35, py36)
 
-This repository is intended to contain the source code for two of the web
-services of EIDA NG: (i) the *federator*, and (ii) the *mediator*.
+This repository is intended to contain the source code for three of the web
+services of EIDA NG: (i) the *federator*, (ii) *stationlite* and (iii) the
+*mediator*.
 
 **Federator**: Federate *fdsnws-station*, *fdsnws-dataselect*, and 
 *eidaws-wfcatalog* requests across all EIDA nodes. This means, a user can issue 
-a request against a federator endpoint without having to know where the data is 
-hosted. In order to discover the information location, the *eidaws-routing* web 
-service is used.
+a request against a *federator* endpoint without having to know where the data
+is hosted. In order to discover the information location, either the
+*eidaws-routing* or the *eidaws-stationlite* web service is used.
+
+**StationLite**: A lightweight *fdsnws-station* web service providing routing
+information. The stream epoch information is returned fully resolved (Stream
+epochs do not contain wildcard characters anymore.). The information location
+is harvested making use of *eidaws-routing* configuration files and
+*fdsnws-station*.
 
 **Mediator**: This service allows queries across different web service domains, 
 e.g., *fdsnws-station* and *fdsnws-dataselect*. Example: Retrieve waveform data
 for all stations within a lat-lon box.
 
-Currently, we provide an alpha version of the federator service for
-*fdsnws-station*, *fdsnws-dataselect* and *eidaws-wfcatalog*. The federator is
-largely based on the `fdsnws_fetch
-<https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnws_fetch.py>`_ tool by GFZ.
+Currently, we provide an alpha version of the *federator* service for
+*fdsnws-station*, *fdsnws-dataselect* and *eidaws-wfcatalog*. The *federator*
+is largely based on the `fdsnws_fetch
+<https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnwsscripts/fdsnws_fetch.py>`_
+tool by GFZ.
+
+Besides an alpha version of the *stationlite* service is implemented.
 
 
 Installation
@@ -33,7 +43,7 @@ Installation
 .. note::
 
   This installation method currently only is prepared for the EIDA Federator
-  webservice. 
+  and StationLite webservices.
 
 This is the recommended installation method of the EIDA NG webservices in order
 to run a simple test server. The installation is performed by means of the
@@ -165,7 +175,7 @@ Deploying to a webserver
 .. note::
 
   Currently the deployment to a webserver only is setup for the EIDA Federator
-  webservice.
+  and StationLite webservices.
 
 This HOWTO describes the deployment by means of *mod_wsgi* for the Apache2
 webserver. Make sure, that Apache2 is installed. 
@@ -255,10 +265,6 @@ use in production. In production environments the usage of a WSGI server should
 be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
 the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
 
-The services write temporary files to the :code:`tmpdir`, so this directory will
-fill up. It is recommended to purge this directory regularly, e.g., using a
-tool like `tmpreaper`.
-
 To expose the service to port 80, a `reverse proxy
 <https://en.wikipedia.org/wiki/Reverse_proxy>`_ like `nginx
 <https://www.nginx.com/>`_ should be used. 
@@ -277,6 +283,27 @@ For further configuration options invoke
 .. code::
 
   (venv) $ eida-federator -h
+
+The services write temporary files to the :code:`tmpdir`, so this directory will
+fill up. It is recommended to purge this directory regularly, e.g., using a
+tool like `tmpreaper`.
+
+StationLite server
+------------------
+
+To launch a local test WSGI server (**NOT** for production environments) enter:
+
+.. code::
+
+  (venv) $ eida-stationlite --start-local URL
+
+`URL` is a database url as described at `SQLAlchemy documentation
+<http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
+For further configuration options invoke
+
+.. code::
+
+  (venv) $ eida-stationlite -h
 
 Mediator server
 ---------------
@@ -299,12 +326,38 @@ It is recommended to purge this directory regularly, e.g., using a tool like
 tmpreaper.
 
 
+StationLite harvesting
+======================
+
+The *stationlite* webservice data is stored in a database which periodically
+must be harvested. This is done with `eida-stationlite-harvest`. By means of
+the *eidaws-routing* configuration files and the *fdsnws-station* webservice
+`eida-stationlite-harvest` collects and updates the database. Information on
+how to use `eida-stationlite-harvest` is available with
+
+.. code::
+
+  (venv) $ eida-stationlite-harvest -h
+
+In addition the software suite contains an empty exemplary preconfigured
+*SQLite* database (`db/stationlite.db.empty`) which must be filled initially
+after installing the *stationlite* webservice. I.e.
+
+.. code::
+
+  (venv) $ cd $PATH_INSTALLATION_DIRECTORY/mediatorws/
+  (venv) $ cp -v db/stationlite.db.empty db/stationlite.db
+  (venv) $ eida-stationlite-harvest sqlite:///$(pwd)/db/stationlite.db
+
+Note, that harvesting may take some time until completed.
+
+
 Logging (application level)
 ===========================
 
 .. note::
 
-  EIDA NG Federator webservice only.
+  EIDA Federator and StationLite webservice only.
 
 For debugging purposes EIDA NG webservices also provide logging facilities.
 Simply configure your webservice with a logging configuration file. Use the INI
@@ -320,7 +373,7 @@ set up:
                                                     'local0')
   fallback_handler.setLevel(logging.WARN)
   fallback_formatter = logging.Formatter(
-      fmt=("<FED> %(asctime)s %(levelname)s %(name)s %(process)d "
+      fmt=("<XXX> %(asctime)s %(levelname)s %(name)s %(process)d "
            "%(filename)s:%(lineno)d - %(message)s"),
       datefmt="%Y-%m-%dT%H:%M:%S%z")
   fallback_handler.setFormatter(fallback_formatter)

@@ -100,6 +100,31 @@ _extras = {
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]
 
+# NOTE(damb): Since this setup.py provides multiple package creation/deployment
+# we exclusively deploy additionaly files by means of the 'data_files'
+# parameter
+_data_files_all = [
+    ('', ['COPYING',
+          'Makefile']),
+    ('config', ['config/logging.conf',
+                'config/syslog.conf'])]
+_data_files_federator = [
+    ('config', ['config/eida-federator.conf.rsyslog']),
+    ('apache2', ['apache2/federator.conf',
+                 'apache2/federator.wsgi']),
+    ('eidangservices/federator/share',
+        ['eidangservices/federator/share/dataselect.wadl',
+         'eidangservices/federator/share/station.wadl',
+         'eidangservices/federator/share/wfcatalog.wadl'])]
+_data_files_stationlite = [
+    ('config', ['config/eida-stationlite.conf.rsyslog']),
+    ('apache2', ['apache2/stationlite.conf',
+                 'apache2/stationlite.wsgi']),
+    ('db', ['db/stationlite.db.empty'])]
+
+_data_files = _data_files_all + _data_files_federator + _data_files_stationlite
+_data_files_federator += _data_files_all
+_data_files_stationlite += _data_files_all
 
 subsys = sys.argv[1]
 if 'federator' == subsys:
@@ -117,6 +142,8 @@ if 'federator' == subsys:
                  'eidangservices.utils.tests',
                  '*.federator', 'federator.*', '*.federator.*')
     _deps = _deps_federator
+    _data_files = _data_files_federator
+
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
 
@@ -137,6 +164,8 @@ elif 'stationlite' == subsys:
     _entry_points = _entry_points_stationlite
 
     _deps = _deps_stationlite
+    _data_files = _data_files_stationlite
+
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
@@ -201,6 +230,7 @@ setup(
         "Topic :: Scientific/Engineering", ],
     packages=find_packages(include=_includes),
     include_package_data=True,
+    data_files=_data_files,
     install_requires=_deps,
     entry_points=_entry_points,
     zip_safe=False,

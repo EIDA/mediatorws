@@ -832,6 +832,7 @@ class StationLiteHarvestApp(App):
         parser = CustomParser(prog="eida-stationlite-harvest",
                               description='Harvest for EIDA StationLite.',
                               parents=parents)
+        # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
         parser.add_argument('-P', '--pid-file', type=str,
@@ -840,10 +841,6 @@ class StationLiteHarvestApp(App):
                             settings.EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
                             help=('Path to PID file. '
                                   '(default: {%(default)s})'))
-        parser.add_argument('-D', '--db', type=db_engine, required=True,
-                            metavar='URL', dest='db_engine',
-                            help=('URL indicating the database dialect and '
-                                  'connection arguments'))
         parser.add_argument('--nodes-exclude', nargs='+',
                             type=str, metavar='NODES', default='',
                             choices=sorted(settings.EIDA_NODES),
@@ -863,6 +860,10 @@ class StationLiteHarvestApp(App):
                                   'The TIMESTAMP format must agree with '
                                   'formats supported by obspy.UTCDateTime.'))
 
+        # positional arguments
+        parser.add_argument('db_engine', type=db_engine, metavar='URL',
+                            help=('DB URL indicating the database dialect and '
+                                  'connection arguments'))
         return parser
 
     # build_parser ()
@@ -887,10 +888,9 @@ class StationLiteHarvestApp(App):
                               self.args.path_pidfile))
 
             if (self.args.no_routes and self.args.no_vnetworks and not
-                self.args.truncate):
+                    self.args.truncate):
                 raise NothingToDo()
 
-            engine = self.args.db_engine
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
 
@@ -916,7 +916,8 @@ class StationLiteHarvestApp(App):
                     self.logger.warning('Removing outdated data.')
                     session=Session()
                     with db.session_guard(session) as _session:
-                        num_removed_rows = db.clean(_session, self.args.truncate)
+                        num_removed_rows = db.clean(_session,
+                                                    self.args.truncate)
                         self.logger.info(
                             'Number of rows removed: {}'.format(
                                 num_removed_rows))
@@ -1034,6 +1035,7 @@ def main():
         app.configure(
             settings.PATH_EIDANGWS_CONF,
             config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION,
+            positional_required_args=['db_engine'],
             capture_warnings=False)
     except AppError as err:
         # handle errors during the application configuration

@@ -55,9 +55,6 @@ SERVICES?=$(SERVICES_ALL)
 PATH_EIDANGSERVICES=eidangservices
 PATH_DOCS=docs
 
-MANIFEST_IN=MANIFEST.in
-MANIFEST_ALL=MANIFEST.in.all
-
 BASENAME_DOC=docs
 SPHINX_BUILDER=html
 SPHINX_CHECK:=$(strip \
@@ -90,15 +87,12 @@ test: $(patsubst %,%.test,$(SERVICES))
 doc: $(patsubst %,%.doc,$(SERVICES))
 tox: $(patsubst %,%.tox,$(SERVICES))
 
-.PHONY: clean build-clean doc-clean MANIFEST-clean
-clean: build-clean doc-clean MANIFEST-clean
+.PHONY: clean build-clean doc-clean
+clean: build-clean doc-clean
 
 build-clean:
 	rm -rfv build
 	rm -rfv *.egg-info
-
-MANIFEST-clean:
-	rm -rfv $(MANIFEST_IN)
 
 doc-clean:
 	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
@@ -112,16 +106,13 @@ pep8:
 	-tox -e pep8
 
 # install services
-%.install: %.MANIFEST
-	$(MAKE) build-clean
+%.install: clean
 	python setup.py $(@:.install=) install
 
-%.develop: %.MANIFEST
-	$(MAKE) build-clean
+%.develop: clean
 	python setup.py $(@:.develop=) develop
 	
-%.sdist: %.MANIFEST
-	$(MAKE) build-clean
+%.sdist: clean
 	python setup.py $(@:.sdist=) sdist
 
 %.test: %.install
@@ -137,10 +128,6 @@ pep8:
 
 # -----------------------------------------------------------------------------
 # utility pattern rules
-
-%.MANIFEST: $(PATH_EIDANGSERVICES)/%/$(MANIFEST_IN) $(MANIFEST_ALL)
-	$(MAKE) MANIFEST-clean
-	cat $^ > $(MANIFEST_IN)
 
 %.sphinx-apidoc: $(PATH_DOCS)/sphinx.%/source %.sphinx-service-exclude
 	$(if $(SPHINX_CHECK),,$(error ERROR: sphinx not installed))
