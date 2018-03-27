@@ -891,12 +891,17 @@ class StationLiteHarvestApp(App):
                     self.args.truncate):
                 raise NothingToDo()
 
+            harvesting = not (self.args.no_routes and self.args.no_vnetworks)
+
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
             try:
+                if harvesting:
+                    self.logger.info('Start harvesting.')
+
                 if not self.args.no_routes:
                     self._harvest_routes(Session)
                 else:
@@ -910,7 +915,8 @@ class StationLiteHarvestApp(App):
                         'Disabled processing <vnetwork></vnetwork> '
                         'information.')
 
-                self.logger.info('Finished harvesting successfully.')
+                if harvesting:
+                    self.logger.info('Finished harvesting successfully.')
 
                 if self.args.truncate:
                     self.logger.warning('Removing outdated data.')
