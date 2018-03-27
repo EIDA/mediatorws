@@ -405,6 +405,6 @@ Missing features and limitations
 
 * The **/queryauth** route of the `fdsnws-dataselect` service is not yet
   implemented
+* The *stationlite* service currently implements the *eidaws-routing* `post`
+  format only
 * Error message texts are JSON, not plain text
-
-
