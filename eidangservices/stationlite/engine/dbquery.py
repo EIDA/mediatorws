@@ -104,7 +104,8 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
 # resolve_vnetwork ()
 
 def find_streamepochs_and_routes(session, stream_epoch, service,
-                                 like_escape='/'):
+                                 minlat=-90., maxlat=90., minlon=-180.,
+                                 maxlon=180., like_escape='/'):
     """
     Return routes for a given stream epoch.
 
@@ -113,6 +114,13 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     performed with
     :param str service: String specifying the webservice
     :param str like_escape: Character used for the SQL ESCAPE statement
+    :param float minlat: Latitude larger than or equal to the specified minimum
+    :param float maxlat: Latitude smaller than or equal to the specified
+    maximum
+    :param float minlon: Longitude larger than or equal to the specified
+    minimum
+    :param float maxlon: Longitude smaller than or equal to the specified
+    maximum
 
     :returns: List of :py:class:`utils.Route` objects
     :rtype list:
@@ -134,12 +142,17 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
         join(orm.Service).\
         join(orm.Network).\
         join(orm.Station).\
+        join(orm.StationEpoch).\
         filter((orm.Routing.channel_epoch_ref == orm.ChannelEpoch.oid) &
                (orm.Routing.endpoint_ref == orm.Endpoint.oid)).\
         filter(orm.Network.name.like(sql_stream_epoch.network,
                                      escape=like_escape)).\
         filter(orm.Station.name.like(sql_stream_epoch.station,
                                      escape=like_escape)).\
+        filter((orm.StationEpoch.latitude >= minlat) &
+               (orm.StationEpoch.latitude <= maxlat)).\
+        filter((orm.StationEpoch.longitude >= minlon) &
+               (orm.StationEpoch.longitude <= maxlon)).\
         filter(orm.ChannelEpoch.channel.like(sql_stream_epoch.channel,
                                              escape=like_escape)).\
         filter(orm.ChannelEpoch.locationcode.like(sql_stream_epoch.location,

@@ -124,7 +124,11 @@ class StationLiteResource(Resource):
             self.logger.debug('Processing request for %r' % (stream_epoch,))
             # query
             _routes = dbquery.find_streamepochs_and_routes(
-                db.session, stream_epoch, args['service'])
+                db.session, stream_epoch, args['service'],
+                minlat=args['minlatitude'],
+                maxlat=args['maxlatitude'],
+                minlon=args['minlongitude'],
+                maxlon=args['maxlongitude'])
 
             # adjust stream_epoch regarding time_constraints
             for url, streams in _routes:
