@@ -137,6 +137,8 @@ class StreamEpochSchema(Schema):
 
     @post_load
     def make_stream_epoch(self, data):
+        if data['location'] == '--':
+            data['location'] = ''
         return sncl.StreamEpoch.from_sncl(**data)
 
     @post_dump
