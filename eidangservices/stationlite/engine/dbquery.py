@@ -54,7 +54,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     :rtype: list
     """
     if (stream_epoch.network == settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR or
-        (len(stream_epoch.network) == 2 and
+        (len(stream_epoch.network) <= 2 and
          set(stream_epoch.network) ==
             set([settings.FDSNWS_QUERY_WILDCARD_SINGLE_CHAR]))):
         logger.debug(
