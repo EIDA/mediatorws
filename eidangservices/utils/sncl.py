@@ -206,7 +206,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
                                  channel=channel),
                    starttime=starttime,
                    endtime=endtime)
-    
+
     @classmethod
     def from_orm(cls, stream_epoch):
         return cls(stream=Stream(network=stream_epoch.network.name,
@@ -464,14 +464,17 @@ class StreamEpochs(object):
         return self._stream
 
     def __iter__(self):
-        # TODO(damb): check for a more elegant implementation
-        return iter([StreamEpoch.from_sncl(network=self.network,
-                                           station=self.station,
-                                           location=self.location,
-                                           channel=self.channel,
-                                           starttime=epoch.begin,
-                                           endtime=epoch.end)
-                     for epoch in self.epochs])
+        """
+        iterator protocol by means of a generator
+        """
+        for epoch in self.epochs:
+            yield StreamEpoch.from_sncl(network=self.network,
+                                        station=self.station,
+                                        location=self.location,
+                                        channel=self.channel,
+                                        starttime=epoch.begin,
+                                        endtime=epoch.end)
+    # __iter__ ()
 
     def __eq__(self, other):
         """
@@ -569,11 +572,15 @@ class StreamEpochsHandler(object):
         return list(self)
 
     def __iter__(self):
-        # TODO(damb): check for more elegant implementation
-        return iter([StreamEpochs.from_stream(
-                    Stream(**self.__stream_id_to_dict(stream_id)),
-                    epochs=stream_epochs)
-            for stream_id, stream_epochs in self.d.items()])
+        """
+        iterator protocol by means of a generator
+        """
+        for stream_id, stream_epochs in self.d.items():
+            yield StreamEpochs.from_stream(
+                Stream(**self.__stream_id_to_dict(stream_id)),
+                epochs=stream_epochs)
+
+    # __iter__ ()
 
     def __repr__(self):
         return '<StreamEpochsHandler(streams=%r)>' % list(self)
