@@ -34,7 +34,7 @@ from builtins import * # noqa
 import datetime
 
 from sqlalchemy import (Column, Integer, Float, String, Unicode, DateTime,
-                        ForeignKey, Table)
+                        ForeignKey)
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.orm import relationship
 
@@ -56,11 +56,12 @@ class Base(object):
 
 # class Base
 
+
 class EpochMixin(object):
 
     @declared_attr
     def starttime(cls):
-       return Column(DateTime, nullable=False, index=True)
+        return Column(DateTime, nullable=False, index=True)
 
     @declared_attr
     def endtime(cls):
@@ -82,48 +83,12 @@ class LastSeenMixin(object):
 # -----------------------------------------------------------------------------
 ORMBase = declarative_base(cls=Base)
 
-node_service_relation = Table(
-    'node_service_relation', ORMBase.metadata,
-    Column('node_ref', Integer, ForeignKey('service.oid')),
-    Column('service_ref', Integer, ForeignKey('node.oid')))
-
-
-class Node(ORMBase):
-
-    oid = Column(Integer, primary_key=True)
-    name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
-    description = Column(Unicode(LENGTH_DESCRIPTION))
-
-    networks = relationship('NodeNetworkInventory', back_populates='node')
-    services = relationship('Service',
-                            secondary=node_service_relation,
-                            back_populates='nodes')
-
-    def __repr__(self):
-        return '<Node(name=%s, description=%s)>' % (self.name,
-                                                    self.description)
-
-# class Node
-
-
-class NodeNetworkInventory(LastSeenMixin, ORMBase):
-
-    # association object pattern
-    node_ref = Column(Integer, ForeignKey('node.oid'))
-    network_ref = Column(Integer, ForeignKey('network.oid'))
-
-    node = relationship('Node', back_populates='networks')
-    network = relationship('Network', back_populates='nodes')
-
-# class NodeNetworkInventory
-
 
 class Network(ORMBase):
 
     name = Column(String(LENGTH_STD_CODE), nullable=False, index=True)
 
     network_epochs = relationship('NetworkEpoch', back_populates='network')
-    nodes = relationship('NodeNetworkInventory', back_populates='network')
     channel_epochs = relationship('ChannelEpoch',
                                   back_populates='network')
     stream_epochs = relationship('StreamEpoch', back_populates='network')
@@ -136,7 +101,8 @@ class Network(ORMBase):
 
 class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'),
+                         index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
 
     network = relationship('Network', back_populates='network_epochs')
@@ -146,8 +112,10 @@ class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
 class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'))
-    station_ref = Column(Integer, ForeignKey('station.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'),
+                         index=True)
+    station_ref = Column(Integer, ForeignKey('station.oid'),
+                         index=True)
     channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
                      index=True)
     locationcode = Column(String(LENGTH_LOCATION_CODE), nullable=False,
@@ -187,7 +155,8 @@ class Station(ORMBase):
 
 class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    station_ref = Column(Integer, ForeignKey('station.oid'))
+    station_ref = Column(Integer, ForeignKey('station.oid'),
+                         index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
     longitude = Column(Float, nullable=False, index=True)
     latitude = Column(Float, nullable=False, index=True)
@@ -199,8 +168,10 @@ class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
 class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
-    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'))
-    endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'))
+    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'),
+                               index=True)
+    endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'),
+                          index=True)
 
     channel_epoch = relationship('ChannelEpoch', back_populates='endpoints')
     endpoint = relationship('Endpoint', back_populates='channel_epochs')
@@ -214,7 +185,8 @@ class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
 class Endpoint(ORMBase):
 
-    service_ref = Column(Integer, ForeignKey('service.oid'))
+    service_ref = Column(Integer, ForeignKey('service.oid'),
+                         index=True)
     url = Column(String(LENGTH_URL), nullable=False)
 
     # many to many ChannelEpoch<->Endpoint
@@ -231,16 +203,11 @@ class Endpoint(ORMBase):
 class Service(ORMBase):
 
     name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
-    standard = Column(String(LENGTH_STD_CODE), nullable=False)
 
     endpoints = relationship('Endpoint', back_populates='service')
 
-    nodes = relationship('Node',
-                         secondary=node_service_relation,
-                         back_populates='services')
-
     def __repr__(self):
-        return '<Service(name=%s, standard=%s)>' % (self.name, self.standard)
+        return '<Service(name=%s)>' % self.name
 
 # class Service
 
@@ -261,10 +228,13 @@ class StreamEpochGroup(ORMBase):
 # elegantly
 class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'))
-    station_ref = Column(Integer, ForeignKey('station.oid'))
+    network_ref = Column(Integer, ForeignKey('network.oid'),
+                         index=True)
+    station_ref = Column(Integer, ForeignKey('station.oid'),
+                         index=True)
     stream_epoch_group_ref = Column(Integer,
-                                    ForeignKey('streamepochgroup.oid'))
+                                    ForeignKey('streamepochgroup.oid'),
+                                    index=True)
     channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
                      index=True)
     location = Column(String(LENGTH_LOCATION_CODE), nullable=False,

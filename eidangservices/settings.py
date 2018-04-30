@@ -206,9 +206,9 @@ EIDA_NODES = {
                     'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
                 'wfcatalog': {
-                    'url': 'http://eida.bgr.de/eidaws/wfcatalog/alpha/query',
+                    'url': 'http://eida.bgr.de/eidaws/wfcatalog/1/query',
                     'server': 'http://eida.bgr.de',
-                    'uri_path_query': "/eidaws/wfcatalog/alpha/query"}
+                    'uri_path_query': "/eidaws/wfcatalog/1/query"}
             }
         },
         'testquerysncls': {

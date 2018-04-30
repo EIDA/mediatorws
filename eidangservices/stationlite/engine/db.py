@@ -32,31 +32,14 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-import collections
 import logging
 
 from contextlib import contextmanager
 
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-
-from eidangservices import settings
 from eidangservices.stationlite.engine import orm
 from eidangservices.utils.error import Error, ErrorWithTraceback
-from eidangservices.utils.sncl import (none_as_max, max_as_none,
-                                       StreamEpochs, StreamEpochsHandler)
-
-
-# TODO(damb): Find a more elegant solution for CACHED_SERVICES workaround.
-CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
-
-CACHED_SERVICES_FDSN = ('station', 'dataselect')
-CACHED_SERVICES_EIDA = ('wfcatalog',)
-CACHED_SERVICES = {
-    'fdsn': CACHED_SERVICES_FDSN,
-    'eida': CACHED_SERVICES_EIDA
-}
 
 
 logger = logging.getLogger(__name__)
@@ -128,102 +111,8 @@ def session_guard(session):
     finally:
         session.close()
 
+# session_guard ()
 
-def get_cached_services():
-    retval = []
-    for k, v in CACHED_SERVICES.items():
-        retval.extend(v)
-    return retval
-
-
-def init(session):
-    """initialize database tables"""
-
-    def _lookup_service(services, name, std):
-        return next(
-            (x for x in services if x.name == name and x.standard == std),
-            None)
-
-    # _lookup_service ()
-
-    # populate db tables from the mediatorws configuration (i.e. currently
-    # settings.py)
-    logger.debug('Collecting mappings ...')
-    _services = []
-    for service_std, services in CACHED_SERVICES.items():
-        for s_name in services:
-            _services.append(orm.Service(name=s_name,
-                                         standard=service_std))
-
-    _nodes = []
-    _endpoints = []
-
-    logger.debug('Services available: %s' % _services)
-
-    for node_name, node_par in settings.EIDA_NODES.items():
-
-        try:
-            n = orm.Node(name=node_name,
-                         description=node_par['name'])
-
-            # add services to node
-            # NOTE(damb): Only such services are added which are both
-            # cached and have configured parameters in settings.py
-
-            # fdsn services
-            for s, v in node_par['services']['fdsn'].items():
-                _service = _lookup_service(_services, s, 'fdsn')
-                if v and _service:
-                    logger.debug("Adding service '{}' to '{}'".format(_service, n))
-                    n.services.append(_service)
-
-            # eida services
-            for s, v in node_par['services']['eida'].items():
-                _service = _lookup_service(_services, s, 'eida')
-                if v and _service:
-                    logger.debug("Adding service '{}' to '{}'".format(_service, n))
-                    n.services.append(_service)
-
-        except KeyError as err:
-            raise MissingNodeConfigParam(err)
-
-        _nodes.append(n)
-
-        # create endpoints and add service
-        try:
-            # fdsn services
-            for s, v in node_par['services']['fdsn'].items():
-                if v and _lookup_service(_services, s, 'fdsn'):
-                    e = orm.Endpoint(
-                        url='{}/fdsnws/{}/1/query'.format(
-                            node_par['services']['fdsn']['server'], s),
-                        service=_lookup_service(_services, s, 'fdsn'))
-
-                    logger.debug('Created endpoint %r' % e)
-                    _endpoints.append(e)
-
-            # eida services
-            for s, v in node_par['services']['eida'].items():
-                if (v['server'] and
-                        _lookup_service(_services, s, 'eida')):
-                    e = orm.Endpoint(
-                        url='{}{}'.format(v['server'],
-                                          v['uri_path_query']),
-                        service=_lookup_service(_services, s, 'eida'))
-
-                    logger.debug('Created endpoint %r' % e)
-                    _endpoints.append(e)
-
-        except KeyError as err:
-            raise InvalidEndpointConfig(err)
-
-    payload = _nodes
-    payload.extend(_endpoints)
-
-    with session_guard(session) as s:
-        s.add_all(payload)
-
-# init ()
 
 def clean(session, timestamp):
     """
@@ -261,9 +150,8 @@ def clean(session, timestamp):
 
     vnets_active = set(
         session.query(orm.StreamEpochGroup).\
-            filter(orm.StreamEpochGroup.oid.in_(vnets_active)).\
-            all())
-
+        filter(orm.StreamEpochGroup.oid.in_(vnets_active)).\
+        all())
 
     vnets_all = set(session.query(orm.StreamEpochGroup).all())
 

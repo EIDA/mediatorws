@@ -41,7 +41,7 @@ from fasteners import InterProcessLock
 from lxml import etree
 from obspy import read_inventory, UTCDateTime
 from sqlalchemy import inspect
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.exc import OperationalError
 
 from eidangservices import settings, utils
@@ -50,12 +50,23 @@ from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
                                              node_generator, RequestsError,
                                              NoContent)
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error, ErrorWithTraceback
+from eidangservices.utils.error import Error
 from eidangservices.utils.sncl import Stream
 from eidangservices.utils.schema import StreamEpochSchema
 
+# TODO(damb):
+#   - fix *cached_services* issue
 
 __version__ = utils.get_version("stationlite")
+
+CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
+
+
+def get_cached_services():
+    return [s for s in CACHED_SERVICES]
+
+# get_cached_services ()
+
 
 # ----------------------------------------------------------------------------
 class NothingToDo(Error):
@@ -76,9 +87,6 @@ class Harvester(object):
     class HarvesterError(Error):
         """Base harvester error ({})."""
 
-    class NotConfigured(ErrorWithTraceback):
-        """Harvester not configured."""
-
     class InvalidNodeConfiguration(HarvesterError):
         """DB Node configuration is not valid for node '{}'."""
 
@@ -92,16 +100,12 @@ class Harvester(object):
         self.node_id = node_id
         self._url_config = url_routing_config
         self._config = None
-        self._node = None
 
         self.logger = logging.getLogger(self.LOGGER)
-        self.is_configured = False
 
     @property
     def node(self):
-        if self.is_configured:
-            return self._node
-        return None
+        return self.node_id
 
     @property
     def url(self):
@@ -117,18 +121,6 @@ class Harvester(object):
         return self._config
 
     # config ()
-
-    def configure(self, session):
-        try:
-            self._node = session.query(orm.Node).\
-                filter(orm.Node.name==self.node_id).\
-                one()
-        except (NoResultFound, MultipleResultsFound) as err:
-            raise self.InvalidNodeConfiguration(self.node_id)
-
-        self.is_configured = True
-
-    # configure ()
 
     def harvest(self, session):
         raise NotImplementedError
@@ -152,26 +144,18 @@ class RoutingHarvester(Harvester):
 
     This harvester does not rely on the EIDA routing service anymore.
     """
+    STATION_TAG = 'station'
 
     class StationXMLParsingError(Harvester.HarvesterError):
         """Error while parsing StationXML: ({})"""
 
-    def __init__(self, node_id, url_routing_config, url_fdsn_station):
-        super().__init__(node_id, url_routing_config)
-        self.url_fdsn_station = url_fdsn_station
-
-    # __init__ ()
-
     def harvest(self, session):
         """Harvest the routing configuration."""
-        if not self.is_configured:
-            raise self.NotConfigured()
 
         route_tag = '{}route'.format(self.NS_ROUTINGXML)
-        _cached_services = db.get_cached_services()
+        _cached_services = get_cached_services()
         _cached_services = ['{}{}'.format(self.NS_ROUTINGXML, s)
                             for s in _cached_services]
-
         self.logger.debug('Harvesting routes for %s.' % self.node)
         # event driven parsing
         for event, route_element in etree.iterparse(self.config,
@@ -186,11 +170,32 @@ class RoutingHarvester(Harvester):
                 query_params = '&'.join(['{}={}'.format(query_param, query_val)
                                         for query_param, query_val in
                                         attrs.items()])
+
+                # extract fdsn-station service url for each route
+                urls = set([
+                    e.get('address') for e in route_element.iter(
+                        '{}{}'.format(self.NS_ROUTINGXML, self.STATION_TAG))
+                    if int(e.get('priority', 0)) == 1])
+
+                if (len(urls) == 0 and len([e for e in
+                    route_element.iter() if int(e.get('priority',
+                                                0)) == 1]) == 0):
+                    # NOTE(damb): Skip routes which contain exclusively
+                    # 'priority == 2' services
+                    continue
+
+                elif len(urls) > 1:
+                    # NOTE(damb): Currently we cannot handle multiple
+                    # fdsn-station urls i.e. for multiple routed epochs
+                    raise self.IntegrityError(
+                        ('Missing <station></station> element for '
+                         '{} ({}).'.format(route_element, urls)))
+
                 _url_fdsn_station = '{}?{}&level=channel'.format(
-                    self.url_fdsn_station, query_params)
+                    urls.pop(), query_params)
 
                 # XXX(damb): For every single route resolve FDSN wildcards
-                # using the EIDA node's station service.
+                # using the route's station service.
                 # XXX(damb): Use the station service's GET method since the
                 # POST method requires temporal constraints (both starttime and
                 # endtime).
@@ -212,8 +217,6 @@ class RoutingHarvester(Harvester):
                     continue
 
                 # NOTE(damb): currently only consider CACHED_SERVICEs
-                # TODO(damb): To be refactored - use the Station service
-                # defined within <route></route>
                 for service_element in route_element.iter(*_cached_services):
                     # only consider priority=1
                     priority = service_element.get('priority')
@@ -230,46 +233,24 @@ class RoutingHarvester(Harvester):
                         raise self.RoutingConfigXMLParsingError(
                             "Missing 'address' attrib.")
 
-                    # fetch Endpoint object from DB
-                    try:
-                        endpoint = session.query(orm.Endpoint).\
-                            filter(orm.Endpoint.url==endpoint_url).\
-                            one()
-                    except (NoResultFound, MultipleResultsFound) as err:
-                        raise self.IntegrityError(err)
+                    service = self._emerge_service(session, service_tag)
+                    endpoint = self._emerge_endpoint(session, endpoint_url,
+                                                     service)
 
                     self.logger.debug('Processing routes for %r '
                                       '(service=%s, endpoint=%s).' %
                                       (stream, service_element.tag,
                                        endpoint.url))
 
-                    for net in nets:
-                        self.logger.debug('Checking Network<->Node relation '
-                                          '{}<->{}.'.format(net, self.node))
-                        try:
-                            _ = session.query(orm.NodeNetworkInventory).\
-                                filter(orm.NodeNetworkInventory.network ==
-                                       net).\
-                                filter(orm.NodeNetworkInventory.node ==
-                                       self.node).\
-                                one()
-                        except NoResultFound:
-                            # create a new relation - it will be
-                            # automatically added to the session
-                            r = orm.NodeNetworkInventory(network=net,
-                                                         node=self.node)
-                            self.logger.debug(
-                                'Created relation {0!r}'.format(r))
-                        except MultipleResultsFound as err:
-                            raise self.IntegrityError(err)
-
                     try:
-                        routing_starttime = utils.from_fdsnws_datetime(
-                            service_element.get('start'))
+                        routing_starttime = UTCDateTime(
+                            service_element.get('start'),
+                            iso8601=True).datetime
                         routing_endtime = service_element.get('end')
                         # reset endtime due to 'end=""'
                         routing_endtime = (
-                            utils.from_fdsnws_datetime(routing_endtime) if
+                            UTCDateTime(routing_endtime,
+                                        iso8601=True).datetime if
                             routing_endtime is not None and
                             routing_endtime.strip() else None)
                     except Exception as err:
@@ -340,6 +321,52 @@ class RoutingHarvester(Harvester):
         return nets, stas, chas
 
     # _harvest_from_stationxml ()
+
+    def _emerge_service(self, session, service_tag):
+        """
+        Factory method for a orm.Service object.
+        """
+        try:
+            service = session.query(orm.Service).\
+                filter(orm.Service.name==service_tag).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
+
+        if service is None:
+            service = orm.Service(name=service_tag)
+            session.add(service)
+            self.logger.debug(
+                "Created new service object '{}'".format(
+                    service))
+
+        return service
+
+    # _emerge_service ()
+
+    def _emerge_endpoint(self, session, url, service):
+        """
+        Factory method for a orm.Endpoint object.
+        """
+
+        try:
+            endpoint = session.query(orm.Endpoint).\
+                filter(orm.Endpoint.url==url).\
+                one_or_none()
+        except MultipleResultsFound as err:
+            raise self.IntegrityError(err)
+
+        if endpoint is None:
+            endpoint = orm.Endpoint(url=url,
+                                    service=service)
+            session.add(endpoint)
+            self.logger.debug(
+                "Created new endpoint object '{}'".format(
+                    endpoint))
+
+        return endpoint
+
+    # _emerge_endpoint ()
 
     def _emerge_network(self, session, network):
         """
@@ -625,8 +652,6 @@ class VNetHarvester(Harvester):
         super().__init__(node_id, url_vnet_config)
 
     def harvest(self, session):
-        if not self.is_configured:
-            raise self.NotConfigured()
 
         vnet_tag = '{}vnetwork'.format(self.NS_ROUTINGXML)
         stream_tag = '{}stream'.format(self.NS_ROUTINGXML)
@@ -966,10 +991,6 @@ class StationLiteHarvestApp(App):
                 node_par['services']['eida']['routing']['server'] +
                 node_par['services']['eida']['routing']\
                         ['uri_path_config'])
-            url_fdsn_station = (
-                node_par['services']['fdsn']['server'] +
-                settings.FDSN_STATION_PATH +
-                settings.FDSN_QUERY_METHOD_TOKEN)
 
             self.logger.info(
                 'Processing routes from EIDA node %r.' % node_name)
@@ -978,14 +999,11 @@ class StationLiteHarvestApp(App):
                 # to the RoutingHarvester. The Harvester should fetch
                 # this information from every single <route></route>.
                 # harvest the routing configuration
-                h = RoutingHarvester(
-                    node_name, url_routing_config, url_fdsn_station)
+                h = RoutingHarvester(node_name, url_routing_config)
 
                 session=Session()
                 # XXX(damb): Maintain sessions within the scope of a
                 # harvesting process.
-                h.configure(session)
-
                 with db.session_guard(session) as _session:
                     h.harvest(_session)
 
@@ -1016,8 +1034,6 @@ class StationLiteHarvestApp(App):
                 session=Session()
                 # XXX(damb): Maintain sessions within the scope of a
                 # harvesting process.
-                h.configure(session)
-
                 with db.session_guard(session) as _session:
                     h.harvest(_session)
 

@@ -46,7 +46,7 @@ from sqlalchemy import create_engine
 from eidangservices import settings, utils
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error
-from eidangservices.stationlite.engine import db, orm
+from eidangservices.stationlite.engine import orm
 
 __version__ = utils.get_version("stationlite")
 
@@ -110,7 +110,6 @@ class StationLiteDBInitApp(App):
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
-
         exit_code = utils.ExitCodes.EXIT_SUCCESS
         try:
             self.logger.info('{}: Version {}'.format(type(self).__name__,
@@ -122,15 +121,10 @@ class StationLiteDBInitApp(App):
                 os.remove(self.args.path_db)
 
             engine = create_engine('sqlite:///{}'.format(self.args.path_db))
-            Session = db.ScopedSession()
-            Session.configure(bind=engine)
-            session = Session()
-
             # create db tables
             self.logger.debug('Creating database tables ...')
             orm.ORMBase.metadata.create_all(engine)
 
-            db.init(session)
             self.logger.info(
                 "DB '{}' successfully initialized.".format(self.args.path_db))
 
