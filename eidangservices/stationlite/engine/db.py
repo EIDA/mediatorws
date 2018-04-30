@@ -124,8 +124,7 @@ def clean(session, timestamp):
     :returns: Total number of removed rows.
     :rtype int:
     """
-    MAPPINGS_WITH_LASTSEEN = (orm.NodeNetworkInventory,
-                              orm.NetworkEpoch,
+    MAPPINGS_WITH_LASTSEEN = (orm.NetworkEpoch,
                               orm.ChannelEpoch,
                               orm.StationEpoch,
                               orm.Routing,
