@@ -37,6 +37,29 @@ tool by GFZ.
 Besides an alpha version of the *stationlite* service is implemented.
 
 
+Content
+=======
+
+* `Installation`_
+
+  - `Download`_
+  - `Installing virtualenv`_
+  - `Install`_
+
+* `Run the Test WSGI servers`_
+* `Deploying to a webserver`_
+
+  - `Install mod_wsgi`_
+  - `Setup a virtual host`_
+  - `Configure the webservice`_
+
+* `StationLite harvesting`_
+* `Logging (application level)`_
+* `Missing features and limitations`_
+
+
+
+
 Installation
 ============
 
@@ -55,8 +78,8 @@ First of all, choose an installation directory:
 
   $ export PATH_INSTALLATION_DIRECTORY=$HOME/work
 
-Download the EIDA NG webservices
---------------------------------
+Download
+--------
 
 From the `EIDA GitHub <https://github.com/EIDA/mediatorws>`_ download a copy of
 the *mediatorws* source code:
@@ -111,8 +134,8 @@ When you are done disable it:
 
   (venv) $ deactivate
 
-Install the EIDA NG webservices
--------------------------------
+Install
+-------
 
 EIDA NG webservices provide simple and reusable installation routines. After
 activating the virtual environment with
@@ -159,7 +182,7 @@ webservice installation enter
   (venv) $ eida-federator -V
 
 The version of your *federator* installation should be displayed. Now you are
-ready to launch the `Test WSGI servers`_.
+ready to launch the `Test WSGI servers <#Run the Test WSGI Servers>`_.
 
 When you are done with your tests do not forget to deactivate the virtual
 environment:
@@ -167,6 +190,78 @@ environment:
 .. code::
 
   (venv) $ deactivate
+
+
+Run the Test WSGI servers
+=========================
+
+The webservices are implemented using the `Flask <http://flask.pocoo.org/>`_
+framework.
+
+The examples bellow use the built-in Flask server, which is not recommended to
+use in production. In production environments the usage of a WSGI server should
+be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
+the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
+
+To expose the service to port 80, a `reverse proxy
+<https://en.wikipedia.org/wiki/Reverse_proxy>`_ like `nginx
+<https://www.nginx.com/>`_ should be used. 
+
+Federator server
+----------------
+
+To launch a local test WSGI server (**NOT** for production environments) enter:
+
+.. code::
+
+  (venv) $ eida-federator --start-local --tmpdir='/path/to/tmp'
+
+For further configuration options invoke
+
+.. code::
+
+  (venv) $ eida-federator -h
+
+The service currently writes temporary files to the :code:`tmpdir`, so this directory will
+fill up. It is recommended to purge this directory regularly, e.g., using a
+tool like `tmpreaper`.
+
+StationLite server
+------------------
+
+To launch a local test WSGI server (**NOT** for production environments) enter:
+
+.. code::
+
+  (venv) $ eida-stationlite --start-local URL
+
+`URL` is a database url as described at the `SQLAlchemy documentation
+<http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
+For further configuration options invoke
+
+.. code::
+
+  (venv) $ eida-stationlite -h
+
+Mediator server
+---------------
+
+.. note::
+
+  The EIDA Mediator webservice currently still does not provide an installation
+  routine. However, a test server can be started as described bellow. Note,
+  that you have to install all dependencies required manually.
+
+Add the repository directory to your PYTHONPATH. Then, the server can be
+started as
+
+.. code::
+
+  $ python -m eidangservices.mediator.server --port=5001 --tmpdir='/path/to/tmp'
+
+The server writes temporary files to the tmpdir, so this directory will fill up.
+It is recommended to purge this directory regularly, e.g., using a tool like
+`tmpreaper`.
 
 
 Deploying to a webserver
@@ -186,8 +281,8 @@ It is also assumed, that you install the EIDA NG webservices to
 
   $ export PATH_INSTALLATION_DIRECTORY=/var/www
 
-Next, proceed as described for a *test* installation from the `Download the
-EIDA NG webservices`_ section on.
+Next, proceed as described for a *test* installation from the `Download`_
+section on.
 
 When you installed the webservices successfully return to this point.
 
@@ -254,78 +349,6 @@ in your :code:`*.wsgi` file. Also, adjust the path. Finally, restart the
 Apache2 server.
 
 
-Test WSGI servers
-=================
-
-The webservices are implemented using the `Flask <http://flask.pocoo.org/>`_
-framework.
-
-The examples bellow use the built-in Flask server, which is not recommended to
-use in production. In production environments the usage of a WSGI server should
-be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
-the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
-
-To expose the service to port 80, a `reverse proxy
-<https://en.wikipedia.org/wiki/Reverse_proxy>`_ like `nginx
-<https://www.nginx.com/>`_ should be used. 
-
-Federator server
-----------------
-
-To launch a local test WSGI server (**NOT** for production environments) enter:
-
-.. code::
-
-  (venv) $ eida-federator --start-local --tmpdir='/path/to/tmp'
-
-For further configuration options invoke
-
-.. code::
-
-  (venv) $ eida-federator -h
-
-The services write temporary files to the :code:`tmpdir`, so this directory will
-fill up. It is recommended to purge this directory regularly, e.g., using a
-tool like `tmpreaper`.
-
-StationLite server
-------------------
-
-To launch a local test WSGI server (**NOT** for production environments) enter:
-
-.. code::
-
-  (venv) $ eida-stationlite --start-local URL
-
-`URL` is a database url as described at `SQLAlchemy documentation
-<http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
-For further configuration options invoke
-
-.. code::
-
-  (venv) $ eida-stationlite -h
-
-Mediator server
----------------
-
-.. note::
-
-  The EIDA Mediator webservice currently still does not provide an installation
-  routine. However, a test server can be started as described bellow. Note,
-  that you have to install all dependencies required manually.
-
-Add the repository directory to your PYTHONPATH. Then, the server can be
-started as
-
-.. code::
-
-  $ python -m eidangservices.mediator.server --port=5001 --tmpdir='/path/to/tmp'
-
-The server writes temporary files to the tmpdir, so this directory will fill up.
-It is recommended to purge this directory regularly, e.g., using a tool like
-tmpreaper.
-
-
 StationLite harvesting
 ======================
 
@@ -357,7 +380,7 @@ Logging (application level)
 
 .. note::
 
-  EIDA Federator and StationLite webservice only.
+  EIDA Federator and StationLite webservices only.
 
 For debugging purposes EIDA NG webservices also provide logging facilities.
 Simply configure your webservice with a logging configuration file. Use the INI
@@ -391,11 +414,11 @@ configured.
   a logger writing to :code:`sys.stdout`. See also:
   http://modwsgi.readthedocs.io/en/develop/user-guides/debugging-techniques.html
 
-  2. When using an EIDA NG webservice *mod_wsgi* configuration with multiple
-  processes `logging to a single file 
+  2. When using an EIDA NG multithreaded webservice together with a *mod_wsgi*
+  configuration processes `logging to a single file 
   <https://docs.python.org/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes>`_
   is not supported. Instead initialize your logger with a handler which
-  guarantees log message to be serialized (e.g. `SysLogHandler`_,
+  guarantees log messages to be serialized (e.g. `SysLogHandler`_,
   `SocketHandler
   <https://docs.python.org/library/logging.handlers.html#sockethandler>`_).
 
@@ -405,6 +428,7 @@ Missing features and limitations
 
 * The **/queryauth** route of the `fdsnws-dataselect` service is not yet
   implemented
-* The *stationlite* service currently implements the *eidaws-routing* `post`
-  format only
+* *stationlite* currently implements the *eidaws-routing* interface only partly
+  (e.g. `format={post,get}`)
 * Error message texts are JSON, not plain text
+* For issues also visit https://github.com/EIDA/mediatorws/issues.
