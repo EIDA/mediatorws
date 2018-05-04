@@ -44,7 +44,6 @@ from flask import make_response
 
 from sqlalchemy import create_engine
 
-import eidangservices as eidangws
 from eidangservices import settings
 from eidangservices.utils.error import Error
 
@@ -109,21 +108,5 @@ def node_generator(exclude=[]):
             yield node, settings.EIDA_NODES[node]
 
 # node_generator ()
-
-# -----------------------------------------------------------------------------
-class RoutingContext:
-    """
-    Context wrapper object for StreamEpoch/StreamEpochs classes.
-    """
-
-    def __init__(self, stream_epoch):
-        self._stream_epoch = stream_epoch
-
-    def __str__(self):
-        se_schema = eidangws.utils.schema.StreamEpochSchema(
-            context={'routing': True})
-        return ' '.join(se_schema.dump(self._stream_epoch).values())
-
-# class RoutingContext
 
 # ---- END OF <misc.py> ----

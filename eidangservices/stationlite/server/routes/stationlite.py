@@ -47,8 +47,8 @@ from eidangservices.utils.sncl import StreamEpochsHandler
 
 from eidangservices.stationlite import misc
 from eidangservices.stationlite.engine import dbquery
-from eidangservices.stationlite.server import db
-from eidangservices.stationlite.server import schema
+from eidangservices.stationlite.server import db, schema
+from eidangservices.stationlite.server.stream import OutputStream
 
 
 class StationLiteResource(Resource):
@@ -157,18 +157,8 @@ class StationLiteResource(Resource):
         # sort additionally by url
         routes.sort()
 
-        # convert the result to EIDAWS routing POST format
-        response=''
-        for url, stream_epoch_lst in routes:
-            if response:
-                response += '\n\n'
-            response += url + '\n' + '\n'.join(str(misc.RoutingContext(se))
-                                               for se in stream_epoch_lst)
-
-        if response:
-            response += '\n'
-
-        return response
+        ostream = OutputStream.create(args['format'], routes=routes)
+        return str(ostream)
 
     # _process_request ()
 

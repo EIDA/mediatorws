@@ -51,7 +51,7 @@ class StationLiteSchema(Schema):
         # missing='xml'
         missing='post',
         #validate=validate.OneOf(['xml', 'json', 'get', 'post'])
-        validate=validate.OneOf(['post']))
+        validate=validate.OneOf(['post', 'get']))
     service = fields.Str(
         missing='dataselect',
         validate=validate.OneOf(['dataselect', 'station', 'wfcatalog']))
