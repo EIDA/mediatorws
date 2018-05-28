@@ -50,9 +50,8 @@ from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
                                              node_generator, RequestsError,
                                              NoContent)
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error
-from eidangservices.utils.sncl import Stream
-from eidangservices.utils.schema import StreamEpochSchema
+from eidangservices.utils.error import Error, ExitCodes
+from eidangservices.utils.sncl import Stream, StreamEpoch
 
 # TODO(damb):
 #   - fix *cached_services* issue
@@ -655,7 +654,6 @@ class VNetHarvester(Harvester):
 
         vnet_tag = '{}vnetwork'.format(self.NS_ROUTINGXML)
         stream_tag = '{}stream'.format(self.NS_ROUTINGXML)
-        se_schema = StreamEpochSchema()
 
         self.logger.debug('Harvesting virtual networks for %s.' % self.node)
 
@@ -673,14 +671,24 @@ class VNetHarvester(Harvester):
                     # convert attributes to dict
                     stream = Stream.from_route_attrs(
                         **dict(stream_element.attrib))
-                    attrs = stream._asdict(short_keys=True)
-                    attrs['start'] = stream_element.get('start')
-                    endtime = stream_element.get('end')
-                    attrs['end'] = endtime if (endtime is None or
-                                               endtime.strip()) else None
+                    try:
+                        stream_starttime = UTCDateTime(
+                            stream_element.get('start'),
+                            iso8601=True).datetime
+                        endtime = stream_element.get('end')
+                        # reset endtime due to 'end=""'
+                        stream_endtime = (
+                            UTCDateTime(endtime, iso8601=True).datetime if
+                            endtime is not None and
+                            endtime.strip() else None)
+                    except Exception as err:
+                        raise self.RoutingConfigXMLParsingError(err)
 
                     # deserialize to StreamEpoch object
-                    stream_epoch = se_schema.load(attrs)
+                    stream_epoch = StreamEpoch(stream=stream,
+                                               starttime=stream_starttime,
+                                               endtime=stream_endtime)
+
                     self.logger.debug("Processing {0!r} ...".format(
                         stream_epoch))
 
@@ -902,7 +910,7 @@ class StationLiteHarvestApp(App):
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
 
-        exit_code = utils.ExitCodes.EXIT_SUCCESS
+        exit_code = ExitCodes.EXIT_SUCCESS
 
         try:
             pid_lock = InterProcessLock(self.args.path_pidfile)
@@ -959,14 +967,14 @@ class StationLiteHarvestApp(App):
         # TODO(damb): signal handling
         except Error as err:
             self.logger.error(err)
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logger.critical('Local Exception: %s' % err)
             self.logger.critical('Traceback information: ' +
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
         finally:
             try:
                 if pid_lock_gotten:
@@ -1063,7 +1071,7 @@ def main():
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
               file=sys.stderr)
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(ExitCodes.EXIT_ERROR)
 
     app.run()
 
