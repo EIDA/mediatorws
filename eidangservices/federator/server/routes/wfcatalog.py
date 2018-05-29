@@ -28,20 +28,26 @@
 """
 This file is part of the EIDA mediator/federator webservices.
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
+
 import datetime
 import logging
 
 from flask import request
+from flask_restful import Resource
 from webargs.flaskparser import use_args
 
-import eidangservices as eidangws
-
 from eidangservices import settings, utils
-from eidangservices.utils import httperrors
-from eidangservices.federator.server import general_request, schema
+from eidangservices.federator.server.schema import WFCatalogSchema
+from eidangservices.federator.server.process import RequestProcessor
+from eidangservices.utils.httperrors import BadRequestError
+from eidangservices.utils.schema import ManyStreamEpochSchema
 
 
-class WFCatalogResource(general_request.GeneralResource):
+class WFCatalogResource(Resource):
     """
     Implementation of a `WFCatalog
     <https://www.orfeus-eu.org/data/eida/webservices/wfcatalog/>`_ resource.
@@ -53,13 +59,12 @@ class WFCatalogResource(general_request.GeneralResource):
         super(WFCatalogResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.WFCatalogSchema(), locations=('query',))
+    @use_args(WFCatalogSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, wfcatalog_args, stream_epochs):
+    def get(self, args, stream_epochs):
         """
         Process a *WFCatalog* GET request.
         """
@@ -68,50 +73,49 @@ class WFCatalogResource(general_request.GeneralResource):
         # sanity check - starttime and endtime must be specified
         if (not stream_epochs or stream_epochs[0].starttime is None or
                 stream_epochs[0].endtime is None):
-            raise httperrors.BadRequestError(
-                settings.FDSN_SERVICE_DOCUMENTATION_URI, request.url,
-                datetime.datetime.utcnow())
+            raise BadRequestError(service_id='federator')
 
         self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 
         # serialize objects
-        s = schema.WFCatalogSchema()
-        wfcatalog_args = s.dump(wfcatalog_args)
-        self.logger.debug('WFCatalogSchema (serialized): %s' %
-                          wfcatalog_args)
+        s = WFCatalogSchema()
+        args = s.dump(args)
+        self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
         # process request
-        return self._process_request(wfcatalog_args, stream_epochs,
-                                     settings.WFCATALOG_MIMETYPE,
-                                     path_tempfile=self.path_tempfile)
+        return RequestProcessor.create(args['service'],
+                                       settings.WFCATALOG_MIMETYPE,
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=False).streamed_response
 
     # get ()
 
-    @utils.use_fdsnws_args(schema.WFCatalogSchema(), locations=('form',))
+    @utils.use_fdsnws_args(WFCatalogSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, wfcatalog_args, stream_epochs):
+    def post(self, args, stream_epochs):
         """
         Process a *WFCatalog* POST request.
         """
         # request.method == 'POST'
         # NOTE: must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
-
         self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 
         # serialize objects
-        s = schema.WFCatalogSchema()
-        wfcatalog_args = s.dump(wfcatalog_args)
-        self.logger.debug('WFCatalogSchema (serialized): %s' % wfcatalog_args)
+        s = WFCatalogSchema()
+        args = s.dump(args)
+        self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
-        return self._process_request(wfcatalog_args, stream_epochs,
-                                     settings.WFCATALOG_MIMETYPE,
-                                     path_tempfile=self.path_tempfile,
-                                     post=True)
+        # process request
+        return RequestProcessor.create(args['service'],
+                                       settings.WFCATALOG_MIMETYPE,
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=True).streamed_response
 
     # post ()
 

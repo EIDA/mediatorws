@@ -78,7 +78,8 @@ _deps_all = [
     'python-dateutil>=2.6.1',
     'webargs==2.0.0', ]
 _deps_federator = _deps_all + [
-    'fasteners>=0.14.1', ]
+    'lxml>=4.2.0',
+    'requests>=2.18.4', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
@@ -154,8 +155,8 @@ elif 'stationlite' == subsys:
 
     _name = 'stationlite'
     _version = get_version('eidangservices/stationlite/__init__.py')
-    _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
-    _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
+    _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
+    _author_email = "daniel.armbruster@sed.ethz.ch, fabian.euchner@sed.ethz.ch"
     _description = ("EIDA NG StationLite webservice")
 
     _includes = ('eidangservices', 'eidangservices.utils',

@@ -29,19 +29,16 @@ e.g., *fdsnws-station* and *fdsnws-dataselect*. Example: Retrieve waveform data
 for all stations within a lat-lon box.
 
 Currently, we provide an alpha version of the *federator* service for
-*fdsnws-station*, *fdsnws-dataselect* and *eidaws-wfcatalog*. The *federator*
-is largely based on the `fdsnws_fetch
-<https://github.com/andres-h/fdsnws_scripts/blob/master/fdsnwsscripts/fdsnws_fetch.py>`_
-tool by GFZ.
+*fdsnws-station*, *fdsnws-dataselect* and *eidaws-wfcatalog*.
 
 Besides an alpha version of the *stationlite* service is implemented.
 
 
 Content
 =======
-
 * `Installation`_
 
+  - `Dependencies`_
   - `Download`_
   - `Installing virtualenv`_
   - `Install`_
@@ -56,7 +53,6 @@ Content
 * `StationLite harvesting`_
 * `Logging (application level)`_
 * `Missing features and limitations`_
-
 
 
 
@@ -77,6 +73,24 @@ First of all, choose an installation directory:
 .. code::
 
   $ export PATH_INSTALLATION_DIRECTORY=$HOME/work
+
+Dependencies
+------------
+
+Make sure the following software is installed:
+
+  * `libxml2 <http://xmlsoft.org/>`_
+  * `libxslt <http://xmlsoft.org/XSLT/>`_
+
+Regarding the version to be used visit http://lxml.de/installation.html#requirements.
+
+To install the required development packages of these dependencies on Linux
+systems, use your distribution specific installation tool, e.g. apt-get on
+Debian/Ubuntu:
+
+.. code::
+
+  $ sudo apt-get install libxml2-dev libxslt-dev python-dev
 
 Download
 --------

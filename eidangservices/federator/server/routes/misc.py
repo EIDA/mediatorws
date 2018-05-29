@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-#
+# -----------------------------------------------------------------------------
+# This is <misc.py>
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
 #
@@ -19,11 +20,16 @@
 #
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
+# REVISION AND CHANGES
+# 2018/05/28        V0.1    Daniel Armbruster
 # -----------------------------------------------------------------------------
 """
-This file is part of the EIDA mediator/federator webservices.
-
+Miscellaneous federator resources.
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
 
 import os
 
@@ -57,10 +63,10 @@ class WFCatalogVersionResource(Resource):
     """Service version for wfcatalog."""
 
     def get(self):
-        return utils.get_version_response(settings.FDSN_WFCATALOG_VERSION)
+        return utils.get_version_response(settings.EIDA_WFCATALOG_VERSION)
 
     def post(self):
-        return utils.get_version_response(settings.FDSN_WFCATALOG_VERSION)
+        return utils.get_version_response(settings.EIDA_WFCATALOG_VERSION)
 
 
 class DataselectWadlResource(Resource):
@@ -101,11 +107,13 @@ class WFCatalogWadlResource(Resource):
     def get(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
-                         settings.FDSN_WFCATALOG_WADL_FILENAME),
+                         settings.EIDA_WFCATALOG_WADL_FILENAME),
             mimetype=settings.WADL_MIMETYPE)
 
     def post(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
-                         settings.FDSN_WFCATALOG_WADL_FILENAME),
+                         settings.EIDA_WFCATALOG_WADL_FILENAME),
             mimetype=settings.WADL_MIMETYPE)
+
+# ---- END OF <misc.py> ----

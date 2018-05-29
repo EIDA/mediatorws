@@ -38,10 +38,10 @@ import sys
 import tempfile
 import traceback
 
-from flask import Flask
 from flask_restful import Api
 
 from eidangservices import settings, utils
+from eidangservices.federator.server import create_app
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
     WFCatalogVersionResource, DataselectWadlResource,
@@ -51,7 +51,7 @@ from eidangservices.federator.server.routes.dataselect import \
 from eidangservices.federator.server.routes.station import StationResource
 from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error
+from eidangservices.utils.error import Error, ExitCodes
 
 
 __version__ = utils.get_version("federator")
@@ -88,36 +88,11 @@ class FederatorWebservice(App):
                             help=('server port (only considered when '
                                   'serving locally i.e. with --start-local)'))
         parser.add_argument('-R', '--routing-url', type=str, metavar='URL',
-                            default=settings.DEFAULT_ROUTING_URL,
+                            default=settings.\
+                            EIDA_FEDERATOR_DEFAULT_ROUTING_URL,
                             dest='routing',
                             # TODO(damb): Perform integrity check.
                             help=("routing service url (including identifier)"
-                                  "(default: %(default)s)"))
-        parser.add_argument("-t", "--timeout", metavar='SECONDS', type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT,
-                            help=("routing/federating service request "
-                                  "timeout in seconds (default: %(default)s)"))
-        parser.add_argument("-r", "--retries", type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES,
-                            help=("routing/federating service number of "
-                                  "retries (default: %(default)s)"))
-        parser.add_argument("-w", "--retry-wait", type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT,
-                            help=("seconds to wait before each retry "
-                                  "(default: %(default)s)"))
-        parser.add_argument("-L", "--retry-lock", action='store_true',
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK,
-                            help=("while retrying lock an URL for other "
-                                  "federator instances "
-                                  "(default: %(default)s)"))
-        parser.add_argument("-n", "--threads", type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS,  # noqa
-                            help=("maximum number of download threads "
                                   "(default: %(default)s)"))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
@@ -131,7 +106,7 @@ class FederatorWebservice(App):
         Run application.
         """
 
-        exit_code = utils.ExitCodes.EXIT_SUCCESS
+        exit_code = ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
 
@@ -149,14 +124,14 @@ class FederatorWebservice(App):
 
         except Error as err:
             self.logger.error(err)
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logger.critical('Local Exception: %s' % err)
             self.logger.critical('Traceback information: ' +
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
 
         sys.exit(exit_code)
 
@@ -169,8 +144,8 @@ class FederatorWebservice(App):
         :param dict args: app configuration arguments
         :rtype :py:class:`flask.Flask`:
         """
-        # TODO(damb): Use StationLite webservice approach.
 
+        # TODO(damb): Check if the definition of this error is necessary.
         errors = {
             'NODATA': {
                 'message': "Empty dataset.",
@@ -180,8 +155,6 @@ class FederatorWebservice(App):
 
         if self.args.tmpdir:
             tempfile.tempdir = self.args.tmpdir
-
-        app = Flask(__name__)
 
         api = Api(errors=errors)
 
@@ -227,34 +200,32 @@ class FederatorWebservice(App):
         # ----
 
         api.add_resource(WFCatalogResource, "%s%s" %
-                         (settings.FDSN_WFCATALOG_PATH,
+                         (settings.EIDA_WFCATALOG_PATH,
                           settings.FDSN_QUERY_METHOD_TOKEN))
 
         # version method
         api.add_resource(WFCatalogVersionResource, "%s%s" %
-                         (settings.FDSN_WFCATALOG_PATH,
+                         (settings.EIDA_WFCATALOG_PATH,
                           settings.FDSN_VERSION_METHOD_TOKEN))
 
         # application.wadl method
         api.add_resource(WFCatalogWadlResource, "%s%s" %
-                         (settings.FDSN_WFCATALOG_PATH,
+                         (settings.EIDA_WFCATALOG_PATH,
                           settings.FDSN_WADL_METHOD_TOKEN))
 
-        api.init_app(app)
-
-        app.config.update(
+        app_config = dict(
             # TODO(damb): Pass log_level to app.config!
-            NUM_THREADS=self.args.threads,
             ROUTING_SERVICE=self.args.routing,
-            ROUTING_TIMEOUT=self.args.timeout,
-            ROUTING_RETRIES=self.args.retries,
-            ROUTING_RETRY_WAIT=self.args.retry_wait,
-            ROUTING_RETRY_LOCK=self.args.retry_lock,
             TMPDIR=tempfile.gettempdir())
 
+        app = create_app(config_dict=app_config)
+        api.init_app(app)
         return app
 
     # setup_app()
+
+# class FederatorWebservice
+
 
 # -----------------------------------------------------------------------------
 def main():
@@ -272,7 +243,7 @@ def main():
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
               file=sys.stderr)
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(ExitCodes.EXIT_ERROR)
 
     return app.run()
 

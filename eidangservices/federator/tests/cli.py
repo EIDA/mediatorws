@@ -77,7 +77,8 @@ class CLITestCase(unittest.TestCase):
     @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_routing(self):
         args = self.parser.parse_args([])
-        self.assertEqual(args.routing, settings.DEFAULT_ROUTING_URL)
+        self.assertEqual(args.routing,
+                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_URL)
         args = self.parser.parse_args(
             ['-R', 'http://eida.ethz.ch/eidaws/routing/1/'])
         self.assertEqual(args.routing, 'http://eida.ethz.ch/eidaws/routing/1/')
@@ -86,51 +87,6 @@ class CLITestCase(unittest.TestCase):
         self.assertEqual(args.routing, 'http://eida.ethz.ch/eidaws/routing/1/')
 
     # test_routing ()
-
-    def test_retries(self):
-        args = self.parser.parse_args([])
-        self.assertEqual(args.retries,
-                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES)
-        args = self.parser.parse_args(['-r', '12'])
-        self.assertEqual(args.retries, 12)
-        args = self.parser.parse_args(['--retries', '12'])
-        self.assertEqual(args.retries, 12)
-
-    # test_retries ()
-
-    def test_retry_wait(self):
-        args = self.parser.parse_args([])
-        self.assertEqual(args.retry_wait,
-                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT)
-        args = self.parser.parse_args(['-w', '30'])
-        self.assertEqual(args.retry_wait, 30)
-        args = self.parser.parse_args(['--retry-wait', '30'])
-        self.assertEqual(args.retry_wait, 30)
-
-    # test_retry_wait ()
-
-    def test_retry_lock(self):
-        args = self.parser.parse_args([])
-        self.assertEqual(args.retry_lock,
-                         settings.EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK)
-        args = self.parser.parse_args(['-L'])
-        self.assertEqual(args.retry_lock, True)
-        args = self.parser.parse_args(['--retry-lock'])
-        self.assertEqual(args.retry_lock, True)
-
-    # test_retry_lock ()
-
-    def test_num_threads(self):
-        args = self.parser.parse_args([])
-        self.assertEqual(
-            args.threads,
-            settings.EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS)
-        args = self.parser.parse_args(['-n', '2'])
-        self.assertEqual(args.threads, 2)
-        args = self.parser.parse_args(['--threads', '2'])
-        self.assertEqual(args.threads, 2)
-
-    # test_num_threads ()
 
     def test_tempdir(self):
         path_tempdir = tempfile.mkdtemp()

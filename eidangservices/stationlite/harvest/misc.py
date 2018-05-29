@@ -45,7 +45,7 @@ from sqlalchemy import create_engine
 
 from eidangservices import settings, utils
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error
+from eidangservices.utils.error import Error, ExitCodes
 from eidangservices.stationlite.engine import orm
 
 __version__ = utils.get_version("stationlite")
@@ -110,7 +110,7 @@ class StationLiteDBInitApp(App):
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
-        exit_code = utils.ExitCodes.EXIT_SUCCESS
+        exit_code = ExitCodes.EXIT_SUCCESS
         try:
             self.logger.info('{}: Version {}'.format(type(self).__name__,
                                                      __version__))
@@ -130,14 +130,14 @@ class StationLiteDBInitApp(App):
 
         except Error as err:
             self.logger.error(err)
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logger.critical('Local Exception: %s' % err)
             self.logger.critical('Traceback information: ' +
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
 
         sys.exit(exit_code)
 
@@ -162,7 +162,7 @@ def db_init():
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
               file=sys.stderr)
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(ExitCodes.EXIT_ERROR)
 
     app.run()
 

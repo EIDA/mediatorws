@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-#
+# -----------------------------------------------------------------------------
+# This is <station.py>
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
 #
@@ -22,21 +23,25 @@
 # -----------------------------------------------------------------------------
 """
 This file is part of the EIDA mediator/federator webservices.
-
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
 
 import logging
 
 from flask import request
+from flask_restful import Resource
 from webargs.flaskparser import use_args
 
-import eidangservices as eidangws
-
 from eidangservices import settings, utils
-from eidangservices.federator.server import general_request, schema
+from eidangservices.federator.server.schema import StationSchema
+from eidangservices.federator.server.process import RequestProcessor
+from eidangservices.utils.schema import ManyStreamEpochSchema
 
 
-class StationResource(general_request.GeneralResource):
+class StationResource(Resource):
 
     LOGGER = 'flask.app.federator.station_resource'
 
@@ -44,47 +49,49 @@ class StationResource(general_request.GeneralResource):
         super(StationResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.StationSchema(), locations=('query',))
+    @use_args(StationSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    def get(self, station_args, stream_epochs):
+    def get(self, args, stream_epochs):
         # request.method == 'GET'
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
-        s = schema.StationSchema()
-        station_args = s.dump(station_args)
-        self.logger.debug('StationSchema (serialized): %s' % station_args)
+        s = StationSchema()
+        args = s.dump(args)
+        self.logger.debug('StationSchema (serialized): %s' % args)
 
         # process request
-        return self._process_request(station_args, stream_epochs,
-                                     self._get_result_mimetype(station_args),
-                                     path_tempfile=self.path_tempfile)
+        return RequestProcessor.create(args['service'],
+                                       self._get_result_mimetype(args),
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=False).streamed_response
 
     # get ()
 
-    @utils.use_fdsnws_args(schema.StationSchema(), locations=('form',))
+    @utils.use_fdsnws_args(StationSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    def post(self, station_args, stream_epochs):
+    def post(self, args, stream_epochs):
         # request.method == 'POST'
 
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         # serialize objects
-        s = schema.StationSchema()
-        station_args = s.dump(station_args)
-        self.logger.debug('StationSchema (serialized): %s' % station_args)
+        s = StationSchema()
+        args = s.dump(args)
+        self.logger.debug('StationSchema (serialized): %s' % args)
 
-        return self._process_request(station_args, stream_epochs,
-                                     self._get_result_mimetype(station_args),
-                                     path_tempfile=self.path_tempfile,
-                                     post=True)
+        # process request
+        return RequestProcessor.create(args['service'],
+                                       self._get_result_mimetype(args),
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=True).streamed_response
 
     # post ()
 
@@ -99,3 +106,5 @@ class StationResource(general_request.GeneralResource):
     # _get_result_mimetype ()
 
 # class StationResource
+
+# ---- END OF <station.py> ----

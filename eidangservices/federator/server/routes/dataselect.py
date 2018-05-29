@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-#
+# -----------------------------------------------------------------------------
+# This is <dataselect.py>
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
 #
@@ -19,24 +20,32 @@
 #
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
+# REVISION AND CHANGES
+# 2018/05/18        V0.1    Daniel Armbruster, Fabian Euchner
+#
 # -----------------------------------------------------------------------------
 """
 This file is part of the EIDA mediator/federator webservices.
 
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from builtins import * # noqa
 
 import logging
 
 from flask import request
+from flask_restful import Resource
 from webargs.flaskparser import use_args
 
-import eidangservices as eidangws
-
 from eidangservices import settings, utils
-from eidangservices.federator.server import general_request, schema
+from eidangservices.federator.server.schema import DataselectSchema
+from eidangservices.federator.server.process import RequestProcessor
+from eidangservices.utils.schema import ManyStreamEpochSchema
 
 
-class DataselectResource(general_request.GeneralResource):
+class DataselectResource(Resource):
     """
     Handler for dataselect service route.
     """
@@ -46,10 +55,9 @@ class DataselectResource(general_request.GeneralResource):
         super(DataselectResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
-    @use_args(schema.DataselectSchema(), locations=('query',))
+    @use_args(DataselectSchema(), locations=('query',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
     def get(self, args, stream_epochs):
@@ -57,38 +65,43 @@ class DataselectResource(general_request.GeneralResource):
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         # serialize objects
-        s = schema.DataselectSchema()
+        s = DataselectSchema()
         args = s.dump(args)
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
-        return self._process_request(args, stream_epochs,
-                                     settings.DATASELECT_MIMETYPE,
-                                     path_tempfile=self.path_tempfile)
-
+        return RequestProcessor.create(args['service'],
+                                       settings.DATASELECT_MIMETYPE,
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=False).streamed_response
     # get ()
 
-    @utils.use_fdsnws_args(schema.DataselectSchema(), locations=('form',))
+    @utils.use_fdsnws_args(DataselectSchema(), locations=('form',))
     @utils.use_fdsnws_kwargs(
-        eidangws.utils.schema.ManyStreamEpochSchema(
-            context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
     def post(self, args, stream_epochs):
         # request.method == 'POST'
-        # NOTE: must be sent as binary to preserve line breaks
+        # NOTE(fab): must be sent as binary to preserve line breaks
         # curl: --data-binary @postfile --header "Content-Type:text/plain"
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
-        s = schema.DataselectSchema()
+        s = DataselectSchema()
         args = s.dump(args)
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
-        return self._process_request(args, stream_epochs,
-                                     settings.DATASELECT_MIMETYPE,
-                                     path_tempfile=self.path_tempfile,
-                                     post=True)
+        # process request
+        return RequestProcessor.create(args['service'],
+                                       settings.DATASELECT_MIMETYPE,
+                                       query_params=args,
+                                       stream_epochs=stream_epochs,
+                                       post=True).streamed_response
 
     # post ()
 
 # class DataselectResource
+
+
+# ---- END OF <dataselect.py> ----

@@ -42,7 +42,7 @@ import sys
 from collections import OrderedDict
 
 from eidangservices import utils
-from eidangservices.utils.error import ErrorWithTraceback
+from eidangservices.utils.error import ErrorWithTraceback, ExitCodes
 
 try:
     # Python 2.x
@@ -60,7 +60,7 @@ class CustomParser(argparse.ArgumentParser):
     def error(self, message):
         sys.stderr.write('USAGE ERROR: %s\n' % message)
         self.print_help()
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(ExitCodes.EXIT_ERROR)
 
 # class CustomParser
 
@@ -139,7 +139,7 @@ class App(object):
 
         try:
             def _error(msg):
-                sys.exit(utils.ExitCodes.EXIT_ERROR)
+                sys.exit(ExitCodes.EXIT_ERROR)
 
             error_func = self.parser.error
             self.parser.error = _error
@@ -150,7 +150,7 @@ class App(object):
             # failed
             if err.code == 0:
                 # terminate normally (for e.g. [-h|--help])
-                sys.exit(utils.ExitCodes.EXIT_SUCCESS)
+                sys.exit(ExitCodes.EXIT_SUCCESS)
 
             for v in positional_required.values():
                 remaining_argv.append(v)
@@ -194,7 +194,7 @@ class App(object):
             try:
                 logging.config.fileConfig(self.args.path_logging_conf)
                 self.logger = logging.getLogger()
-                logger_configured = True
+                self.logger_configured = True
                 self.logger.info('Using logging configuration read from "%s"',
                                  self.args.path_logging_conf)
             except Exception as err:

@@ -43,6 +43,8 @@ from intervaltree import IntervalTree
 
 import eidangservices as eidangws
 
+from eidangservices import settings, utils
+
 Epochs = IntervalTree
 
 # ----------------------------------------------------------------------------
@@ -112,7 +114,8 @@ def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
     # NOTE(damb): first escape the *like_single* character, then replace '?'
     return str_old.replace(
         like_single, like_escape+like_single).replace(
-        '?', like_single).replace('*', like_multiple)
+        settings.FDSNWS_QUERY_WILDCARD_SINGLE_CHAR, like_single).\
+        replace(settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR, like_multiple)
 
 # fdsnws_to_sql_wildcards ()
 
@@ -208,6 +211,35 @@ class StreamEpoch(namedtuple('StreamEpoch',
                    endtime=endtime)
 
     @classmethod
+    def from_snclline(cls, line, default_endtime=None):
+        """
+        Create a StreamEpoch from a SNCL line (FDSN POST format).
+
+        :param str line: SNCL line in FDSN POST format i.e.
+        `NET STA LOC CHA START END`
+        :param :cls:`datetime.datetime` default_endtime: Substitute an empty
+        endtime with the datetime passed.
+        """
+        if isinstance(line, bytes):
+            line = line.decode('utf-8')
+
+        args = line.strip().split(' ')
+        end = None
+        if len(args) == 6:
+            end = utils.from_fdsnws_datetime(args[5])
+        elif len(args) == 5 and default_endtime is not None:
+            end = default_endtime
+
+        return cls(stream=Stream(network=args[0],
+                                 station=args[1],
+                                 location=args[2],
+                                 channel=args[3]),
+                   starttime=utils.from_fdsnws_datetime(args[4]),
+                   endtime=end)
+
+    # from_snclline ()
+
+    @classmethod
     def from_orm(cls, stream_epoch):
         return cls(stream=Stream(network=stream_epoch.network.name,
                                  station=stream_epoch.station.name,
@@ -246,6 +278,28 @@ class StreamEpoch(namedtuple('StreamEpoch',
         return self._replace(stream=stream)
 
     # fdsnws_to_sql_wildcards ()
+
+    def slice(self, num=2, default_endtime=datetime.datetime.utcnow()):
+        """
+        Split StreamEpoch into `num` chunks.
+
+        :param int num: Number of StreamEpochs to be splitted.
+        :param :cls:`datetime.datetime` default_endtime: Default endtime to
+        use in case `self.endtime == None`.
+        :returns: List of :cls:`StreamEpoch` objects.
+        """
+        if num < 2:
+            return self
+        end = self.endtime if self.endtime else default_endtime
+        t = Epochs.from_tuples([(self.starttime, end)])
+
+        for n in range(1, num):
+            t.slice(self.starttime + (end-self.starttime)/num*n)
+
+        return [type(self)(stream=self.stream,
+                           starttime=i.begin, endtime=i.end) for i in t]
+
+    # slice ()
 
     def _asdict(self, short_keys=False):
         """Return a new OrderedDict which maps field names to their values."""

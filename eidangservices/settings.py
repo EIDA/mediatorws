@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# This is <settings.py>
+# -----------------------------------------------------------------------------
+#
+# This file is part of EIDA NG webservices.
+#
+# EIDA NG webservices is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# EIDA NG webservices is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ----
+#
+# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
+#
+# REVISION AND CHANGES
+# 2018/03/28        V0.1    Daniel Armbruster
+# =============================================================================
 """
 
 EIDA next generation web services settings.
@@ -13,13 +38,16 @@ from builtins import * # noqa
 
 import os
 
-# ----
+# -----------------------------------------------------------------------------
 # general purpose constants
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 PATH_VAR_RUN = '/var/run/'
 PATH_VAR_TMP = '/var/tmp/'
 PATH_LOCKDIR = '/var/lock/mediatorws/'
 PATH_EIDANGWS_CONF = '/var/www/mediatorws/config/eidangws_config'
 
+# -----------------------------------------------------------------------------
 # NOTE: arclink servers/ports are from
 # http://eida.gfz-potsdam.de/eida/status/master_table.php
 # (last accessed 2017-08-17)
@@ -502,70 +530,8 @@ FDSN_EVENT_SERVICES = {
         'arrivals': True}
 }
 
-DEFAULT_ROUTING_SERVICE = 'gfz'
-DEFAULT_ROUTING_URL = 'http://geofon.gfz-potsdam.de/eidaws/routing/1/'
-DEFAULT_EVENT_SERVICE = 'usgs'
-
-SERVER_NAME_MEDIATOR = 'EIDA Mediator (alpha)'
-SERVER_NAME_FEDERATOR = 'EIDA Federator (alpha)'
-
-VERSION = '0.9.1'
-SHARE_DIR = 'share'
-
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-
-
-FDSN_STATION_PATH = '/fdsnws/station/1/'
-FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
-FDSN_WFCATALOG_PATH = '/eidaws/wfcatalog/1/'
-FDSN_EVENT_PATH = '/fdsnws/event/1/'
-
-EIDA_ROUTING_PATH = '/eidaws/routing/1/'
-
-EIDA_MEDIATOR_PATH = '/eidaws/mediator/'
-
-EIDA_MEDIATOR_DQ_PATH = '/eidaws/mediator/dq/'
-EIDA_MEDIATOR_RQ_PATH = '/eidaws/mediator/rq/'
-EIDA_MEDIATOR_AQ_PATH = '/eidaws/mediator/aq/'
-
-MEDIATOR_QUERY_METHOD_TOKEN = 'query'
-MEDIATOR_VERSION_METHOD_TOKEN = 'version'
-
-# ----
-EIDA_FEDERATOR_BASE_URL = 'http://mediator-devel.ethz.ch'
-EIDA_FEDERATOR_PORT = 80
-# TODO(damb): port config to be merged
-EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
-EIDA_FEDERATOR_DEFAULT_ROUTING_TIMEOUT = 600
-EIDA_FEDERATOR_DEFAULT_ROUTING_RETRIES = 10
-EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_WAIT = 60
-EIDA_FEDERATOR_DEFAULT_ROUTING_RETRY_LOCK = False
-EIDA_FEDERATOR_DEFAULT_ROUTING_NUM_DOWNLOAD_THREADS = 5
-
-EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
-
-EIDA_FEDERATOR_CONFIG_SECTION = 'CONFIG_FEDERATOR'
-
-EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, 'federator', SHARE_DIR)
-
-# ----
-# TODO(damb): port config to be merged
-EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
-EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
-EIDA_STATIONLITE_VERSION = '0.9.1'
-
-# ----
-EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
-EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
-    os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
-# ----
-IRIS_FDSNWS_BASE_URL = 'http://service.iris.edu'
-IRIS_FDSNWS_PORT = 80
-
-IRIS_FDSNWS_SERVICES = ('dataselect', 'station')
-
-
-# -----------
+# -----------------------------------------------------------------------------
+# FDSN webservice specific configuration
 
 FDSN_QUERY_METHOD_TOKEN = 'query'
 FDSN_VERSION_METHOD_TOKEN = 'version'
@@ -574,17 +540,34 @@ FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
-FDSN_WFCATALOG_VERSION = '1.0.0'
 
 FDSNWS_QUERY_VALUE_SEPARATOR_CHAR = '='
 FDSNWS_QUERY_LIST_SEPARATOR_CHAR = ','
 FDSNWS_QUERY_WILDCARD_MULT_CHAR = '*'
 FDSNWS_QUERY_WILDCARD_SINGLE_CHAR = '?'
 
-FDSN_WADL_DIR = SHARE_DIR
+FDSN_STATION_PATH = '/fdsnws/station/1/'
+FDSN_DATASELECT_PATH = '/fdsnws/dataselect/1/'
+FDSN_EVENT_PATH = '/fdsnws/event/1/'
+
+FDSN_WADL_DIR = 'share'
 FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
 FDSN_STATION_WADL_FILENAME = 'station.wadl'
-FDSN_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
+
+FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
+FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
+
+# -----------------------------------------------------------------------------
+# EIDA webservice specific configuration
+
+EIDA_WFCATALOG_VERSION = '1.0.0'
+EIDA_WFCATALOG_PATH = '/eidaws/wfcatalog/1/'
+EIDA_WFCATALOG_WADL_FILENAME = 'wfcatalog.wadl'
+
+EIDA_ROUTING_PATH = '/eidaws/routing/1/'
+
+# -----------------------------------------------------------------------------
+# EIDA NG webservice specific
 
 MIMETYPE_MSEED = 'application/vnd.fdsn.mseed'
 MIMETYPE_TEXT = 'text/plain'
@@ -598,28 +581,74 @@ WFCATALOG_MIMETYPE = MIMETYPE_JSON
 VERSION_MIMETYPE = MIMETYPE_TEXT
 WADL_MIMETYPE = MIMETYPE_XML
 
+STATIONXML_NAMESPACES = (
+    '{http://www.fdsn.org/xml/station/1}', )
 
-STATION_RESPONSE_TEXT_HEADER = \
-    '#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime'
+STATIONXML_ELEMENT_NETWORK = 'Network'
+STATIONXML_ELEMENT_STATION = 'Station'
+STATIONXML_ELEMENT_CHANNEL = 'Channel'
 
-STATIONXML_RESOURCE_METADATA_ELEMENTS = (
-    '{http://www.fdsn.org/xml/station/1}Source',
-    '{http://www.fdsn.org/xml/station/1}Created',
-    '{http://www.fdsn.org/xml/station/1}Sender',
-    '{http://www.fdsn.org/xml/station/1}Module',
-    '{http://www.fdsn.org/xml/station/1}ModuleURI')
-STATIONXML_NETWORK_ELEMENT = '{http://www.fdsn.org/xml/station/1}Network'
-STATIONXML_STATION_ELEMENT = '{http://www.fdsn.org/xml/station/1}Station'
-STATIONXML_LATITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Latitude'
-STATIONXML_LONGITUDE_ELEMENT = '{http://www.fdsn.org/xml/station/1}Longitude'
+# -----------------------------------------------------------------------------
+# Federator configuration parameters
 
+EIDA_FEDERATOR_CONFIG_SECTION = 'CONFIG_FEDERATOR'
 
-FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
+# default port configuration for flask test wsgi federator instance
+EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
+# default StationLite service URL
+EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
+    'http://mediator-devel.ethz.ch/eidaws/routing/1/'
+# timeout the federator is waiting before the first endpoint request must be
+# answered.
+EIDA_FEDERATOR_STREAMING_TIMEOUT = 600
+# timeout (federator) for endpoint requests. Should be <
+# EIDA_FEDERATOR_STREAMING_TIMEOUT
+EIDA_FEDERATOR_ENDPOINT_TIMEOUT = 540
 
-FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
+# number of federator-dataselect download threads
+EIDA_FEDERATOR_THREADS_DATASELECT = 10
+# number of federator-station-xml download threads
+EIDA_FEDERATOR_THREADS_STATION_XML = 5
+# number of federator-station-text download threads
+EIDA_FEDERATOR_THREADS_STATION_TEXT = 10
+# number of federator-WFCatalog download threads
+EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 
-FDSNWS_GEOMETRY_PARAMS_LONG = (
-    'minlatitude', 'maxlatitude', 'minlongitude', 'maxlongitude')
-FDSNWS_GEOMETRY_PARAMS_SHORT = ('minlat', 'maxlat', 'minlon', 'maxlon')
+EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
+EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, 'federator',
+                                        EIDA_FEDERATOR_SHARE_DIR)
+
+# -----------------------------------------------------------------------------
+# StationLite configuration parameters
+
+EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
+# default port configuration for flask test wsgi stationlite instance
+EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
+EIDA_STATIONLITE_VERSION = '0.9.1'
 
 # ----
+EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
+EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
+    os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
+
+# -----------------------------------------------------------------------------
+# Mediator related
+
+DEFAULT_ROUTING_SERVICE = 'gfz'
+DEFAULT_EVENT_SERVICE = 'usgs'
+SERVER_NAME_MEDIATOR = 'EIDA Mediator (alpha)'
+
+EIDA_MEDIATOR_PATH = '/eidaws/mediator/'
+
+EIDA_MEDIATOR_DQ_PATH = '/eidaws/mediator/dq/'
+EIDA_MEDIATOR_RQ_PATH = '/eidaws/mediator/rq/'
+EIDA_MEDIATOR_AQ_PATH = '/eidaws/mediator/aq/'
+
+MEDIATOR_QUERY_METHOD_TOKEN = 'query'
+MEDIATOR_VERSION_METHOD_TOKEN = 'version'
+
+EIDA_FEDERATOR_BASE_URL = 'http://mediator-devel.ethz.ch'
+EIDA_FEDERATOR_PORT = 80
+EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
+
+# ---- END OF <settings.py> ----

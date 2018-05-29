@@ -36,6 +36,7 @@ import argparse
 import collections
 import datetime
 import itertools
+import logging
 import os
 import pkg_resources
 import re
@@ -67,17 +68,6 @@ _iso8601_re = re.compile(
 
 # -----------------------------------------------------------------------------
 Route = collections.namedtuple('Route', ['url', 'streams'])
-
-
-class ExitCodes:
-    """
-    Enum for exit codes.
-    """
-    EXIT_SUCCESS = 0
-    EXIT_WARNING = 1
-    EXIT_ERROR = 2
-
-# class ExitCodes
 
 
 class FDSNWSParser(FlaskParser):

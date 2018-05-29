@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-#
 # -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
+# This is <httperrors.py>
+# -----------------------------------------------------------------------------
+# This file is part of EIDA webservices. 
 #
-# eida-federator is free software: you can redistribute it and/or modify
+# EIDA webservices is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# eida-federator is distributed in the hope that it will be useful,
+# EIDA webservices is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -19,17 +20,22 @@
 #
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
+# REVISION AND CHANGES
+# 2018/05/18        V0.1    Daniel Armbruster, Fabian Euchner
+#
 # -----------------------------------------------------------------------------
 """
 Custom HTTP error definitions.
-
-This file is part of the EIDA mediator/federator webservices.
-
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
+from builtins import * # noqa
+
+from flask import request, g
 from werkzeug.exceptions import HTTPException
 
-from eidangservices import utils
+from eidangservices import settings, utils
 
 # Error <CODE>: <SIMPLE ERROR DESCRIPTION>
 # <MORE DETAILED ERROR DESCRIPTION>
@@ -60,16 +66,23 @@ Service version:
 
 
 def get_error_message(code, description_short, description_long,
-                      documentation_uri, request_url, request_time):
+                      documentation_uri, request_url, request_time,
+                      service_id):
     """Return text of error message."""
 
     return ERROR_MESSAGE_TEMPLATE % (code, description_short,
                                      description_long, documentation_uri,
                                      request_url, request_time,
-                                     utils.get_version("federator"))
+                                     utils.get_version(service_id))
+
+# get_error_message ()
+
+# TODO(damb): return nodata query parameter
+class NoDataError(HTTPException):
+    code = 204
 
 
-class FDSNHTTPError(HTTPException):
+class FDSNHTTPError(Exception):
     """
     General HTTP error class for 5xx and 4xx errors for FDSN web services,
     with error message according to standard. Needs to be subclassed for
@@ -80,16 +93,45 @@ class FDSNHTTPError(HTTPException):
     code = 0
     error_desc_short = ''
 
-    def __init__(self, documentation_uri, request_url, request_time):
-        super(FDSNHTTPError, self).__init__()
+    DOCUMENTATION_URI = settings.FDSN_SERVICE_DOCUMENTATION_URI
+    SERVICE_ID = ''
+
+    @staticmethod
+    def create(status_code, *args, **kwargs):
+        """
+        Factory method for concrete FDSN error implementations.
+        """
+        if status_code == 400:
+            return BadRequestError(*args, **kwargs)
+        elif status_code == 413:
+            return RequestTooLargeError(*args, **kwargs)
+        elif status_code == 414:
+            return RequestURITooLargeError(*args, **kwargs)
+        elif status_code == 500:
+            return InternalServerError(*args, **kwargs)
+        elif status_code == 503:
+            return TemporarilyUnavailableError(*args, **kwargs)
+        else:
+            return InternalServerError(*args, **kwargs)
+
+    # create
+
+    def __init__(self, documentation_uri=None, service_id=None):
+        super().__init__()
+
+        self.documentation_uri = (documentation_uri if documentation_uri else
+                                  self.DOCUMENTATION_URI)
+        self.service = service_id if service_id else self.SERVICE_ID
 
         self.description = get_error_message(
             self.code, self.error_desc_short, self.error_desc_short,
-            documentation_uri, request_url, request_time)
+            self.documentation_uri, request.url,
+            g.request_start_time.isoformat(),
+            self.service)
 
+    # __init__ ()
 
-class NoDataError(HTTPException):
-    code = 204
+# class FDSNHTTPError
 
 
 class BadRequestError(FDSNHTTPError):
@@ -102,6 +144,11 @@ class RequestTooLargeError(FDSNHTTPError):
     error_desc_short = 'Request too large'
 
 
+class RequestURITooLargeError(FDSNHTTPError):
+    code = 414
+    error_desc_short = 'Request URI too large'
+
+
 class InternalServerError(FDSNHTTPError):
     code = 500
     error_desc_short = 'Internal server error'
@@ -110,5 +157,6 @@ class InternalServerError(FDSNHTTPError):
 class TemporarilyUnavailableError(FDSNHTTPError):
     code = 503
     error_desc_short = 'Service temporarily unavailable'
+
 
 # ---- END OF <httperrors.py> ----

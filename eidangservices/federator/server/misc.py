@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-#
+# -----------------------------------------------------------------------------
+# This is <misc.py>
 # -----------------------------------------------------------------------------
 # This file is part of EIDA NG webservices (eida-federator).
 #
@@ -19,50 +20,22 @@
 #
 # Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
 #
+# REVISION AND CHANGES
+# 2018/05/28        V0.1    Daniel Armbruster
 # -----------------------------------------------------------------------------
 """
 Miscellaneous utils.
-
-This file is part of the EIDA mediator/federator webservices.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from builtins import * # noqa
 
-import hashlib
 import os
 import random
 import tempfile
-import time
 
-import fasteners
 
-from eidangservices import settings
-
-# -----------------------------------------------------------------------------
-class URLConnectionLock(fasteners.InterProcessLock):
-    """
-    A :py:class:`fasteners.InterProcessLock` wrapper encoding the URL passed by
-    means of an hash within the lockfile's filename.
-    """
-    def __init__(self, url, path_lockdir=settings.PATH_LOCKDIR,
-                 sleep_func=time.sleep, logger=None):
-        """
-        :param str url: url to be encoded within the lockfile's filename
-        :param str path_lockdir: lockfile directory path
-        :param sleep_func: reference to a sleep function
-        :param logging.Logger logger: logger instance
-        """
-        hashed_url = hashlib.sha224(url).hexdigest()
-        path = os.path.join(path_lockdir, hashed_url)
-        super(URLConnectionLock, self).__init__(path, sleep_func, logger)
-
-    # __init__ ()
-
-# class URLConnectionLock
-
-# -----------------------------------------------------------------------------
 def get_temp_filepath():
     """Return path of temporary file."""
 

@@ -52,7 +52,7 @@ from eidangservices.stationlite.server.routes.stationlite import \
 from eidangservices.stationlite.server.routes.misc import \
     StationLiteVersionResource
 from eidangservices.utils.app import CustomParser, App, AppError
-from eidangservices.utils.error import Error, ErrorWithTraceback
+from eidangservices.utils.error import Error, ErrorWithTraceback, ExitCodes
 
 
 __version__ = utils.get_version("stationlite")
@@ -127,10 +127,9 @@ class StationLiteWebservice(App):
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
-        exit_code = utils.ExitCodes.EXIT_SUCCESS
+        exit_code = ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
-            print(self.args)
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)
@@ -148,14 +147,14 @@ class StationLiteWebservice(App):
 
         except Error as err:
             self.logger.error(err)
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logger.critical('Local Exception: %s' % err)
             self.logger.critical('Traceback information: ' +
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
-            exit_code = utils.ExitCodes.EXIT_ERROR
+            exit_code = ExitCodes.EXIT_ERROR
 
         sys.exit(exit_code)
 
@@ -218,7 +217,7 @@ def main():
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
               file=sys.stderr)
-        sys.exit(utils.ExitCodes.EXIT_ERROR)
+        sys.exit(ExitCodes.EXIT_ERROR)
 
     return app.run()
 

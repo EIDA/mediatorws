@@ -32,7 +32,17 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-from eidangservices.utils import ExitCodes
+
+class ExitCodes:
+    """
+    Enum for exit codes.
+    """
+    EXIT_SUCCESS = 0
+    EXIT_WARNING = 1
+    EXIT_ERROR = 2
+
+# class ExitCodes
+
 
 class Error(Exception):
     """Error base class"""
@@ -45,9 +55,8 @@ class Error(Exception):
     # show a traceback?
     traceback = False
 
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.args = args
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_message(self):
         return type(self).__doc__.format(*self.args)
