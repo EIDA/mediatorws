@@ -280,38 +280,6 @@ EIDA_NODES = {
             'startdate': '2006-03-01T00:00:00'}
     },
 
-    'ipgp': {
-        'name': 'INSTITUT DE PHYSIQUE DU GLOBE DE PARIS Data Center',
-        'services': {
-            'arclink': {
-                'server': 'eida.ipgp.fr',
-                'port': 18001},
-            'fdsn': {
-                'server': 'http://eida.ipgp.fr',
-                'station': True,
-                'dataselect': True,
-                'event': False},
-            'eida': {
-                'routing': {
-                    'service': True,
-                    'server': 'http://eidaws.ipgp.fr',
-                    'uri_path_config': '/eidaws/routing/1/localconfig',
-                    'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
-                    'static_file': ''},
-                'wfcatalog': {
-                    'url': '',
-                    'server': '',
-                    'uri_path_query': ''}
-            }
-        },
-        'testquerysncls': {
-            'network': 'MQ',
-            'station': 'LPM',
-            'location': '00',
-            'channel': 'HH?',
-            'startdate': '2013-05-01T00:00:00'}
-    },
-
     'niep': {
         'name': 'National Institute for Earth Physics Romania',
         'services': {
