@@ -300,7 +300,7 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
             'station': 'DAVOX?*',
             'location': '*?ABC',
             'channel': 'AZ?*'}
-        test_dataset = {'net': 'CH?*', 'sta': 'DAVOX?*', 'loc': '*?ABC',
+        test_dataset = {'network': 'CH?*', 'sta': 'DAVOX?*', 'loc': '*?ABC',
                         'cha': 'AZ?*'}
         test_dataset = self._load(s, test_dataset)
         result = self._dump(s, test_dataset)

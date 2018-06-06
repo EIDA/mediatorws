@@ -33,17 +33,22 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import collections
+import datetime
+import json
 import logging
 import os
 
 from multiprocessing.pool import ThreadPool
+
+import ijson
 
 from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import get_temp_filepath
 from eidangservices.federator.server.request import (
-    binary_request, stream_request, GranularFdsnRequestHandler, RequestsError)
+    binary_request, raw_request, stream_request, GranularFdsnRequestHandler,
+    RequestsError)
 from eidangservices.utils.error import Error
 
 
@@ -63,7 +68,8 @@ def catch_default_task_exception(func):
             except AttributeError:
                 pass
 
-            msg = 'TaskError ({}): {}.'.format(type(self).__name__, err)
+            msg = 'TaskError ({}): {}:{}.'.format(type(self).__name__,
+                                                  type(err), err)
             return Result.error(
                 status='TaskError-{}'.format(type(self).__name__),
                 status_code=500, data=msg,
@@ -399,6 +405,240 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
 # class StationXMLNetworkCombinerTask
 
+# -----------------------------------------------------------------------------
+class SplitAndAlignTask(TaskBase):
+    """
+    Base class for splitting and aligning (SAA) tasks.
+
+    Concrete implementations of this task type implement stream epoch splitting
+    and merging facilities.
+
+    Assuming FDSN webservice endpoints are able to return HTTP status code 413
+    (i.e. Request too large) within `TIMEOUT_REQUEST_TOO_LARGE` there is no
+    need to implement this task recursively.
+    """
+    LOGGER = 'flask.app.task_saa'
+
+    DEFAULT_SPLITTING_CONST = 2
+
+    def __init__(self, url, stream_epoch, query_params, **kwargs):
+        super().__init__(self.LOGGER)
+        self.query_params = query_params
+        self.path_tempfile = get_temp_filepath()
+        self._url = url
+        self._stream_epoch_orig = stream_epoch
+        self._endtime = kwargs.get('endtime', datetime.datetime.utcnow())
+
+        self._splitting_const = self.DEFAULT_SPLITTING_CONST
+        self._stream_epochs = []
+
+        self._size = 0
+
+    # __init__ ()
+
+    @property
+    def stream_epochs(self):
+        return self._stream_epochs
+
+    def split(self, stream_epoch, num):
+        """
+        Split a stream epoch's epoch into `num` epochs.
+
+        :param :cls:`eidangservices.utils.sncl.StreamEpoch` stream_epoch:
+        Stream epoch object to split
+        :param int num: Number of resulting stream epoch objects
+        :return: List of split stream epochs
+        """
+        stream_epochs = sorted(
+            stream_epoch.slice(num=num, default_endtime=self._endtime))
+        if not self._stream_epochs:
+            self._stream_epochs = stream_epochs
+        else:
+            # insert at current position
+            idx = self._stream_epochs.index(stream_epoch)
+            self._stream_epochs = (self._stream_epochs[:idx] + stream_epochs +
+                                   self._stream_epochs[idx+1:])
+
+        return stream_epochs
+
+    # split ()
+
+    def _handle_error(self, err):
+        os.remove(self.path_tempfile)
+
+        return Result.error(status='EndpointError',
+                            status_code=err.response.status_code,
+                            warning=str(err), data=err.response.data)
+    # _handle_error ()
+
+    def _run(self, stream_epoch):
+        """
+        Template method.
+        """
+        raise NotImplementedError
+
+    @catch_default_task_exception
+    def __call__(self):
+        return self._run(self._stream_epoch_orig)
+
+# class SplitAndAlignTask
+
+
+class RawSplitAndAlignTask(SplitAndAlignTask):
+    """
+    SAA task implementation for a raw data stream. The task is implemented
+    synchronously i.e. the task returns as soon as the last epoch segment is
+    downloaded and aligned.
+    """
+    LOGGER = 'flask.app.task_saa_raw'
+
+    MSEED_RECORD_SIZE = 512
+    CHUNK_SIZE = MSEED_RECORD_SIZE
+
+    def _run(self, stream_epoch):
+
+        stream_epochs = self.split(stream_epoch, self._splitting_const)
+        self.logger.debug(
+            'Split stream epochs: {}.'.format(self.stream_epochs))
+
+        # make a request for the first stream epoch
+        for stream_epoch in stream_epochs:
+            request_handler = GranularFdsnRequestHandler(
+                self._url, stream_epoch, query_params=self.query_params)
+
+            last_chunk = None
+            try:
+                with open(self.path_tempfile, 'rb') as ifd:
+                    ifd.seek(-self.MSEED_RECORD_SIZE, 2)
+                    last_chunk = ifd.read(self.MSEED_RECORD_SIZE)
+            except (OSError, ValueError) as err:
+                pass
+
+            self.logger.debug(
+                'Downloading (url={}, stream_epoch={}) ...'.format(
+                    request_handler.url,
+                    request_handler.stream_epochs))
+            try:
+                with open(self.path_tempfile, 'ab') as ofd:
+                    for chunk in stream_request(
+                        request_handler.post(),
+                        chunk_size=self.CHUNK_SIZE,
+                            method='raw'):
+                        if last_chunk is not None and last_chunk == chunk:
+                            continue
+                        self._size += len(chunk)
+                        ofd.write(chunk)
+
+            except RequestsError as err:
+                if err.response.status_code == 413:
+                    self.logger.info(
+                        'Download failed (url={}, stream_epoch={}).'.format(
+                            request_handler.url,
+                            request_handler.stream_epochs))
+                    self._run(stream_epoch)
+                else:
+                    return self._handle_error(err)
+
+            if stream_epoch in self.stream_epochs:
+                self.logger.debug(
+                    'Download (url={}, stream_epoch={}) finished.'.format(
+                        request_handler.url,
+                        request_handler.stream_epochs))
+
+            if stream_epoch.endtime == self.stream_epochs[-1].endtime:
+                return Result.ok(data=self.path_tempfile, length=self._size)
+
+    # _run ()
+
+# class RawSplitAndAlignTask
+
+
+class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
+    """
+    SAA task implementation for a WFCatalog data stream. The task is
+    implemented synchronously i.e. the task returns as soon as the last epoch
+    segment is downloaded and aligned.
+    """
+    LOGGER = 'flask.app.task_saa_wfcatalog'
+
+    JSON_LIST_START = b'['
+    JSON_LIST_END = b']'
+    JSON_LIST_SEP = b','
+
+    def __init__(self, url, stream_epoch, query_params, **kwargs):
+        super().__init__(url, stream_epoch, query_params, **kwargs)
+        self._last_obj = None
+
+    def _run(self, stream_epoch):
+
+        stream_epochs = self.split(stream_epoch, self._splitting_const)
+        self.logger.debug(
+            'Split stream epochs: {}.'.format(self.stream_epochs))
+
+        # make a request for the first stream epoch
+        for stream_epoch in stream_epochs:
+            request_handler = GranularFdsnRequestHandler(
+                self._url, stream_epoch, query_params=self.query_params)
+
+            self.logger.debug(
+                'Downloading (url={}, stream_epoch={}) ...'.format(
+                    request_handler.url,
+                    request_handler.stream_epochs))
+            try:
+                with open(self.path_tempfile, 'ab') as ofd:
+                    with raw_request(request_handler.post()) as ifd:
+
+                        if self._last_obj is None:
+                            ofd.write(self.JSON_LIST_START)
+                            self._size += 1
+
+                        for obj in ijson.items(ifd, 'item'):
+                            # NOTE(damb): A python object has to be created
+                            # since else we cannot compare objects. (JSON is
+                            # unorederd.)
+
+                            if (self._last_obj is not None and
+                                    self._last_obj == obj):
+                                continue
+
+                            if self._last_obj is not None:
+                                ofd.write(self.JSON_LIST_SEP)
+                                self._size += 1
+
+                            self._last_obj = obj
+                            # convert back to bytearray
+                            obj = json.dumps(obj).encode('utf-8')
+
+                            self._size += len(obj)
+                            ofd.write(obj)
+
+            except RequestsError as err:
+                if err.response.status_code == 413:
+                    self.logger.info(
+                        'Download failed (url={}, stream_epoch={}).'.format(
+                            request_handler.url,
+                            request_handler.stream_epochs))
+                    self._run(stream_epoch)
+                else:
+                    return self._handle_error(err)
+
+            if stream_epoch in self.stream_epochs:
+                self.logger.debug(
+                    'Download (url={}, stream_epoch={}) finished.'.format(
+                        request_handler.url,
+                        request_handler.stream_epochs))
+
+            if stream_epoch.endtime == self.stream_epochs[-1].endtime:
+
+                with open(self.path_tempfile, 'ab') as ofd:
+                    ofd.write(self.JSON_LIST_END)
+                    self._size += 1
+
+                return Result.ok(data=self.path_tempfile, length=self._size)
+
+    # _run ()
+
+# class WFCatalogSplitAndAlignTask
 
 # -----------------------------------------------------------------------------
 class RawDownloadTask(TaskBase):
@@ -406,9 +646,9 @@ class RawDownloadTask(TaskBase):
     Task downloading the data for a single StreamEpoch by means of streaming.
     """
 
-    LOGGER = 'flask.app.federator.task_download'
+    LOGGER = 'flask.app.federator.task_download_raw'
 
-    CHUNK_SIZE = 512
+    CHUNK_SIZE = 1024 * 1024 * 20
 
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER)
@@ -434,7 +674,8 @@ class RawDownloadTask(TaskBase):
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 for chunk in stream_request(self._request_handler.post(),
-                                            chunk_size=self.chunk_size):
+                                            chunk_size=self.chunk_size,
+                                            method='raw'):
                     self._size += len(chunk)
                     ofd.write(chunk)
 
@@ -451,15 +692,32 @@ class RawDownloadTask(TaskBase):
     # __call__ ()
 
     def _handle_error(self, err):
-        os.remove(self.path_tempfile)
+        try:
+            os.remove(self.path_tempfile)
+        except OSError:
+            pass
 
-        data = err.response.text
-        if err.response.status_code == 413:
-            data = self._request_handler
+        try:
+            resp = err.response
+            try:
+                data = err.response.text
+            except AttributeError:
+                return Result.error('RequestsError',
+                                    status_code=503,
+                                    warning=type(err),
+                                    data=str(err))
+        except Exception as err:
+            return Result.error('InternalServerError',
+                                status_code=500,
+                                warning='Unhandled exception.',
+                                data=str(err))
+        else:
+            if resp.status_code == 413:
+                data = self._request_handler
 
-        return Result.error(status='EndpointError',
-                            status_code=err.response.status_code,
-                            warning=str(err), data=data)
+            return Result.error(status='EndpointError',
+                                status_code=resp.status_code,
+                                warning=str(err), data=data)
     # _handle_error ()
 
 # class RawDownloadTask
@@ -481,14 +739,14 @@ class StationTextDownloadTask(RawDownloadTask):
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
-                for line in stream_request(self._request_handler.post(),
-                                           chunk_size=self.chunk_size,
-                                           iter_lines=True):
-                    self._size += len(line)
-                    if line.startswith(b'#'):
-                        continue
-
-                    ofd.write(line + b'\n')
+                # NOTE(damb): For granular fdnsws-station-text request it seems
+                # ok buffering the entire response in memory.
+                with binary_request(self._request_handler.post()) as ifd:
+                    for line in ifd:
+                        self._size += len(line)
+                        if line.startswith(b'#'):
+                            continue
+                        ofd.write(line.strip() + b'\n')
 
         except RequestsError as err:
             return self._handle_error(err)

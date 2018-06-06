@@ -35,9 +35,10 @@ from flask import request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
-from eidangservices import settings, utils
+from eidangservices import settings
 from eidangservices.federator.server.schema import StationSchema
 from eidangservices.federator.server.process import RequestProcessor
+from eidangservices.utils import fdsnws
 from eidangservices.utils.schema import ManyStreamEpochSchema
 
 
@@ -50,10 +51,11 @@ class StationResource(Resource):
         self.logger = logging.getLogger(self.LOGGER)
 
     @use_args(StationSchema(), locations=('query',))
-    @utils.use_fdsnws_kwargs(
+    @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self, args, stream_epochs):
         # request.method == 'GET'
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
@@ -71,14 +73,14 @@ class StationResource(Resource):
 
     # get ()
 
-    @utils.use_fdsnws_args(StationSchema(), locations=('form',))
-    @utils.use_fdsnws_kwargs(
+    @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
+    @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self, args, stream_epochs):
         # request.method == 'POST'
-
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
 
         # serialize objects

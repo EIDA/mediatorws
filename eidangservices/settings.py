@@ -523,6 +523,7 @@ FDSN_DATASELECT_WADL_FILENAME = 'dataselect.wadl'
 FDSN_STATION_WADL_FILENAME = 'station.wadl'
 
 FDSN_DEFAULT_NO_CONTENT_ERROR_CODE = 204
+FDSN_NO_CONTENT_CODES = (FDSN_DEFAULT_NO_CONTENT_ERROR_CODE, 404)
 FDSN_SERVICE_DOCUMENTATION_URI = 'http://www.fdsn.org/webservices/'
 
 # -----------------------------------------------------------------------------
@@ -560,12 +561,16 @@ STATIONXML_ELEMENT_CHANNEL = 'Channel'
 # Federator configuration parameters
 
 EIDA_FEDERATOR_CONFIG_SECTION = 'CONFIG_FEDERATOR'
+EIDA_FEDERATOR_SERVICE_ID = 'federator'
 
 # default port configuration for flask test wsgi federator instance
 EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
 # default StationLite service URL
 EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
     'http://mediator-devel.ethz.ch/eidaws/routing/1/'
+# default federator endpoint resources
+EIDA_FEDERATOR_DEFAULT_RESOURCES = (
+    'dataselect', 'station', 'wfcatalog')
 # timeout the federator is waiting before the first endpoint request must be
 # answered.
 EIDA_FEDERATOR_STREAMING_TIMEOUT = 600
@@ -583,13 +588,15 @@ EIDA_FEDERATOR_THREADS_STATION_TEXT = 10
 EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 
 EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
-EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, 'federator',
+EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
 
 # -----------------------------------------------------------------------------
 # StationLite configuration parameters
 
 EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
+EIDA_STATIONLITE_SERVICE_ID = 'stationlite'
+
 # default port configuration for flask test wsgi stationlite instance
 EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
 EIDA_STATIONLITE_VERSION = '0.9.1'

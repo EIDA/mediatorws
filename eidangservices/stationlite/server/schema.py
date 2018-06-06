@@ -36,7 +36,8 @@ from builtins import * # noqa
 from marshmallow import (Schema, fields, validate, validates_schema,
                          pre_load, ValidationError)
 
-from eidangservices.utils.schema import FDSNWSBool, Latitude, Longitude
+from eidangservices.utils.schema import (FDSNWSBool, Latitude, Longitude,
+                                         NoData)
 
 # ----------------------------------------------------------------------------
 class StationLiteSchema(Schema):
@@ -55,6 +56,8 @@ class StationLiteSchema(Schema):
     service = fields.Str(
         missing='dataselect',
         validate=validate.OneOf(['dataselect', 'station', 'wfcatalog']))
+
+    nodata = NoData()
     alternative = FDSNWSBool(missing='false')
 
     # geographic (rectangular spatial) options

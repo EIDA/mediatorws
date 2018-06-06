@@ -34,9 +34,12 @@ import datetime
 
 from flask import Flask, make_response, g
 
+from eidangservices import settings
 from eidangservices.utils import httperrors
+from eidangservices.utils.fdsnws import register_parser_errorhandler
 
-def create_app(config_dict={}):
+def create_app(config_dict={},
+               service_id=settings.EIDA_FEDERATOR_SERVICE_ID):
     """
     Factory function for Flask application.
 
@@ -45,10 +48,10 @@ def create_app(config_dict={}):
     app = Flask(__name__)
     app.config.update(config_dict)
 
+    # TODO(damb): move webservice error handling to eidangservices.utils
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-
 
     def register_error(err):
         @app.errorhandler(err)
@@ -58,6 +61,7 @@ def create_app(config_dict={}):
     # register_error ()
 
     errors_to_register = (
+        httperrors.NoDataError,
         httperrors.BadRequestError,
         httperrors.RequestTooLargeError,
         httperrors.RequestURITooLargeError,
@@ -66,6 +70,8 @@ def create_app(config_dict={}):
 
     for err in errors_to_register:
         register_error(err)
+
+    register_parser_errorhandler(service_id=service_id)
 
     return app
 

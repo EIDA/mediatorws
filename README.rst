@@ -444,5 +444,4 @@ Missing features and limitations
   implemented
 * *stationlite* currently implements the *eidaws-routing* interface only partly
   (e.g. `format={post,get}`)
-* Error message texts are JSON, not plain text
 * For issues also visit https://github.com/EIDA/mediatorws/issues.

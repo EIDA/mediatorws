@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# This is <utils.py>
+# This is <fdsnws.py>
 # -----------------------------------------------------------------------------
 #
 # This file is part of EIDA NG webservices.
@@ -44,8 +44,7 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
-from eidangservices import utils
-from eidangservices.utils import schema, sncl
+from eidangservices.utils import fdsnws, schema, sncl
 
 try:
     import mock
@@ -84,7 +83,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
         self.assertEqual(dict(test_args), {'f': 'value'})
 
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('query',))['stream_epochs']
@@ -112,7 +111,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('query',))['stream_epochs']
@@ -147,7 +146,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('query',))['stream_epochs']
@@ -166,7 +165,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
                                  locations=('query',))
         self.assertEqual(dict(test_args), {'f': 'value'})
 
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('query',))['stream_epochs']
@@ -185,7 +184,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
         self.assertEqual(dict(test_args), {'f': 'value'})
 
         with self.assertRaises(HTTPException):
-            utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+            fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
                 context={'request': mock_request}),
                 mock_request,
                 locations=('query',))['stream_epochs']
@@ -205,10 +204,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
             channel='*',
             starttime=datetime.datetime(2013, 10, 10),
             endtime=datetime.datetime(2013, 10, 11))]
-        test_args = utils.fdsnws_parser.parse(
+        test_args = fdsnws.fdsnws_parser.parse(
             self.TestSchema(), mock_request, locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('form',))['stream_epochs']
@@ -238,10 +237,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
             starttime=datetime.datetime(2017, 1, 1),
             endtime=datetime.datetime(2017, 1, 31))]
 
-        test_args = utils.fdsnws_parser.parse(self.TestSchema(), mock_request,
-                                              locations=('form',))
+        test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
+                                               locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
-        sncls = utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+        sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('form',))['stream_epochs']
@@ -255,7 +254,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
         mock_request.stream = io.StringIO("")
 
         with self.assertRaises(HTTPException):
-            utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+            fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
                 context={'request': mock_request}),
                 mock_request,
                 locations=('form',))['stream_epochs']
@@ -267,11 +266,11 @@ class FDSNWSParserTestCase(unittest.TestCase):
         mock_request.method = 'POST'
         mock_request.stream = io.StringIO("f=value\n")
 
-        test_args = utils.fdsnws_parser.parse(self.TestSchema(), mock_request,
-                                              locations=('form',))
+        test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
+                                               locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
         with self.assertRaises(HTTPException):
-            utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+            fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
                 context={'request': mock_request}),
                 mock_request,
                 locations=('form',))
@@ -284,11 +283,11 @@ class FDSNWSParserTestCase(unittest.TestCase):
         mock_request.stream = io.StringIO(
             "f=value\nNL HGN * 2013-10-10 2013-10-11")
 
-        test_args = utils.fdsnws_parser.parse(self.TestSchema(), mock_request,
-                                              locations=('form',))
+        test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
+                                               locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
         with self.assertRaises(HTTPException):
-            utils.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
+            fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
                 context={'request': mock_request}),
                 mock_request,
                 locations=('form',))['stream_epochs']
@@ -301,4 +300,4 @@ class FDSNWSParserTestCase(unittest.TestCase):
 if __name__ == '__main__': # noqa
     unittest.main()
 
-# ---- END OF <utils.py> ----
+# ---- END OF <fdsnws.py> ----

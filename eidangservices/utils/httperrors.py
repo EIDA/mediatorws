@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # This is <httperrors.py>
 # -----------------------------------------------------------------------------
-# This file is part of EIDA webservices. 
+# This file is part of EIDA webservices.
 #
 # EIDA webservices is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 from flask import request, g
-from werkzeug.exceptions import HTTPException
 
 from eidangservices import settings, utils
 
@@ -77,9 +76,7 @@ def get_error_message(code, description_short, description_long,
 
 # get_error_message ()
 
-# TODO(damb): return nodata query parameter
-class NoDataError(HTTPException):
-    code = 204
+# -----------------------------------------------------------------------------
 
 
 class FDSNHTTPError(Exception):
@@ -89,7 +86,6 @@ class FDSNHTTPError(Exception):
     individual error types.
 
     """
-
     code = 0
     error_desc_short = ''
 
@@ -101,7 +97,9 @@ class FDSNHTTPError(Exception):
         """
         Factory method for concrete FDSN error implementations.
         """
-        if status_code == 400:
+        if status_code in settings.FDSN_NO_CONTENT_CODES:
+            return NoDataError(status_code)
+        elif status_code == 400:
             return BadRequestError(*args, **kwargs)
         elif status_code == 413:
             return RequestTooLargeError(*args, **kwargs)
@@ -132,6 +130,15 @@ class FDSNHTTPError(Exception):
     # __init__ ()
 
 # class FDSNHTTPError
+
+
+class NoDataError(FDSNHTTPError):
+    description = ''
+
+    def __init__(self, status_code=204):
+        self.code = status_code
+
+# class NoDataError
 
 
 class BadRequestError(FDSNHTTPError):

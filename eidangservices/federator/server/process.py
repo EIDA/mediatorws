@@ -45,9 +45,10 @@ from eidangservices.federator.server.request import (
     binary_request, RoutingRequestHandler, GranularFdsnRequestHandler,
     NoContent, RequestsError)
 from eidangservices.federator.server.task import (
-    RawDownloadTask, StationTextDownloadTask, StationXMLNetworkCombinerTask)
+    RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
+    StationXMLNetworkCombinerTask, WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
-from eidangservices.utils.httperrors import NoDataError, InternalServerError
+from eidangservices.utils.httperrors import FDSNHTTPError
 from eidangservices.utils.sncl import StreamEpoch
 
 
@@ -116,6 +117,7 @@ class RequestProcessor(object):
     LOGGER = "flask.app.federator.request_processor"
 
     POOL_SIZE = 5
+    MAX_TASKS_PER_CHILD = 2
     DEFAULT_ENDTIME = datetime.datetime.utcnow()
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
@@ -203,10 +205,14 @@ class RequestProcessor(object):
 
         except NoContent as err:
             self.logger.warning(err)
-            raise NoDataError()
+            raise FDSNHTTPError.create(
+                int(self.query_params.get(
+                    'nodata',
+                    settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
         except RequestsError as err:
             self.logger.error(err)
-            raise InternalServerError(service_id='federator')
+            raise FDSNHTTPError.create(
+                500, service_id=settings.EIDA_FEDERATOR_SERVICE_ID)
 
         return routing_table
 
@@ -219,40 +225,9 @@ class RequestProcessor(object):
         """
         self._request()
 
-        # XXX(damb): Only return a streamed response as soon as valid data is
-        # available. Use a timeout and process errors here.
-
-        # TODO(damb): - Handle code 413.
-        #             - merge implementation with __iter__
-
-        result_with_data = False
-        while True:
-            _results = self._results
-            for idx, result in enumerate(_results):
-                if result.ready():
-                    _result = result.get()
-                    if _result.status_code == 200:
-                        result_with_data = True
-                    elif _result.status_code == 413:
-                        try:
-                            self._handle_413(_result)
-                        except NotImplementedError as err:
-                            self.logger.warning(
-                                'HTTP status code 413 handling'
-                                'is not implemented ({}).'.format(
-                                    err))
-                    else:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                        self._results.pop(idx)
-
-            if result_with_data:
-                break
-
-            if (not self._results or datetime.datetime.utcnow() >
-                self.DEFAULT_ENDTIME +
-                    datetime.timedelta(seconds=self.TIMEOUT_STREAMING)):
-                raise NoDataError()
+        # XXX(damb): Only return a streamed response as soon as valid data
+        # is available. Use a timeout and process errors here.
+        self._wait()
 
         return Response(stream_with_context(self), mimetype=self.mimetype,
                         content_type=self.mimetype)
@@ -263,7 +238,53 @@ class RequestProcessor(object):
         self.logger.error(str(err))
 
     def _handle_413(self, result):
-        raise NotImplementedError
+        self.logger.warning(
+            'Handle endpoint HTTP status code 413 (url={}, '
+            'stream_epochs={}).'.format(result.data.url,
+                                        result.data.stream_epochs))
+        raise FDSNHTTPError.create(
+            413, service_id=settings.EIDA_FEDERATOR_SERVICE_ID)
+
+    # _handle_413 ()
+
+    def _wait(self, timeout=None):
+        """
+        Wait for a valid endpoint response.
+
+        :param int timeout: Timeout in seconds
+        """
+        if timeout is None:
+            timeout = self.TIMEOUT_STREAMING
+
+        result_with_data = False
+        while True:
+            _results = self._results
+            for idx, result in enumerate(_results):
+                if result.ready():
+                    _result = result.get()
+                    if _result.status_code == 200:
+                        result_with_data = True
+                    elif _result.status_code == 413:
+                        self._handle_413(_result)
+                        self._results.pop(idx)
+                        break
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
+                        self._results.pop(idx)
+
+            if result_with_data:
+                break
+
+            if (not self._results or datetime.datetime.utcnow() >
+                self.DEFAULT_ENDTIME +
+                    datetime.timedelta(seconds=timeout)):
+                raise FDSNHTTPError.create(
+                    int(self.query_params.get(
+                        'nodata',
+                        settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
+
+    # _wait ()
 
     def _request(self):
         """
@@ -300,7 +321,8 @@ class RawRequestProcessor(RequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.ThreadPool(processes=pool_size)
+        self._pool = mp.pool.Pool(processes=pool_size,
+                                  maxtasksperchild=self.MAX_TASKS_PER_CHILD)
 
         for route in routes:
             self.logger.debug(
@@ -314,8 +336,6 @@ class RawRequestProcessor(RequestProcessor):
             result = self._pool.apply_async(t)
             self._results.append(result)
 
-        self._pool.close()
-
     # _request ()
 
     def _handle_413(self, result):
@@ -323,8 +343,19 @@ class RawRequestProcessor(RequestProcessor):
             'Handle endpoint HTTP status code 413 (url={}, '
             'stream_epochs={}).'.format(result.data.url,
                                         result.data.stream_epochs))
-        # TODO(damb): To be implemented.
-        raise NoDataError()
+        self.logger.debug(
+            'Creating SAATask for (url={}, '
+            'stream_epochs={}) ...'.format(result.data.url,
+                                           result.data.stream_epochs))
+        t = RawSplitAndAlignTask(
+            result.data.url, result.data.stream_epochs[0],
+            query_params=self.query_params,
+            endtime=self.DEFAULT_ENDTIME)
+
+        result = self._pool.apply_async(t)
+        self._results.append(result)
+
+    # _handle_413 ()
 
     def __iter__(self):
         """
@@ -347,17 +378,12 @@ class RawRequestProcessor(RequestProcessor):
                 if result.ready():
                     _result = result.get()
                     if _result.status_code != 200:
-                        # TODO(damb): Implement stream_epoch splitting
                         self._handle_error(_result)
                         self._sizes.append(0)
                     elif _result.status_code == 413:
-                        try:
-                            self._handle_413(_result)
-                        except NotImplementedError as err:
-                            self.logger.warning(
-                                'HTTP status code 413 handling'
-                                'is not implemented ({}).'.format(
-                                    err))
+                        self._handle_413(_result)
+                        self._results.pop(idx)
+                        break
                     else:
                         self._sizes.append(_result.length)
                         self.logger.debug(
@@ -401,22 +427,10 @@ class StationRequestProcessor(RequestProcessor):
     this processor interprets the `level` query parameter in order to reduce
     the number of endpoint requests.
 
-    This processor implementation implements federatation using a two-level
-    approach.
-    On the first level the processor maintains a worker pool (implemented by
-    means of the python multiprocessing module). Special *CombiningTask* object
-    instances are mapped to the pool managing the download for a certain
-    network code. Before, we obtained the fully resolved stream epoch
-    information (i.e. also the network code information) using the EIDA
-    StationLite service.
-    On a second level the RawCombinerTask implementations demultiplex the
-    routing information, again. Multiple DownloadTask object instances
-    (implemented using multiprocessing.pool.ThreadPool) are executed requesting
-    granular stream epoch information (i.e. one task per fully resolved stream
-    epoch).
-    Combining tasks collect the information from their child downloading
-    threads. As soon the information for an entire network code is fetched the
-    resulting data is dumped to a pipe.
+    StationRequestProcessor implementations come along with a *reducing*
+    `_route ()` implementation. Routes received from the *StationLite*
+    webservice are reduced depending on the value of the `level` query
+    parameter.
     """
 
     LOGGER = "flask.app.federator.request_processor_station"
@@ -473,23 +487,23 @@ class StationXMLRequestProcessor(StationRequestProcessor):
     This processor implementation implements fdsnws-station XML federatation
     using a two-level approach.
 
+    This processor implementation implements federatation using a two-level
+    approach.
     On the first level the processor maintains a worker pool (implemented by
     means of the python multiprocessing module). Special *CombiningTask* object
     instances are mapped to the pool managing the download for a certain
-    network code. Before, we obtained the fully resolved stream epoch
-    information (i.e. also the network code information) using the EIDA
-    StationLite service.
-    On a second level the RawCombinerTask implementations demultiplex the
-    routing information, again. Multiple DownloadTask object instances
-    (implemented using multiprocessing.pool.ThreadPool) are executed requesting
-    granular stream epoch information (i.e. one task per fully resolved stream
+    network code.
+    On a second level RawCombinerTask implementations demultiplex the routing
+    information, again. Multiple DownloadTask object instances (implemented
+    using multiprocessing.pool.ThreadPool) are executed requesting granular
+    stream epoch information (i.e. one task per fully resolved stream
     epoch).
     Combining tasks collect the information from their child downloading
     threads. As soon the information for an entire network code is fetched the
-    resulting data is dumped to a pipe.
+    resulting data is combined and temporarly saved. Finally
+    StationRequestProcessor implementations merge the final result.
     """
     CHUNK_SIZE = 1024
-    MAX_TASKS_PER_CHILD = 2
 
     SOURCE = 'EIDA'
     HEADER = ('<?xml version="1.0" encoding="UTF-8"?>'
@@ -520,6 +534,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
             result = self._pool.apply_async(t)
             self._results.append(result)
 
+        self._pool.close()
+
     # _request ()
 
     def __iter__(self):
@@ -543,13 +559,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                         self._handle_error(_result)
                         self._sizes.append(0)
                     elif _result.status_code == 413:
-                        try:
-                            self._handle_413(_result)
-                        except NotImplementedError as err:
-                            self.logger.warning(
-                                'HTTP status code 413 handling'
-                                'is not implemented ({}).'.format(
-                                    err))
+                        self._handle_413(_result)
                     else:
                         if not sum(self._sizes):
                             yield self.HEADER.format(
@@ -583,7 +593,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         yield self.FOOTER
 
-        self._pool.close()
         self._pool.join()
         self.logger.debug('Result sizes: {}.'.format(self._sizes))
         self.logger.info(
@@ -655,13 +664,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
                         self._handle_error(_result)
                         self._sizes.append(0)
                     elif _result.status_code == 413:
-                        try:
-                            self._handle_413(_result)
-                        except NotImplementedError as err:
-                            self.logger.warning(
-                                'HTTP status code 413 handling'
-                                'is not implemented ({}).'.format(
-                                    err))
+                        self._handle_413(_result)
                     else:
 
                         if not sum(self._sizes):
@@ -697,7 +700,6 @@ class StationTextRequestProcessor(StationRequestProcessor):
             if not self._results:
                 break
 
-        self._pool.close()
         self._pool.join()
         self.logger.debug('Result sizes: {}.'.format(self._sizes))
         self.logger.info(
@@ -734,7 +736,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.ThreadPool(processes=pool_size)
+        self._pool = mp.pool.Pool(processes=pool_size,
+                                  maxtasksperchild=self.MAX_TASKS_PER_CHILD)
 
         for route in routes:
             self.logger.debug(
@@ -748,8 +751,6 @@ class WFCatalogRequestProcessor(RequestProcessor):
             result = self._pool.apply_async(t)
             self._results.append(result)
 
-        self._pool.close()
-
     # _request ()
 
     def _handle_413(self, result):
@@ -757,8 +758,19 @@ class WFCatalogRequestProcessor(RequestProcessor):
             'Handle endpoint HTTP status code 413 (url={}, '
             'stream_epochs={}).'.format(result.data.url,
                                         result.data.stream_epochs))
-        # TODO(damb): To be implemented.
-        raise NoDataError()
+        self.logger.debug(
+            'Creating SAATask for (url={}, '
+            'stream_epochs={}) ...'.format(result.data.url,
+                                           result.data.stream_epochs))
+        t = WFCatalogSplitAndAlignTask(
+            result.data.url, result.data.stream_epochs[0],
+            query_params=self.query_params,
+            endtime=self.DEFAULT_ENDTIME)
+
+        result = self._pool.apply_async(t)
+        self._results.append(result)
+
+    # _handle_413 ()
 
     def __iter__(self):
         """
@@ -785,18 +797,13 @@ class WFCatalogRequestProcessor(RequestProcessor):
                 if result.ready():
 
                     _result = result.get()
-                    # TODO(damb): Implement epoch splitting.
                     if _result.status_code != 200:
                         self._handle_error(_result)
                         self._sizes.append(0)
                     elif _result.status_code == 413:
-                        try:
-                            self._handle_413(_result)
-                        except NotImplementedError as err:
-                            self.logger.warning(
-                                'HTTP status code 413 handling'
-                                'is not implemented ({}).'.format(
-                                    err))
+                        self._handle_413(_result)
+                        self._results.pop(idx)
+                        break
                     else:
 
                         if not sum(self._sizes):

@@ -52,12 +52,12 @@ class StationSchemaTestCase(unittest.TestCase):
             'service': 'station',
             'format': 'xml',
             'level': 'station',
-            'minlatitude': 0.0,
-            'maxlatitude': 45.0,
-            'includerestricted': True,
-            'matchtimeseries': False,
-            'nodata': 204,
-            'includeavailability': False}
+            'minlatitude': '0.0',
+            'maxlatitude': '45.0',
+            'includerestricted': 'true',
+            'matchtimeseries': 'false',
+            'nodata': '204',
+            'includeavailability': 'false'}
 
         test_datasets = [{'minlatitude': 0.,
                           'maxlatitude': 45.,
@@ -66,10 +66,12 @@ class StationSchemaTestCase(unittest.TestCase):
                           'maxlat': 45.,
                           'nodata': 204}]
 
-        result = s.load(test_datasets[0])
+        result = s.dump(s.load(test_datasets[0]))
         self.assertEqual(result, reference_result)
-        result = s.load(test_datasets[1])
+        result = s.dump(s.load(test_datasets[1]))
         self.assertEqual(result, reference_result)
+
+    # test_geographic_opts ()
 
     def test_rect_and_circular(self):
         s = schema.StationSchema()

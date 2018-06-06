@@ -37,9 +37,10 @@ import datetime
 import functools
 
 from marshmallow import (Schema, fields, validate, ValidationError,
-                         post_load, post_dump, validates_schema)
+                         pre_load, post_load, post_dump,
+                         validates_schema)
 
-from eidangservices import utils
+from eidangservices import settings, utils
 from eidangservices.utils import sncl
 
 
@@ -64,6 +65,12 @@ Degree = functools.partial(fields.Float, as_string=True)
 Latitude = functools.partial(Degree, validate=validate_latitude)
 Longitude = functools.partial(Degree, validate=validate_longitude)
 Radius = functools.partial(Degree, validate=validate_radius)
+
+NoData = functools.partial(
+    fields.Int,
+    as_string=True,
+    missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
+    validate=validate.OneOf(settings.FDSN_NO_CONTENT_CODES))
 
 
 # -----------------------------------------------------------------------------
@@ -123,17 +130,50 @@ class StreamEpochSchema(Schema):
 
         network station location channel starttime endtime
     """
-    network = fields.Str(load_from='net', missing='*',
-                         validate=validate_net_sta_cha)
-    station = fields.Str(load_from='sta', missing='*',
-                         validate=validate_net_sta_cha)
-    location = fields.Str(load_from='loc', missing='*',
+    network = fields.Str(missing='*', validate=validate_net_sta_cha)
+    net = fields.Str(load_only=True)
+
+    station = fields.Str(missing='*', validate=validate_net_sta_cha)
+    sta = fields.Str(load_only=True)
+
+    location = fields.Str(missing='*',
                           validate=validate.Regexp(r'[A-Z0-9_*?]*$|--|\s\s'))
-    channel = fields.Str(load_from='cha', missing='*',
-                         validate=validate_net_sta_cha)
-    starttime = FDSNWSDateTime(format='fdsnws', load_from='start')
-    endtime = FDSNWSDateTime(format='fdsnws', load_from='end',
-                             allow_none=True)
+    loc = fields.Str(load_only=True)
+
+    channel = fields.Str(missing='*', validate=validate_net_sta_cha)
+    cha = fields.Str(load_only=True)
+
+    starttime = FDSNWSDateTime(format='fdsnws')
+    start = fields.Str(load_only=True)
+
+    endtime = FDSNWSDateTime(format='fdsnws', allow_none=True)
+    end = fields.Str(load_only=True)
+
+    @pre_load
+    def merge_keys(self, data):
+        """
+        Merge alternative field parameter values.
+
+        .. note::
+
+            The default webargs parser does not provide this feature by
+            default such that `data_key` field parameters are exclusively
+            parsed.
+        """
+        _mappings = [
+            ('net', 'network'),
+            ('sta', 'station'),
+            ('loc', 'location'),
+            ('cha', 'channel'),
+            ('start', 'starttime'),
+            ('end', 'endtime')]
+
+        for alt_key, key in _mappings:
+            if alt_key in data and key not in data:
+                data[key] = data[alt_key]
+                data.pop(alt_key)
+
+    # merge_keys ()
 
     @post_load
     def make_stream_epoch(self, data):
@@ -150,7 +190,7 @@ class StreamEpochSchema(Schema):
             if data.get('endtime') is None:
                 del data['endtime']
         elif self.context.get('routing'):
-            if (data.get('endtime') is None or 
+            if (data.get('endtime') is None or
                     utils.from_fdsnws_datetime(
                         data.get('endtime')) == datetime.datetime.max):
                 del data['endtime']
@@ -189,7 +229,7 @@ class StreamEpochSchema(Schema):
 
             if starttime and starttime >= endtime:
                 raise ValidationError(
-                        'endtime must be greater than starttime')
+                    'endtime must be greater than starttime')
 
     class Meta:
         strict = True

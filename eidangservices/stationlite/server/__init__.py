@@ -30,12 +30,20 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
-from flask import Flask
+import datetime
+
+from flask import Flask, make_response, g
 from flask_sqlalchemy import SQLAlchemy
+
+from eidangservices import settings
+from eidangservices.utils import httperrors
+from eidangservices.utils.fdsnws import register_parser_errorhandler
+
 
 db = SQLAlchemy()
 
-def create_app(config_dict={}):
+def create_app(config_dict={},
+               service_id=settings.EIDA_STATIONLITE_SERVICE_ID):
     """
     Factory function for Flask application.
 
@@ -44,7 +52,32 @@ def create_app(config_dict={}):
     app = Flask(__name__)
     app.config.update(config_dict)
 
+    @app.before_request
+    def before_request():
+        g.request_start_time = datetime.datetime.utcnow()
+
+    def register_error(err):
+        @app.errorhandler(err)
+        def handle_error(error):
+            return make_response(error.description, error.code)
+
+    # register_error ()
+
+    errors_to_register = (
+        httperrors.NoDataError,
+        httperrors.BadRequestError,
+        httperrors.RequestTooLargeError,
+        httperrors.RequestURITooLargeError,
+        httperrors.InternalServerError,
+        httperrors.TemporarilyUnavailableError)
+
+    for err in errors_to_register:
+        register_error(err)
+
+    register_parser_errorhandler(service_id=service_id)
+
     db.init_app(app)
+
     return app
 
 # create_app ()

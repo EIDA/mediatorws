@@ -201,14 +201,31 @@ class StreamEpoch(namedtuple('StreamEpoch',
                                endtime=endtime)
 
     @classmethod
-    def from_sncl(cls, network='*', station='*', location='*', channel='*',
-                  starttime=None, endtime=None):
-        return cls(stream=Stream(network=network,
-                                 station=station,
-                                 location=location,
-                                 channel=channel),
-                   starttime=starttime,
-                   endtime=endtime)
+    def from_sncl(cls, **kwargs):
+        net = (kwargs.get('network') if kwargs.get('network') is not None else
+               kwargs.get('net', '*'))
+        sta = (kwargs.get('station') if kwargs.get('station') is not None else
+               kwargs.get('sta', '*'))
+        loc = (kwargs.get('location') if
+               kwargs.get('location') is not None else
+               kwargs.get('loc', '*'))
+        cha = (kwargs.get('channel') if kwargs.get('channel') is not None else
+               kwargs.get('sta', '*'))
+        start = (kwargs.get('starttime') if
+                 kwargs.get('starttime') is not None else
+                 kwargs.get('start', None))
+        end = (kwargs.get('endtime') if
+               kwargs.get('endtime') is not None else
+               kwargs.get('end', None))
+
+        return cls(stream=Stream(network=net,
+                                 station=sta,
+                                 location=loc,
+                                 channel=cha),
+                   starttime=start,
+                   endtime=end)
+
+    # from_sncl ()
 
     @classmethod
     def from_snclline(cls, line, default_endtime=None):
@@ -289,12 +306,15 @@ class StreamEpoch(namedtuple('StreamEpoch',
         :returns: List of :cls:`StreamEpoch` objects.
         """
         if num < 2:
-            return self
+            return [self]
         end = self.endtime if self.endtime else default_endtime
         t = Epochs.from_tuples([(self.starttime, end)])
 
         for n in range(1, num):
-            t.slice(self.starttime + (end-self.starttime)/num*n)
+            t.slice(self.starttime +
+                    datetime.timedelta(
+                        seconds=((end-self.starttime).total_seconds() / num *
+                                 n)))
 
         return [type(self)(stream=self.stream,
                            starttime=i.begin, endtime=i.end) for i in t]

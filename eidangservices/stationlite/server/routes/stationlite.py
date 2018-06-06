@@ -42,7 +42,8 @@ from webargs.flaskparser import use_args
 
 import eidangservices as eidangws
 from eidangservices import settings, utils
-from eidangservices.utils import httperrors
+from eidangservices.utils import fdsnws
+from eidangservices.utils.httperrors import FDSNHTTPError
 from eidangservices.utils.sncl import StreamEpochsHandler
 
 from eidangservices.stationlite import misc
@@ -63,11 +64,13 @@ class StationLiteResource(Resource):
     # __init__ ()
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
-    @utils.use_fdsnws_kwargs(
+    @fdsnws.use_fdsnws_kwargs(
         eidangws.utils.schema.ManyStreamEpochSchema(
             context={'request': request}),
         locations=('query',)
     )
+    @fdsnws.with_fdsnws_exception_handling(
+        settings.EIDA_STATIONLITE_SERVICE_ID)
     def get(self, args, stream_epochs):
         """
         Process a *StationLite* GET request.
@@ -77,18 +80,20 @@ class StationLiteResource(Resource):
 
         response = self._process_request(args, stream_epochs)
         if not response:
-            raise httperrors.NoDataError()
+            self._handle_nodata(args)
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
 
     # get ()
 
-    @utils.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
-    @utils.use_fdsnws_kwargs(
+    @fdsnws.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
+    @fdsnws.use_fdsnws_kwargs(
         eidangws.utils.schema.ManyStreamEpochSchema(
             context={'request': request}),
         locations=('form',)
     )
+    @fdsnws.with_fdsnws_exception_handling(
+        settings.EIDA_STATIONLITE_SERVICE_ID)
     def post(self, args, stream_epochs):
         """
         Process a *StationLite* POST request.
@@ -98,11 +103,19 @@ class StationLiteResource(Resource):
 
         response = self._process_request(args, stream_epochs)
         if not response:
-            raise httperrors.NoDataError()
+            self._handle_nodata(args)
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
 
     # post ()
+
+    def _handle_nodata(self, args):
+        raise FDSNHTTPError.create(
+            int(
+                args.get('nodata',
+                         settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
+
+    # _handle_204 ()
 
     def _process_request(self, args, stream_epochs):
         # resolve virtual network streamepochs

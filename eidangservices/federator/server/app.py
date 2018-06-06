@@ -54,7 +54,7 @@ from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 
 
-__version__ = utils.get_version("federator")
+__version__ = utils.get_version(settings.EIDA_FEDERATOR_SERVICE_ID)
 
 # -----------------------------------------------------------------------------
 class FederatorWebservice(App):
@@ -94,6 +94,16 @@ class FederatorWebservice(App):
                             # TODO(damb): Perform integrity check.
                             help=("routing service url (including identifier)"
                                   "(default: %(default)s)"))
+        parser.add_argument('-r', '--endpoint-resources', nargs='+',
+                            type=str, metavar='ENDPOINT',
+                            default=sorted(
+                                settings.EIDA_FEDERATOR_DEFAULT_RESOURCES),
+                            choices=sorted(
+                                settings.EIDA_FEDERATOR_DEFAULT_RESOURCES),
+                            help=('Whitespace-separated list of endpoint '
+                                  'resources to be configured. '
+                                  '(default: %(default)s) '
+                                  '(choices: {%(choices)s})'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
 
@@ -145,73 +155,59 @@ class FederatorWebservice(App):
         :rtype :py:class:`flask.Flask`:
         """
 
-        # TODO(damb): Check if the definition of this error is necessary.
-        errors = {
-            'NODATA': {
-                'message': "Empty dataset.",
-                'status': 204,
-            },
-        }
-
         if self.args.tmpdir:
             tempfile.tempdir = self.args.tmpdir
 
-        api = Api(errors=errors)
+        api = Api()
 
-        # station service endpoint
-        # ----
+        if 'station' in self.args.endpoint_resources:
+            # query method
+            api.add_resource(StationResource, "%s%s" %
+                             (settings.FDSN_STATION_PATH,
+                              settings.FDSN_QUERY_METHOD_TOKEN))
 
-        # query method
-        api.add_resource(StationResource, "%s%s" %
-                         (settings.FDSN_STATION_PATH,
-                          settings.FDSN_QUERY_METHOD_TOKEN))
+            # version method
+            api.add_resource(StationVersionResource, "%s%s" %
+                             (settings.FDSN_STATION_PATH,
+                              settings.FDSN_VERSION_METHOD_TOKEN))
 
-        # version method
-        api.add_resource(StationVersionResource, "%s%s" %
-                         (settings.FDSN_STATION_PATH,
-                          settings.FDSN_VERSION_METHOD_TOKEN))
+            # application.wadl method
+            api.add_resource(StationWadlResource, "%s%s" %
+                             (settings.FDSN_STATION_PATH,
+                              settings.FDSN_WADL_METHOD_TOKEN))
 
-        # application.wadl method
-        api.add_resource(StationWadlResource, "%s%s" %
-                         (settings.FDSN_STATION_PATH,
-                          settings.FDSN_WADL_METHOD_TOKEN))
+        if 'dataselect' in self.args.endpoint_resources:
+            # query method
+            api.add_resource(DataselectResource, "%s%s" %
+                             (settings.FDSN_DATASELECT_PATH,
+                              settings.FDSN_QUERY_METHOD_TOKEN))
 
-        # dataselect service endpoint
-        # ----
+            # queryauth method
 
-        # query method
-        api.add_resource(DataselectResource, "%s%s" %
-                         (settings.FDSN_DATASELECT_PATH,
-                          settings.FDSN_QUERY_METHOD_TOKEN))
+            # version method
+            api.add_resource(DataselectVersionResource, "%s%s" %
+                             (settings.FDSN_DATASELECT_PATH,
+                              settings.FDSN_VERSION_METHOD_TOKEN))
 
-        # queryauth method
+            # application.wadl method
+            api.add_resource(DataselectWadlResource, "%s%s" %
+                             (settings.FDSN_DATASELECT_PATH,
+                              settings.FDSN_WADL_METHOD_TOKEN))
 
-        # version method
-        api.add_resource(DataselectVersionResource, "%s%s" %
-                         (settings.FDSN_DATASELECT_PATH,
-                          settings.FDSN_VERSION_METHOD_TOKEN))
+        if 'wfcatalog' in self.args.endpoint_resources:
+            api.add_resource(WFCatalogResource, "%s%s" %
+                             (settings.EIDA_WFCATALOG_PATH,
+                              settings.FDSN_QUERY_METHOD_TOKEN))
 
-        # application.wadl method
-        api.add_resource(DataselectWadlResource, "%s%s" %
-                         (settings.FDSN_DATASELECT_PATH,
-                          settings.FDSN_WADL_METHOD_TOKEN))
+            # version method
+            api.add_resource(WFCatalogVersionResource, "%s%s" %
+                             (settings.EIDA_WFCATALOG_PATH,
+                              settings.FDSN_VERSION_METHOD_TOKEN))
 
-        # wfcatalog service endpoint
-        # ----
-
-        api.add_resource(WFCatalogResource, "%s%s" %
-                         (settings.EIDA_WFCATALOG_PATH,
-                          settings.FDSN_QUERY_METHOD_TOKEN))
-
-        # version method
-        api.add_resource(WFCatalogVersionResource, "%s%s" %
-                         (settings.EIDA_WFCATALOG_PATH,
-                          settings.FDSN_VERSION_METHOD_TOKEN))
-
-        # application.wadl method
-        api.add_resource(WFCatalogWadlResource, "%s%s" %
-                         (settings.EIDA_WFCATALOG_PATH,
-                          settings.FDSN_WADL_METHOD_TOKEN))
+            # application.wadl method
+            api.add_resource(WFCatalogWadlResource, "%s%s" %
+                             (settings.EIDA_WFCATALOG_PATH,
+                              settings.FDSN_WADL_METHOD_TOKEN))
 
         app_config = dict(
             # TODO(damb): Pass log_level to app.config!

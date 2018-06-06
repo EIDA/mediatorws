@@ -55,7 +55,7 @@ from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ErrorWithTraceback, ExitCodes
 
 
-__version__ = utils.get_version("stationlite")
+__version__ = utils.get_version(settings.EIDA_STATIONLITE_SERVICE_ID)
 
 # -----------------------------------------------------------------------------
 class ModWSGIError(ErrorWithTraceback):

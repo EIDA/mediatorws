@@ -38,25 +38,12 @@ import functools
 from marshmallow import (Schema, SchemaOpts, fields, validate, ValidationError,
                          pre_load, post_load, validates_schema)
 
-from eidangservices import settings
 from eidangservices.utils.schema import (Percentage, NotEmptyString,
                                          NotEmptyInt, NotEmptyFloat,
                                          FDSNWSDateTime, Latitude, Longitude,
-                                         Radius, FDSNWSBool)
+                                         Radius, FDSNWSBool, NoData)
 
-# TODO(damb): Improve error messages.
-# TODO(damb): Improve 'format' field implementation.
 
-NoData = functools.partial(
-    fields.Int,
-    as_string=True,
-    # TODO(damb): RESIF does not accept the nodata parameter for
-    # service=dataselect
-    # missing=settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
-    validate=validate.OneOf([
-        settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE,
-        404
-    ]))
 Quality = functools.partial(fields.Str,
                             validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B']))
 
