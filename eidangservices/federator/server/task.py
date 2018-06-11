@@ -514,7 +514,7 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 with open(self.path_tempfile, 'rb') as ifd:
                     ifd.seek(-self.MSEED_RECORD_SIZE, 2)
                     last_chunk = ifd.read(self.MSEED_RECORD_SIZE)
-            except (OSError, ValueError) as err:
+            except (OSError, IOError, ValueError) as err:
                 pass
 
             self.logger.debug(
