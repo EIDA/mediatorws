@@ -37,6 +37,7 @@ import datetime
 import logging
 import multiprocessing as mp
 import os
+import time
 
 from flask import current_app, stream_with_context, Response
 
@@ -117,7 +118,7 @@ class RequestProcessor(object):
     LOGGER = "flask.app.federator.request_processor"
 
     POOL_SIZE = 5
-    MAX_TASKS_PER_CHILD = 2
+    # MAX_TASKS_PER_CHILD = 4
     DEFAULT_ENDTIME = datetime.datetime.utcnow()
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
@@ -272,6 +273,11 @@ class RequestProcessor(object):
                         self._sizes.append(0)
                         ready.append(result)
 
+                # NOTE(damb): We have to handle responses > 5MB. Blocking the
+                # processor by means of time.sleep makes executing
+                # *DownloadTasks IO bound.
+                time.sleep(0.01)
+
             for result in ready:
                 self._results.remove(result)
 
@@ -323,8 +329,11 @@ class RawRequestProcessor(RequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.Pool(processes=pool_size,
-                                  maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        self._pool = mp.pool.ThreadPool(processes=pool_size)
+        # NOTE(damb): With pleasure I'd like to define the parameter
+        # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        # However, using this parameter seems to lead to processes unexpectedly
+        # terminated. Hence some tasks never return a *ready* result.
 
         for route in routes:
             self.logger.debug(
@@ -409,6 +418,11 @@ class RawRequestProcessor(RequestProcessor):
                         self._sizes.append(0)
 
                     ready.append(result)
+
+                # NOTE(damb): We have to handle responses > 5MB. Blocking the
+                # processor by means of time.sleep makes executing
+                # *DownloadTasks IO bound.
+                time.sleep(0.01)
 
             # TODO(damb): Implement a timeout solution in case results are
             # never ready.
@@ -532,8 +546,11 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.Pool(processes=pool_size,
-                                  maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        self._pool = mp.pool.Pool(processes=pool_size)
+        # NOTE(damb): With pleasure I'd like to define the parameter
+        # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        # However, using this parameter seems to lead to processes unexpectedly
+        # terminated. Hence some tasks never return a *ready* result.
 
         for net, routes in routes.items():
             self.logger.debug(
@@ -758,8 +775,11 @@ class WFCatalogRequestProcessor(RequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.Pool(processes=pool_size,
-                                  maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        self._pool = mp.pool.ThreadPool(processes=pool_size)
+        # NOTE(damb): With pleasure I'd like to define the parameter
+        # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
+        # However, using this parameter seems to lead to processes unexpectedly
+        # terminated. Hence some tasks never return a *ready* result.
 
         for route in routes:
             self.logger.debug(
@@ -860,6 +880,11 @@ class WFCatalogRequestProcessor(RequestProcessor):
                         self._sizes.append(0)
 
                     ready.append(result)
+
+                # NOTE(damb): We have to handle responses > 5MB. Blocking the
+                # processor by means of time.sleep makes executing
+                # *DownloadTasks IO bound.
+                time.sleep(0.01)
 
             # TODO(damb): Implement a timeout solution in case results are
             # never ready.
