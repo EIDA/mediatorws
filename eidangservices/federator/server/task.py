@@ -264,14 +264,11 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         _root = None
         # fetch results ready
         while True:
-            r = self._results
-            for idx, result in enumerate(r):
+            ready = []
+            for result in self._results:
                 if result.ready():
                     _result = result.get()
-                    if _result.status_code != 200:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                    else:
+                    if _result.status_code == 200:
                         if self._level == 'channel':
                             # merge <Channel></Channel> elements into
                             # <Station></Station>
@@ -298,8 +295,11 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                             self.path_tempfile = _result.data
 
                         self._sizes.append(_result.length)
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
 
-                    self._results.pop(idx)
+                    ready.append(result)
 
                     if self._level in ('station', 'channel'):
                         self.logger.debug(
@@ -309,6 +309,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                             os.remove(_result.data)
                         except OSError as err:
                             self.TaskError(err)
+
+            for result in ready:
+                self._results.remove(result)
 
             if not self._results:
                 break

@@ -258,20 +258,22 @@ class RequestProcessor(object):
 
         result_with_data = False
         while True:
-            _results = self._results
-            for idx, result in enumerate(_results):
+            ready = []
+            for result in self._results:
                 if result.ready():
                     _result = result.get()
                     if _result.status_code == 200:
                         result_with_data = True
                     elif _result.status_code == 413:
                         self._handle_413(_result)
-                        self._results.pop(idx)
-                        break
+                        ready.append(result)
                     else:
                         self._handle_error(_result)
                         self._sizes.append(0)
-                        self._results.pop(idx)
+                        ready.append(result)
+
+            for result in ready:
+                self._results.remove(result)
 
             if result_with_data:
                 break
@@ -372,19 +374,14 @@ class RawRequestProcessor(RequestProcessor):
                 yield data
 
         while True:
-            r = self._results
 
-            for idx, result in enumerate(r):
+            ready = []
+            for result in self._results:
+
                 if result.ready():
                     _result = result.get()
-                    if _result.status_code != 200:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
-                        self._results.pop(idx)
-                        break
-                    else:
+
+                    if _result.status_code == 200:
                         self._sizes.append(_result.length)
                         self.logger.debug(
                             'Streaming from file {!r} (chunk_size={}).'.format(
@@ -404,7 +401,19 @@ class RawRequestProcessor(RequestProcessor):
                         except OSError as err:
                             RequestProcessorError(err)
 
-                    self._results.pop(idx)
+                    elif _result.status_code == 413:
+                        self._handle_413(_result)
+
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
+
+                    ready.append(result)
+
+            # TODO(damb): Implement a timeout solution in case results are
+            # never ready.
+            for result in ready:
+                self._results.remove(result)
 
             if not self._results:
                 break
@@ -550,17 +559,12 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                 yield data
 
         while True:
-            r = self._results
-            for idx, result in enumerate(r):
+            ready = []
+            for result in self._results:
                 if result.ready():
 
                     _result = result.get()
-                    if _result.status_code != 200:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
-                    else:
+                    if _result.status_code == 200:
                         if not sum(self._sizes):
                             yield self.HEADER.format(
                                 self.SOURCE,
@@ -586,7 +590,19 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                         except OSError as err:
                             RequestProcessorError(err)
 
-                    self._results.pop(idx)
+                    elif _result.status_code == 413:
+                        self._handle_413(_result)
+
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
+
+                    ready.append(result)
+
+            # TODO(damb): Implement a timeout solution in case results are
+            # never ready.
+            for result in ready:
+                self._results.remove(result)
 
             if not self._results:
                 break
@@ -655,18 +671,12 @@ class StationTextRequestProcessor(StationRequestProcessor):
         Make the processor *streamable*.
         """
         while True:
-            r = self._results
-            for idx, result in enumerate(r):
+            ready = []
+            for result in self._results:
                 if result.ready():
 
                     _result = result.get()
-                    if _result.status_code != 200:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
-                    else:
-
+                    if _result.status_code == 200:
                         if not sum(self._sizes):
                             # add header
                             if self._level == 'network':
@@ -695,7 +705,19 @@ class StationTextRequestProcessor(StationRequestProcessor):
                         except OSError as err:
                             RequestProcessorError(err)
 
-                    self._results.pop(idx)
+                    elif _result.status_code == 413:
+                        self._handle_413(_result)
+
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
+
+                    ready.append(result)
+
+            # TODO(damb): Implement a timeout solution in case results are
+            # never ready.
+            for result in ready:
+                self._results.remove(result)
 
             if not self._results:
                 break
@@ -792,20 +814,11 @@ class WFCatalogRequestProcessor(RequestProcessor):
                 yield buf
 
         while True:
-            r = self._results
-            for idx, result in enumerate(r):
+            ready = []
+            for result in self._results:
                 if result.ready():
-
                     _result = result.get()
-                    if _result.status_code != 200:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
-                        self._results.pop(idx)
-                        break
-                    else:
-
+                    if _result.status_code == 200:
                         if not sum(self._sizes):
                             # add header
                             yield self.JSON_LIST_START
@@ -839,7 +852,19 @@ class WFCatalogRequestProcessor(RequestProcessor):
                         except OSError as err:
                             RequestProcessorError(err)
 
-                    self._results.pop(idx)
+                    elif _result.status_code == 413:
+                        self._handle_413(_result)
+
+                    else:
+                        self._handle_error(_result)
+                        self._sizes.append(0)
+
+                    ready.append(result)
+
+            # TODO(damb): Implement a timeout solution in case results are
+            # never ready.
+            for result in ready:
+                self._results.remove(result)
 
             if not self._results:
                 break
