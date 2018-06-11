@@ -34,6 +34,8 @@ import datetime
 
 from flask import Flask, make_response, g
 
+# from werkzeug.contrib.profiler import ProfilerMiddleware
+
 from eidangservices import settings
 from eidangservices.utils import httperrors
 from eidangservices.utils.fdsnws import register_parser_errorhandler
@@ -47,6 +49,9 @@ def create_app(config_dict={},
     """
     app = Flask(__name__)
     app.config.update(config_dict)
+
+    # app.config['PROFILE'] = True
+    # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
 
     # TODO(damb): move webservice error handling to eidangservices.utils
     @app.before_request
