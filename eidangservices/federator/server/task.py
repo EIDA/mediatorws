@@ -184,7 +184,7 @@ class CombinerTask(TaskBase):
     # __init__ ()
 
     def _handle_error(self, err):
-        self.logger.error(str(err))
+        self.logger.warning(str(err))
 
     def _run(self):
         """

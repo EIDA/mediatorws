@@ -235,7 +235,7 @@ class RequestProcessor(object):
     # streamed_response ()
 
     def _handle_error(self, err):
-        self.logger.error(str(err))
+        self.logger.warning(str(err))
 
     def _handle_413(self, result):
         self.logger.warning(
