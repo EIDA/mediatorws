@@ -71,7 +71,6 @@ def binary_request(request,
     try:
         with request(timeout=timeout) as r:
 
-            print(r)
             if r.status_code in settings.FDSN_NO_CONTENT_CODES:
                 raise NoContent(r.url, r.status_code, response=r)
 
