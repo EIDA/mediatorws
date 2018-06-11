@@ -651,7 +651,7 @@ class RawDownloadTask(TaskBase):
 
     LOGGER = 'flask.app.federator.task_download_raw'
 
-    CHUNK_SIZE = 1024 * 1024 * 20
+    CHUNK_SIZE = 1024 * 1024
 
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER)
