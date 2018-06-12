@@ -34,21 +34,10 @@
 #
 # routing=SERVICE_URL/IDENTIFIER
 # ----
-# Set the routing/federating service request timeout in seconds. 
+# Enable/disable federator endpoint resources. Choices are: {dataselect,
+# station, wfcatalog}. By default all endpoint resources are enabled.
 #
-# timeout=SECONDS
-# ----
-# Set the maximum number of retries for routing/federating services.
-#
-# retries=NUM_RETRIES
-# ----
-# Set the seconds to wait before each retry.
-#
-# retry_wait=SECONDS
-# ----
-# While retrying lock an URL for other federator instance.
-# 
-# retry_lock={True,False}
+# endpoint_resources = dataselect station wfcatalog
 # ----
 # Configure where temporary files will be located.
 # 
