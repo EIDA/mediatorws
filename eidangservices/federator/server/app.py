@@ -211,6 +211,7 @@ class FederatorWebservice(App):
 
         app_config = dict(
             # TODO(damb): Pass log_level to app.config!
+            PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
             TMPDIR=tempfile.gettempdir())
 

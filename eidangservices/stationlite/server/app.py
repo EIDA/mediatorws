@@ -177,6 +177,7 @@ class StationLiteWebservice(App):
 
         api = Api(errors=errors)
         app_config = {
+            'PROPAGATE_EXCEPTIONS': True,
             'PORT': self.args.port,
             'SQLALCHEMY_DATABASE_URI': self.args.db_url,
             'SQLALCHEMY_TRACK_MODIFICATIONS': False
