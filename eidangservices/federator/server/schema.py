@@ -179,6 +179,11 @@ class StationSchema(ServiceSchema):
     # merge_keys ()
 
     @validates_schema
+    def validate_level(self, data):
+        if data['format'] == 'text' and data['level'] == 'response':
+            raise ValidationError("Invalid level for format 'text'.")
+
+    @validates_schema
     def validate_spatial_params(self, data):
         # NOTE(damb): Allow either rectangular or circular spatial parameters
         rectangular_spatial = ('minlatitude', 'maxlatitude', 'minlongitude',
