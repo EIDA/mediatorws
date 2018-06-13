@@ -482,25 +482,10 @@ class StationRequestProcessor(RequestProcessor):
     def _route(self):
         routes = super()._route()
         self.logger.debug('Received routes: {}'.format(routes))
+        # group routes
+        return group_routes_by(routes, key='network')
 
-        # reduce routes
-        if self._level == 'network':
-            # use only the first route for each network
-            routes = dict((net, [_routes[0]])
-                          for net, _routes in
-                          group_routes_by(routes, key='network').items())
-        elif self._level == 'station':
-            # use only the first route for each station
-            routes = [_routes[0] for _routes in
-                      group_routes_by(routes, key='network.station').values()]
-            # sort again by network
-            routes = group_routes_by(routes, key='network')
-        else:
-            routes = group_routes_by(routes, key='network')
-
-        self.logger.debug('Routes after level reduction: {!r}.'.format(routes))
-
-        return routes
+    # _route ()
 
 # class StationRequestProcessor
 

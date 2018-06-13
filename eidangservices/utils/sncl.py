@@ -265,6 +265,17 @@ class StreamEpoch(namedtuple('StreamEpoch',
                    starttime=stream_epoch.starttime,
                    endtime=stream_epoch.endtime)
 
+    @classmethod
+    def from_streamepochs(cls, stream_epochs):
+        return cls(stream=Stream(network=stream_epochs.network,
+                                 station=stream_epochs.station,
+                                 location=stream_epochs.location,
+                                 channel=stream_epochs.channel),
+                   starttime=stream_epochs.starttime,
+                   endtime=stream_epochs.endtime)
+
+    # from_streamepochs ()
+
     def id(self, sep='.'):
         return self.stream.id(sep=sep)
 

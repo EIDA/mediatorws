@@ -44,7 +44,7 @@ import eidangservices as eidangws
 from eidangservices import settings, utils
 from eidangservices.utils import fdsnws
 from eidangservices.utils.httperrors import FDSNHTTPError
-from eidangservices.utils.sncl import StreamEpochsHandler
+from eidangservices.utils.sncl import StreamEpochsHandler, StreamEpoch
 
 from eidangservices.stationlite import misc
 from eidangservices.stationlite.engine import dbquery
@@ -138,6 +138,7 @@ class StationLiteResource(Resource):
             # query
             _routes = dbquery.find_streamepochs_and_routes(
                 db.session, stream_epoch, args['service'],
+                level=args['level'],
                 minlat=args['minlatitude'],
                 maxlat=args['maxlatitude'],
                 minlon=args['minlongitude'],
@@ -161,12 +162,18 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLite routes (merged): %r' % merged_routes)
 
         for url, stream_epochs in merged_routes.items():
-            merged_routes[url] = [se for ses in stream_epochs for se in ses]
+            if args['level'] in ('network', 'station'):
+                merged_routes[url] = [StreamEpoch.from_streamepochs(ses)
+                                      for ses in stream_epochs]
+            else:
+                merged_routes[url] = [se for ses in stream_epochs
+                                      for se in ses]
 
         # sort response
         routes = [utils.Route(url=url,
                               streams=sorted(stream_epochs))
                   for url, stream_epochs in merged_routes.items()]
+
         # sort additionally by url
         routes.sort()
 

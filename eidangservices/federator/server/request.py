@@ -242,6 +242,7 @@ class RoutingRequestHandler(RequestHandlerBase):
     Representation of a eidaws-routing request handler.
     """
     QUERY_PARAMS = set(('service',
+                        'level',
                         'minlatitude',
                         'maxlatitude',
                         'minlongitude',

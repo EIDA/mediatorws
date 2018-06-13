@@ -113,6 +113,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
 # resolve_vnetwork ()
 
 def find_streamepochs_and_routes(session, stream_epoch, service,
+                                 level='channel',
                                  minlat=-90., maxlat=90., minlon=-180.,
                                  maxlon=180., like_escape='/'):
     """
@@ -137,6 +138,10 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     logger.debug('Processing request for (SQL) {0!r}'.format(stream_epoch))
     sql_stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
 
+    sta = sql_stream_epoch.station
+    loc = sql_stream_epoch.location
+    cha = sql_stream_epoch.channel
+
     query = session.query(orm.ChannelEpoch.channel,
                           orm.ChannelEpoch.locationcode,
                           orm.ChannelEpoch.starttime,
@@ -156,16 +161,13 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
                (orm.Routing.endpoint_ref == orm.Endpoint.oid)).\
         filter(orm.Network.name.like(sql_stream_epoch.network,
                                      escape=like_escape)).\
-        filter(orm.Station.name.like(sql_stream_epoch.station,
-                                     escape=like_escape)).\
+        filter(orm.Station.name.like(sta, escape=like_escape)).\
         filter((orm.StationEpoch.latitude >= minlat) &
                (orm.StationEpoch.latitude <= maxlat)).\
         filter((orm.StationEpoch.longitude >= minlon) &
                (orm.StationEpoch.longitude <= maxlon)).\
-        filter(orm.ChannelEpoch.channel.like(sql_stream_epoch.channel,
-                                             escape=like_escape)).\
-        filter(orm.ChannelEpoch.locationcode.like(sql_stream_epoch.location,
-                                                  escape=like_escape)).\
+        filter(orm.ChannelEpoch.channel.like(cha, escape=like_escape)).\
+        filter(orm.ChannelEpoch.locationcode.like(loc, escape=like_escape)).\
         filter(orm.Service.name == service)
 
     if sql_stream_epoch.starttime:
@@ -196,11 +198,21 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
         # NOTE(damb): Set endtime to 'max' if undefined (i.e. device currently
         # acquiring data).
         with none_as_max(endtime) as end:
+            sta = row[5]
+            loc = row[1]
+            cha = row[0]
+
+            # NOTE(damb): level reduction
+            if level == 'network':
+                sta = loc = cha = '*'
+            elif level == 'station':
+                loc = cha = '*'
+
             stream_epochs = StreamEpochs(
                 network=row[4],
-                station=row[5],
-                location=row[1],
-                channel=row[0],
+                station=sta,
+                location=loc,
+                channel=cha,
                 epochs=[(starttime, end)])
 
             routes[row[8]].merge([stream_epochs])

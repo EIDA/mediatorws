@@ -60,6 +60,11 @@ class StationLiteSchema(Schema):
     nodata = NoData()
     alternative = FDSNWSBool(missing='false')
 
+    level = fields.Str(
+        missing='channel',
+        validate=validate.OneOf(
+            ['network', 'station', 'channel', 'response']))
+
     # geographic (rectangular spatial) options
     # XXX(damb): Default values are defined and assigned within merge_keys ()
     minlatitude = Latitude()
