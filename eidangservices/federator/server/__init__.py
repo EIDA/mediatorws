@@ -61,7 +61,8 @@ def create_app(config_dict={},
     def register_error(err):
         @app.errorhandler(err)
         def handle_error(error):
-            return make_response(error.description, error.code)
+            return make_response(error.description, error.code,
+                                 {'Content-Type': settings.ERROR_MIMETYPE})
 
     # register_error ()
 
