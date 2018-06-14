@@ -287,6 +287,7 @@ class RequestProcessor(object):
             if (not self._results or datetime.datetime.utcnow() >
                 self.DEFAULT_ENDTIME +
                     datetime.timedelta(seconds=timeout)):
+                self.logger.warning('No valid results to be federated.')
                 raise FDSNHTTPError.create(
                     int(self.query_params.get(
                         'nodata',
