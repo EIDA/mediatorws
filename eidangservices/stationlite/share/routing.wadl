@@ -47,6 +47,10 @@
 			  <option value="channel"/>
 			  <option value="response"/>
 			</param>
+      <param name="minlatitude" style="query" type="xsd:float"/>
+      <param name="maxlatitude" style="query" type="xsd:float"/>
+      <param name="minlongitude" style="query" type="xsd:float"/>
+      <param name="maxlongitude" style="query" type="xsd:float"/>
 		</request>
 		<response status="200">
 			<representation mediaType="text/plain"/>
