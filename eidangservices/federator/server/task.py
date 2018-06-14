@@ -237,6 +237,17 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     # __init__ ()
 
+    def _clean(self, result):
+        self.logger.debug(
+            'Removing temporary file {!r} ...'.format(
+                result.data))
+        try:
+            os.remove(result.data)
+        except OSError as err:
+            pass
+
+    # _clean ()
+
     def _run(self):
         """
         Combine StationXML <Network></Network> information.
@@ -279,6 +290,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                                         _result.data):
                                     self._merge_sta_element(_root, sta_element)
 
+                            self._clean(_result)
+
                         elif self._level == 'station':
                             # append <Station></Station> elements to
                             # <Network></Network>
@@ -289,26 +302,20 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                                         _result.data):
                                     _root.append(sta_element)
 
+                            self._clean(_result)
+
                         elif self._level == 'network':
                             # do not merge; do not remove temporary files;
                             # simply return the downloading task's result
                             self.path_tempfile = _result.data
 
                         self._sizes.append(_result.length)
+
                     else:
                         self._handle_error(_result)
                         self._sizes.append(0)
 
                     ready.append(result)
-
-                    if self._level in ('station', 'channel'):
-                        self.logger.debug(
-                            'Removing temporary file {!r} ...'.format(
-                                _result.data))
-                        try:
-                            os.remove(_result.data)
-                        except OSError as err:
-                            self.TaskError(err)
 
             for result in ready:
                 self._results.remove(result)
@@ -319,6 +326,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         self._pool.join()
 
         if not sum(self._sizes):
+            self.logger.warning(
+                'Task {!r} terminates with no valid result.'.format(self))
             return Result.nocontent()
 
         _length = sum(self._sizes)
