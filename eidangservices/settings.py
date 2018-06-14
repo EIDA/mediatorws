@@ -600,7 +600,13 @@ EIDA_STATIONLITE_SERVICE_ID = 'stationlite'
 
 # default port configuration for flask test wsgi stationlite instance
 EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
-EIDA_STATIONLITE_VERSION = '0.9.2.1'
+EIDA_STATIONLITE_VERSION = '0.9.2.2'
+
+EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
+EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
+                                          EIDA_STATIONLITE_SERVICE_ID,
+                                          EIDA_STATIONLITE_SHARE_DIR)
+EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----
 EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'

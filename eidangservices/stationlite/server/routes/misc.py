@@ -24,7 +24,18 @@
 # REVISION AND CHANGES
 # 2018/03/20        V0.1    Daniel Armbruster
 # =============================================================================
+"""
+Miscellaneous stationlite resources.
+"""
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
+from builtins import * # noqa
+
+import os
+import socket
+
+from flask import make_response
 from flask_restful import Resource
 
 from eidangservices import settings, utils
@@ -39,5 +50,32 @@ class StationLiteVersionResource(Resource):
         return utils.get_version_response(settings.EIDA_STATIONLITE_VERSION)
 
 # class StationLiteVersionResource
+
+
+class StationLiteWadlResource(Resource):
+    """application.wadl for stationlite."""
+
+    def __init__(self):
+        super().__init__()
+        self.path_wadl = os.path.join(settings.EIDA_STATIONLITE_APP_SHARE,
+                                      settings.EIDA_ROUTING_WADL_FILENAME)
+
+    @property
+    def wadl(self):
+        with open(self.path_wadl) as ifd:
+            return ifd.read().format(
+                'http://{}{}'.format(socket.getfqdn(),
+                                     settings.EIDA_ROUTING_PATH))
+
+    def get(self):
+        return make_response(self.wadl, 200,
+                             {'Content-Type': settings.WADL_MIMETYPE})
+
+    def post(self):
+        return make_response(self.wadl, 200,
+                             {'Content-Type': settings.WADL_MIMETYPE})
+
+# class StationLiteWadlResource
+
 
 # ---- END OF <misc.py> ----
