@@ -214,6 +214,9 @@ class RequestProcessor(object):
             self.logger.error(err)
             raise FDSNHTTPError.create(
                 500, service_id=settings.EIDA_FEDERATOR_SERVICE_ID)
+        else:
+            self.logger.debug(
+                'Number of routes received: {}'.format(len(routing_table)))
 
         return routing_table
 
@@ -322,9 +325,7 @@ class RawRequestProcessor(RequestProcessor):
         """
         process a federated request
         """
-        routes = self._route()
-        self.logger.debug('Received routes: {}'.format(routes))
-        routes = demux_routes(routes)
+        routes = demux_routes(self._route())
 
         pool_size = (len(routes) if
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
@@ -481,10 +482,7 @@ class StationRequestProcessor(RequestProcessor):
     # create ()
 
     def _route(self):
-        routes = super()._route()
-        self.logger.debug('Received routes: {}'.format(routes))
-        # group routes
-        return group_routes_by(routes, key='network')
+        return group_routes_by(super()._route(), key='network')
 
     # _route ()
 
@@ -753,9 +751,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
         """
         process a federated fdsnws-station text request
         """
-        routes = self._route()
-        self.logger.debug('Received routes: {}'.format(routes))
-        routes = demux_routes(routes)
+        routes = demux_routes(self._route())
 
         pool_size = (len(routes) if
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
