@@ -119,7 +119,6 @@ class RequestProcessor(object):
 
     POOL_SIZE = 5
     # MAX_TASKS_PER_CHILD = 4
-    DEFAULT_ENDTIME = datetime.datetime.utcnow()
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
     def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
@@ -138,6 +137,8 @@ class RequestProcessor(object):
         self._pool = None
         self._results = []
         self._sizes = []
+
+        self._default_endtime = datetime.datetime.utcnow()
 
     # __init__ ()
 
@@ -162,6 +163,26 @@ class RequestProcessor(object):
             raise KeyError('Invalid RequestProcessor chosen.')
 
     # create ()
+
+    @property
+    def DEFAULT_ENDTIME(self):
+        return self._default_endtime
+
+    @property
+    def streamed_response(self):
+        """
+        Return a streamed :cls:`flask.Response`.
+        """
+        self._request()
+
+        # XXX(damb): Only return a streamed response as soon as valid data
+        # is available. Use a timeout and process errors here.
+        self._wait()
+
+        return Response(stream_with_context(self), mimetype=self.mimetype,
+                        content_type=self.mimetype)
+
+    # streamed_response ()
 
     def _route(self):
         """
@@ -221,22 +242,6 @@ class RequestProcessor(object):
         return routing_table
 
     # _route ()
-
-    @property
-    def streamed_response(self):
-        """
-        Return a streamed :cls:`flask.Response`.
-        """
-        self._request()
-
-        # XXX(damb): Only return a streamed response as soon as valid data
-        # is available. Use a timeout and process errors here.
-        self._wait()
-
-        return Response(stream_with_context(self), mimetype=self.mimetype,
-                        content_type=self.mimetype)
-
-    # streamed_response ()
 
     def _handle_error(self, err):
         self.logger.warning(str(err))
