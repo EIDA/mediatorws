@@ -273,6 +273,7 @@ class RequestProcessor(object):
                     _result = result.get()
                     if _result.status_code == 200:
                         result_with_data = True
+                        break
                     elif _result.status_code == 413:
                         self._handle_413(_result)
                         ready.append(result)
@@ -295,7 +296,10 @@ class RequestProcessor(object):
             if (not self._results or datetime.datetime.utcnow() >
                 self.DEFAULT_ENDTIME +
                     datetime.timedelta(seconds=timeout)):
-                self.logger.warning('No valid results to be federated.')
+                self.logger.warning(
+                    'No valid results to be federated. ({})'.format(
+                        ('No valid results.' if not self._results else
+                         'Timeout ({}).'.format(timeout))))
                 raise FDSNHTTPError.create(
                     int(self.query_params.get(
                         'nodata',
