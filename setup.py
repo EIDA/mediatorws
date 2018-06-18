@@ -122,6 +122,8 @@ _data_files_stationlite = [
     ('config', ['config/eida-stationlite.conf.rsyslog']),
     ('apache2', ['apache2/stationlite.conf',
                  'apache2/stationlite.wsgi']),
+    ('eidangservices/stationlite/share',
+        ['eidangservices/stationlite/share/routing.wadl']),
     ('db', ['db/stationlite.db.empty'])]
 
 _data_files = _data_files_all + _data_files_federator + _data_files_stationlite
