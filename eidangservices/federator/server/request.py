@@ -180,7 +180,8 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
     """
     Representation of a FDSN webservice request handler.
     """
-    QUERY_PARAMS = set(('service', ))
+    QUERY_PARAMS = set(('service',
+                        'nodata'))
 
     def __init__(self, url, stream_epoch, query_params={}):
         super().__init__(url, query_params, [stream_epoch])
