@@ -42,7 +42,7 @@ import unittest
 
 from eidangservices.federator.server.task import (
     SplitAndAlignTask, WFCatalogSplitAndAlignTask, Result)
-from eidangservices.federator.server.request import RequestsError
+from eidangservices.utils.request import RequestsError
 from eidangservices.utils.sncl import Stream, StreamEpoch
 
 try:
