@@ -1021,10 +1021,6 @@ class StationLiteHarvestApp(App):
             self.logger.info(
                 'Processing routes from EIDA node %r.' % node_name)
             try:
-                # TODO(damb): Do not pass the fdsn_station information
-                # to the RoutingHarvester. The Harvester should fetch
-                # this information from every single <route></route>.
-                # harvest the routing configuration
                 h = RoutingHarvester(node_name, url_routing_config)
 
                 session=Session()
