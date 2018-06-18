@@ -571,7 +571,7 @@ EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
     'http://mediator-devel.ethz.ch/eidaws/routing/1/'
 # default federator endpoint resources
 EIDA_FEDERATOR_DEFAULT_RESOURCES = (
-    'dataselect', 'station', 'wfcatalog')
+    'fdsnws-dataselect', 'fdsnws-station', 'eidaws-wfcatalog')
 # timeout the federator is waiting before the first endpoint request must be
 # answered.
 EIDA_FEDERATOR_STREAMING_TIMEOUT = 600

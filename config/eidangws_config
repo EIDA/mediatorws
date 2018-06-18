@@ -34,10 +34,11 @@
 #
 # routing=SERVICE_URL/IDENTIFIER
 # ----
-# Enable/disable federator endpoint resources. Choices are: {dataselect,
-# station, wfcatalog}. By default all endpoint resources are enabled.
+# Enable/disable federator endpoint resources. Choices are: 
+# {fdsnws-dataselect, fdsnws-station, eidaws-wfcatalog}. By default all
+# endpoint resources are enabled.
 #
-# endpoint_resources = dataselect station wfcatalog
+# endpoint_resources = fdsnws-dataselect fdsnws-station eidaws-wfcatalog
 # ----
 # Configure the number of download threads/request by means of a dictionary
 # (JSON syntax required). The default configuration is:

@@ -196,7 +196,7 @@ class FederatorWebservice(App):
 
         api = Api()
 
-        if 'station' in self.args.endpoint_resources:
+        if 'fdsnws-station' in self.args.endpoint_resources:
             # query method
             api.add_resource(StationResource, "%s%s" %
                              (settings.FDSN_STATION_PATH,
@@ -212,7 +212,7 @@ class FederatorWebservice(App):
                              (settings.FDSN_STATION_PATH,
                               settings.FDSN_WADL_METHOD_TOKEN))
 
-        if 'dataselect' in self.args.endpoint_resources:
+        if 'fdsnws-dataselect' in self.args.endpoint_resources:
             # query method
             api.add_resource(DataselectResource, "%s%s" %
                              (settings.FDSN_DATASELECT_PATH,
@@ -230,7 +230,7 @@ class FederatorWebservice(App):
                              (settings.FDSN_DATASELECT_PATH,
                               settings.FDSN_WADL_METHOD_TOKEN))
 
-        if 'wfcatalog' in self.args.endpoint_resources:
+        if 'eidaws-wfcatalog' in self.args.endpoint_resources:
             api.add_resource(WFCatalogResource, "%s%s" %
                              (settings.EIDA_WFCATALOG_PATH,
                               settings.FDSN_QUERY_METHOD_TOKEN))
