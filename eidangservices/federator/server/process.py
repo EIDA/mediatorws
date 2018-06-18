@@ -328,8 +328,11 @@ class RawRequestProcessor(RequestProcessor):
 
     LOGGER = "flask.app.federator.request_processor_raw"
 
-    POOL_SIZE = settings.EIDA_FEDERATOR_THREADS_DATASELECT
     CHUNK_SIZE = 1024
+
+    @property
+    def POOL_SIZE(self):
+        return current_app.config['FED_THREAD_CONFIG']['fdsnws-dataselect']
 
     def _request(self):
         """
@@ -638,8 +641,6 @@ class StationTextRequestProcessor(StationRequestProcessor):
     This processor implementation implements fdsnws-station text federatation.
     Data is fetched multithreaded from endpoints.
     """
-    POOL_SIZE = settings.EIDA_FEDERATOR_THREADS_STATION_TEXT
-
     HEADER_NETWORK = '#Network|Description|StartTime|EndTime|TotalStations'
     HEADER_STATION = (
         '#Network|Station|Latitude|Longitude|'
@@ -648,6 +649,10 @@ class StationTextRequestProcessor(StationRequestProcessor):
         '#Network|Station|Location|Channel|Latitude|'
         'Longitude|Elevation|Depth|Azimuth|Dip|SensorDescription|Scale|'
         'ScaleFreq|ScaleUnits|SampleRate|StartTime|EndTime')
+
+    @property
+    def POOL_SIZE(self):
+        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-text']
 
     def _request(self):
         """
@@ -750,12 +755,15 @@ class WFCatalogRequestProcessor(RequestProcessor):
     """
     LOGGER = "flask.app.federator.request_processor_wfcatalog"
 
-    POOL_SIZE = settings.EIDA_FEDERATOR_THREADS_WFCATALOG
     CHUNK_SIZE = 1024
 
     JSON_LIST_START = '['
     JSON_LIST_END = ']'
     JSON_LIST_SEP = ','
+
+    @property
+    def POOL_SIZE(self):
+        return current_app.config['FED_THREAD_CONFIG']['eidaws-wfcatalog']
 
     def _request(self):
         """

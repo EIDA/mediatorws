@@ -39,6 +39,19 @@
 #
 # endpoint_resources = dataselect station wfcatalog
 # ----
+# Configure the number of download threads/request by means of a dictionary
+# (JSON syntax required). The default configuration is:
+# '{"fdsnws-dataselect": 10, "fdsnws-station-xml": 5,
+#   "fdsnws-station-text": 10, "eidaws-wfcatalog": 10}'
+#
+# NOTE: For "fdsnws-station-xml" the number of download threads refers to the
+# number of download threads per network code.
+#
+# endpoint_threads = '{"fdsnws-dataselect": 10,
+#                      "fdsnws-station-xml": 5,
+#                      "fdsnws-station-text": 10,
+#                      "eidaws-wfcatalog": 10}'
+# ----
 # Configure where temporary files will be located.
 # 
 # tmpdir=/path/to/tmpdir

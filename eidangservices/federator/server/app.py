@@ -34,6 +34,9 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import argparse
+import copy
+import json
 import sys
 import tempfile
 import traceback
@@ -55,6 +58,33 @@ from eidangservices.utils.error import Error, ExitCodes
 
 
 __version__ = utils.get_version(settings.EIDA_FEDERATOR_SERVICE_ID)
+
+
+def thread_config(config_dict):
+    """
+    Parse a federator thread configuration dictionary.
+
+    :param str config_dict: Configuration dictionary
+    :retval: dict
+    """
+    try:
+        config_dict = json.loads(config_dict)
+    except Exception:
+        raise argparse.ArgumentTypeError(
+            'Invalid thread configuration dictionary syntax.')
+    retval = copy.deepcopy(settings.EIDA_FEDERATOR_THREAD_CONFIG)
+    try:
+        for k, v in config_dict.items():
+            if k not in settings.EIDA_FEDERATOR_THREAD_CONFIG:
+                raise ValueError(
+                    'Invalid thread configuration key {!r}.'.format(k))
+            retval[k] = int(v)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    return retval
+
+# thread_config ()
 
 # -----------------------------------------------------------------------------
 class FederatorWebservice(App):
@@ -104,6 +134,12 @@ class FederatorWebservice(App):
                                   'resources to be configured. '
                                   '(default: %(default)s) '
                                   '(choices: {%(choices)s})'))
+        parser.add_argument('-t', '--endpoint-threads', type=thread_config,
+                            metavar='DICT', dest='thread_config',
+                            default=settings.EIDA_FEDERATOR_THREAD_CONFIG,
+                            help=('Endpoint download thread configuration '
+                                  'dictionary (JSON syntax). '
+                                  '(default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
 
@@ -213,6 +249,7 @@ class FederatorWebservice(App):
             # TODO(damb): Pass log_level to app.config!
             PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
+            FED_THREAD_CONFIG=self.args.thread_config,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

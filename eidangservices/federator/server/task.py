@@ -42,6 +42,7 @@ from multiprocessing.pool import ThreadPool
 
 import ijson
 
+from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
@@ -216,7 +217,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     # Besides of processors this combiner has to log since it is the instance
     # collecting and analyzing DownloadTask results.
 
-    MAX_THREADS_DOWNLOADING = settings.EIDA_FEDERATOR_THREADS_STATION_XML
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
 
     NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
@@ -236,6 +236,10 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         self.path_tempfile = None
 
     # __init__ ()
+
+    @property
+    def MAX_THREADS_DOWNLOADING(self):
+        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-xml']
 
     def _clean(self, result):
         self.logger.debug(
