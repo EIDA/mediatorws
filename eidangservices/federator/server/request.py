@@ -35,139 +35,16 @@ from builtins import * # noqa
 from future.standard_library import install_aliases
 install_aliases()
 
-import contextlib
 import functools
-import io
 
 from urllib.parse import urlparse, urlunparse
 
 import requests
 
 from eidangservices import settings, utils
-from eidangservices.utils.error import Error
 from eidangservices.utils.schema import StreamEpochSchema
 
 
-# NOTE(damb): RequestError instances carry the response, too.
-class RequestsError(requests.exceptions.RequestException, Error):
-    """Base request error ({})."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-class ClientError(RequestsError):
-    """Response code not OK ({})."""
-
-class NoContent(RequestsError):
-    """The request '{}' is returning no content ({})."""
-
-
-@contextlib.contextmanager
-def binary_request(request,
-                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
-    """
-    Make a request.
-    """
-    try:
-        with request(timeout=timeout) as r:
-
-            if r.status_code in settings.FDSN_NO_CONTENT_CODES:
-                raise NoContent(r.url, r.status_code, response=r)
-
-            r.raise_for_status()
-            if r.status_code != 200:
-                raise ClientError(r.status_code, response=r)
-
-            yield io.BytesIO(r.content)
-
-    except (NoContent, ClientError) as err:
-        raise err
-    except requests.exceptions.RequestException as err:
-        raise RequestsError(err, response=err.response)
-
-# binary_request ()
-
-@contextlib.contextmanager
-def raw_request(request,
-                timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
-    """
-    Make a request. Return the raw, streamed response.
-    """
-    try:
-        with request(stream=True, timeout=timeout) as r:
-
-            if r.status_code in settings.FDSN_NO_CONTENT_CODES:
-                raise NoContent(r.url, r.status_code, response=r)
-
-            r.raise_for_status()
-            if r.status_code != 200:
-                raise ClientError(r.status_code, response=r)
-
-            yield r.raw
-
-    except (NoContent, ClientError) as err:
-        raise err
-    except requests.exceptions.RequestException as err:
-        raise RequestsError(err, response=err.response)
-
-# raw_request ()
-
-def stream_request(request,
-                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
-                   chunk_size=1024,
-                   decode_unicode=False,
-                   method='iter_content'):
-    """
-    Generator function making a streamed request.
-
-    :param int timeout: Timeout in seconds
-    :param int chunksize: Chunksize in bytes
-    :param bool decode_unicode: Content will be decoded using the best
-    available encoding based on the response.
-    :param string method: Streaming depending on method. Valid values are
-    `iter_content` (default), `iter_lines`, `raw`
-
-    .. note::
-
-        `method=iter_content` may lead to significant performance issues. Use
-        `method=raw` instead.
-    """
-    METHODS = ('iter_content', 'iter_lines', 'raw')
-    if method not in METHODS:
-        raise ValueError('Invalid method chosen: {!r}.'.format(method))
-
-    try:
-        with request(stream=True, timeout=timeout) as r:
-
-            if r.status_code in settings.FDSN_NO_CONTENT_CODES:
-                raise NoContent(r.url, r.status_code, response=r)
-
-            r.raise_for_status()
-            if r.status_code != 200:
-                raise ClientError(r.status_code, response=r)
-
-            if method == 'raw':
-                for chunk in r.raw.stream(chunk_size,
-                                          decode_content=decode_unicode):
-                    yield chunk
-
-            elif method == 'iter_lines':
-                for line in r.iter_lines(chunk_size=chunk_size,
-                                         decode_unicode=decode_unicode):
-                    yield line
-            else:
-                for chunk in r.iter_content(chunk_size=chunk_size,
-                                            decode_unicode=decode_unicode):
-                    yield chunk
-
-    except (NoContent, ClientError) as err:
-        raise err
-    except requests.exceptions.RequestException as err:
-        raise RequestsError(err, response=err.response)
-
-# binary_stream_request ()
-
-# -----------------------------------------------------------------------------
 class RequestHandlerBase(object):
     """
     RequestHandler base class implementation.

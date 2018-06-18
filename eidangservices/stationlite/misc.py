@@ -35,30 +35,13 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import argparse
-import contextlib
-import io
-
-import requests
-
 from flask import make_response
 
 from sqlalchemy import create_engine
 
 from eidangservices import settings
-from eidangservices.utils.error import Error
 
 
-# -----------------------------------------------------------------------------
-class RequestsError(Error):
-    """Base request error ({})."""
-
-class ClientError(RequestsError):
-    """Response code not OK ({})."""
-
-class NoContent(RequestsError):
-    """The request '{}' is not returning any content ({})."""
-
-# -----------------------------------------------------------------------------
 def get_response(output, mimetype):
     """Return Response object for output and mimetype."""
 
@@ -78,26 +61,6 @@ def db_engine(url):
         raise argparse.ArgumentTypeError('Invalid database URL.')
 
 # db_engine ()
-
-@contextlib.contextmanager
-def binary_stream_request(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-
-        if response.status_code == 204:
-            # TODO TODO TODO: url
-            raise NoContent(url, response.status_code)
-
-        if response.status_code != 200:
-            raise ClientError(response.status_code)
-
-        yield io.BytesIO(response.content)
-
-    except requests.exceptions.RequestException as err:
-        raise RequestsError(err)
-
-# binary_stream_request ()
 
 def node_generator(exclude=[]):
 

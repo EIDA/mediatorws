@@ -46,9 +46,9 @@ from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import get_temp_filepath
-from eidangservices.federator.server.request import (
-    binary_request, raw_request, stream_request, GranularFdsnRequestHandler,
-    RequestsError)
+from eidangservices.federator.server.request import GranularFdsnRequestHandler
+from eidangservices.utils.request import (binary_request, raw_request,
+                                          stream_request, RequestsError)
 from eidangservices.utils.error import Error
 
 

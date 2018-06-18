@@ -43,13 +43,14 @@ from flask import current_app, stream_with_context, Response
 
 from eidangservices import utils, settings
 from eidangservices.federator.server.request import (
-    binary_request, RoutingRequestHandler, GranularFdsnRequestHandler,
-    NoContent, RequestsError)
+    RoutingRequestHandler, GranularFdsnRequestHandler)
 from eidangservices.federator.server.task import (
     RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLNetworkCombinerTask, WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
 from eidangservices.utils.httperrors import FDSNHTTPError
+from eidangservices.utils.request import (binary_request, RequestsError,
+                                          NoContent)
 from eidangservices.utils.sncl import StreamEpoch
 
 

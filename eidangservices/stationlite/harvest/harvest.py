@@ -32,10 +32,13 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import functools
 import logging
 import sys
 import traceback
 import warnings
+
+import requests
 
 from fasteners import InterProcessLock
 from lxml import etree
@@ -46,12 +49,12 @@ from sqlalchemy.exc import OperationalError
 
 from eidangservices import settings, utils
 from eidangservices.stationlite.engine import db, orm
-from eidangservices.stationlite.misc import (db_engine, binary_stream_request,
-                                             node_generator, RequestsError,
-                                             NoContent)
+from eidangservices.stationlite.misc import db_engine, node_generator
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 from eidangservices.utils.sncl import Stream, StreamEpoch
+from eidangservices.utils.request import (binary_request, RequestsError,
+                                          NoContent)
 
 # TODO(damb):
 #   - fix *cached_services* issue
@@ -114,7 +117,8 @@ class Harvester(object):
     def config(self):
         # proxy for fetching the config from the EIDA node
         if self._config is None:
-            with binary_stream_request(self.url) as resp:
+            req = functools.partial(requests.get, self.url)
+            with binary_request(req) as resp:
                 self._config = resp
 
         return self._config
@@ -206,8 +210,8 @@ class RoutingHarvester(Harvester):
                 chas = []
                 try:
                     # TODO(damb): Request might be too large. Implement fix.
-                    with binary_stream_request(_url_fdsn_station) as \
-                            station_xml:
+                    req = functools.partial(requests.get, _url_fdsn_station)
+                    with binary_request(req) as station_xml:
                         nets, stas, chas = \
                             self._harvest_from_stationxml(session, station_xml)
 
