@@ -32,6 +32,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import datetime
 import functools
 import logging
 import sys
@@ -124,6 +125,10 @@ class Harvester(object):
         return self._config
 
     # config ()
+
+    @staticmethod
+    def _update_lastseen(obj):
+        obj.lastseen = datetime.datetime.utcnow()
 
     def harvest(self, session):
         raise NotImplementedError
@@ -422,6 +427,8 @@ class RoutingHarvester(Harvester):
                 self.logger.debug(
                     "Created new network_epoch object '{}'".format(
                         net_epoch))
+            else:
+                self._update_lastseen(net_epoch)
 
         return net
 
@@ -484,6 +491,8 @@ class RoutingHarvester(Harvester):
                 self.logger.debug(
                     "Created new station_epoch object '{}'".format(
                         station_epoch))
+            else:
+                self._update_lastseen(sta_epoch)
 
         return sta
 
@@ -569,6 +578,8 @@ class RoutingHarvester(Harvester):
             self.logger.debug("Created new channel_epoch object '{}'".format(
                               cha_epoch))
             session.add(cha_epoch)
+        else:
+            self._update_lastseen(cha_epoch)
 
         return cha_epoch
 
@@ -631,6 +642,8 @@ class RoutingHarvester(Harvester):
                 starttime=start,
                 endtime=end)
             self.logger.debug('Created routing object {0!r}'.format(routing))
+        else:
+            self._update_lastseen(routing)
 
         return routing
 
@@ -843,6 +856,7 @@ class VNetHarvester(Harvester):
             session.add(se)
 
         else:
+            self._update_lastseen(se)
             self.logger.debug(
                 "Found existing StreamEpoch object instance {0!r}".format(se))
 
