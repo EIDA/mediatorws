@@ -44,6 +44,8 @@ import sys
 import traceback
 
 from flask_restful import Api
+from sqlalchemy.event import listens_for
+from sqlalchemy.engine import Engine
 
 from eidangservices import settings, utils
 from eidangservices.stationlite.server import create_app
@@ -61,6 +63,8 @@ __version__ = utils.get_version(settings.EIDA_STATIONLITE_SERVICE_ID)
 class ModWSGIError(ErrorWithTraceback):
     """Base mod_wsgi error ({})."""
 
+class DBError(ErrorWithTraceback):
+    """Base DB error ({})."""
 
 # ----------------------------------------------------------------------------
 def url(url):
@@ -79,6 +83,20 @@ class StationLiteWebservice(App):
     """
     Implementation of the EIDA StationLite webservice.
     """
+
+    @staticmethod
+    def configure_db():
+        """
+        Wraps up DB specific configuration.
+        """
+        @listens_for(Engine, 'connect', named=True)
+        def configure_pragmas(dbapi_connection, **kwargs):
+            try:
+                dbapi_connection.execute('pragma case_sensitive_like=on')
+            except Exception as err:
+                raise DBError(err)
+
+    # configure_db ()
 
     def build_parser(self, parents=[]):
         """
@@ -130,6 +148,7 @@ class StationLiteWebservice(App):
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
+            self.configure_db()
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)

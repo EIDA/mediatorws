@@ -48,7 +48,7 @@ validate_percentage = validate.Range(min=0, max=100)
 validate_latitude = validate.Range(min=-90., max=90)
 validate_longitude = validate.Range(min=-180., max=180.)
 validate_radius = validate.Range(min=0., max=180.)
-validate_net_sta_cha = validate.Regexp(r'[A-Z0-9_*?]*$')
+validate_net_sta_cha = validate.Regexp(r'[A-Za-z0-9_*?]*$')
 not_empty = validate.NoneOf([None, ''])
 
 
