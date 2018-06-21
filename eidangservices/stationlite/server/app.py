@@ -137,10 +137,6 @@ class StationLiteWebservice(App):
         """
         Run application.
         """
-
-        # TODO(damb):
-        #   - implement WSGI compatibility
-
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
