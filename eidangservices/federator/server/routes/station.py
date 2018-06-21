@@ -99,11 +99,10 @@ class StationResource(Resource):
 
     def _get_result_mimetype(self, args):
         """Return result mimetype (either XML or plain text."""
-        try:
-            args['format'] == 'text'
+        if args.get('format', 'xml') == 'text':
             return settings.STATION_MIMETYPE_TEXT
-        except KeyError:
-            return settings.STATION_MIMETYPE_XML
+
+        return settings.STATION_MIMETYPE_XML
 
     # _get_result_mimetype ()
 
