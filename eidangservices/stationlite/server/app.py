@@ -168,14 +168,7 @@ class StationLiteWebservice(App):
         :rtype :py:class:`flask.Flask`:
         """
 
-        errors = {
-            'NODATA': {
-                'message': "Empty dataset.",
-                'status': 204,
-            },
-        }
-
-        api = Api(errors=errors)
+        api = Api()
         app_config = {
             'PROPAGATE_EXCEPTIONS': True,
             'PORT': self.args.port,
