@@ -284,7 +284,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 if result.ready():
                     _result = result.get()
                     if _result.status_code == 200:
-                        if self._level == 'channel':
+                        if self._level in ('channel', 'response'):
                             # merge <Channel></Channel> elements into
                             # <Station></Station>
                             if _root is None:
@@ -336,7 +336,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         _length = sum(self._sizes)
         # dump xml tree for <Network></Network> to temporary file
-        if self._level in ('station', 'channel'):
+        if self._level in ('station', 'channel', 'response'):
             self.path_tempfile = get_temp_filepath()
             with open(self.path_tempfile, 'wb') as ofd:
                 s = etree.tostring(_root)
