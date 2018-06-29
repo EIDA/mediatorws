@@ -31,53 +31,76 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import logging
 import os
 
 import flask
 from flask_restful import Resource
 
 from eidangservices import settings, utils
+from eidangservices.utils import fdsnws
 
 
-class DataselectVersionResource(Resource):
+class MiscResource(Resource):
+    """
+    Base class for misc resources.
+    """
+
+    LOGGER = 'flask.app.federator.misc'
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.LOGGER)
+
+# class MiscResource
+
+
+class DataselectVersionResource(MiscResource):
     """Service version for dataselect."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return utils.get_version_response(settings.FDSN_DATASELECT_VERSION)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return utils.get_version_response(settings.FDSN_DATASELECT_VERSION)
 
 
-class StationVersionResource(Resource):
+class StationVersionResource(MiscResource):
     """Service version for station."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return utils.get_version_response(settings.FDSN_STATION_VERSION)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return utils.get_version_response(settings.FDSN_STATION_VERSION)
 
 
-class WFCatalogVersionResource(Resource):
+class WFCatalogVersionResource(MiscResource):
     """Service version for wfcatalog."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return utils.get_version_response(settings.EIDA_WFCATALOG_VERSION)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return utils.get_version_response(settings.EIDA_WFCATALOG_VERSION)
 
 
-class DataselectWadlResource(Resource):
+class DataselectWadlResource(MiscResource):
     """application.wadl for dataselect."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
                          settings.FDSN_DATASELECT_WADL_FILENAME),
             mimetype=settings.WADL_MIMETYPE)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
@@ -85,15 +108,17 @@ class DataselectWadlResource(Resource):
             mimetype=settings.WADL_MIMETYPE)
 
 
-class StationWadlResource(Resource):
+class StationWadlResource(MiscResource):
     """application.wadl for station."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
                          settings.FDSN_STATION_WADL_FILENAME),
             mimetype=settings.WADL_MIMETYPE)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
@@ -101,15 +126,17 @@ class StationWadlResource(Resource):
             mimetype=settings.WADL_MIMETYPE)
 
 
-class WFCatalogWadlResource(Resource):
+class WFCatalogWadlResource(MiscResource):
     """application.wadl for wfcatalog."""
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def get(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
                          settings.EIDA_WFCATALOG_WADL_FILENAME),
             mimetype=settings.WADL_MIMETYPE)
 
+    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
     def post(self):
         return flask.send_file(
             os.path.join(settings.EIDA_FEDERATOR_APP_SHARE,
