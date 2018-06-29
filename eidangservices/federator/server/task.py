@@ -87,7 +87,7 @@ class Result(collections.namedtuple('Result', ['status',
                                                'length',
                                                'warning'])):
     """
-    General purpose task result.
+    General purpose task result. Properties correspond to a tiny subset of HTTP.
     """
     @classmethod
     def ok(cls, data, length=None):
@@ -153,7 +153,7 @@ class TaskBase(object):
 class CombinerTask(TaskBase):
     """
     Task downloading and combining the information for a network. Downloading
-    is performed in parallel.
+    is performed concurrently.
     """
 
     LOGGER = 'flask.app.federator.task_combiner_raw'
@@ -207,10 +207,10 @@ class CombinerTask(TaskBase):
 class StationXMLNetworkCombinerTask(CombinerTask):
     """
     Task downloading and combining StationXML information for a network
-    element. Downloading is performed in parallel.
+    element. Downloading is performed concurrently.
 
-    :param routes: Routes to combine. Must belong to exclusively one network
-    code.
+    :param routes: Routes to combine. Must belong to exclusively a single
+    network code.
     """
     # TODO(damb): The combiner has to write metadata to the log database.
     # Also in case of errors.
@@ -574,6 +574,9 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
     SAA task implementation for a WFCatalog data stream. The task is
     implemented synchronously i.e. the task returns as soon as the last epoch
     segment is downloaded and aligned.
+
+    .. note:: The task requires parsing and analyzing (i.e. gradually loading)
+    the stream of WFCatalog JSON objects.
     """
     LOGGER = 'flask.app.task_saa_wfcatalog'
 
@@ -742,7 +745,7 @@ class RawDownloadTask(TaskBase):
 class StationTextDownloadTask(RawDownloadTask):
     """
     Download data from an endpoint. In addition this task removes header
-    information from response.
+    information from the response.
     """
 
     @catch_default_task_exception
