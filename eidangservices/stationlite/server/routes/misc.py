@@ -39,15 +39,16 @@ from flask import make_response
 from flask_restful import Resource
 
 from eidangservices import settings, utils
+from eidangservices.stationlite import __version__
 
 class StationLiteVersionResource(Resource):
     """Service version for StationLite."""
 
     def get(self):
-        return utils.get_version_response(settings.EIDA_STATIONLITE_VERSION)
+        return utils.get_version_response(__version__)
 
     def post(self):
-        return utils.get_version_response(settings.EIDA_STATIONLITE_VERSION)
+        return utils.get_version_response(__version__)
 
 # class StationLiteVersionResource
 
