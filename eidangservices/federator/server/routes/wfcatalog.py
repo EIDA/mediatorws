@@ -40,6 +40,7 @@ from flask_restful import Resource
 from webargs.flaskparser import use_args
 
 from eidangservices import settings
+from eidangservices.federator import __version__
 from eidangservices.federator.server.schema import WFCatalogSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
@@ -64,7 +65,7 @@ class WFCatalogResource(Resource):
         ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def get(self, args, stream_epochs):
         """
         Process a *WFCatalog* GET request.
@@ -97,7 +98,7 @@ class WFCatalogResource(Resource):
         ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def post(self, args, stream_epochs):
         """
         Process a *WFCatalog* POST request.

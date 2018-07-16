@@ -157,7 +157,7 @@ use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 
 
 # -----------------------------------------------------------------------------
-def with_exception_handling(func, service_id):
+def with_exception_handling(func, service_version):
     """
     Method decorator providing a generic exception handling. A well-formatted
     FDSN exception instead is raised. The exception itself is logged.
@@ -176,21 +176,21 @@ def with_exception_handling(func, service_id):
             self.logger.critical('Traceback information: ' +
                                  repr(traceback.format_exception(
                                      exc_type, exc_value, exc_traceback)))
-            raise FDSNHTTPError.create(500, service_id=service_id)
+            raise FDSNHTTPError.create(500, service_version=service_version)
 
     return decorator
 
 # with_exception_handling ()
 
 
-def with_fdsnws_exception_handling(service_id):
+def with_fdsnws_exception_handling(service_version):
     return functools.partial(with_exception_handling,
-                             service_id=service_id)
+                             service_version=service_version)
 
 # with_fdsnws_exception_handling ()
 
 
-def register_parser_errorhandler(service_id):
+def register_parser_errorhandler(service_version):
     """
     register webargs parser errorhandler
     """
@@ -200,7 +200,7 @@ def register_parser_errorhandler(service_id):
         """
         configure webargs error handler
         """
-        raise FDSNHTTPError.create(400, service_id=service_id)
+        raise FDSNHTTPError.create(400, service_version=service_version)
 
     return handle_parser_error
 

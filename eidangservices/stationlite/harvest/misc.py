@@ -44,11 +44,10 @@ import traceback
 from sqlalchemy import create_engine
 
 from eidangservices import settings, utils
+from eidangservices.stationlite import __version__
+from eidangservices.stationlite.engine import orm
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
-from eidangservices.stationlite.engine import orm
-
-__version__ = utils.get_version("stationlite")
 
 # ----------------------------------------------------------------------------
 def path_relative(path):

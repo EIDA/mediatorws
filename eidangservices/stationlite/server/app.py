@@ -47,7 +47,8 @@ from flask_restful import Api
 from sqlalchemy.event import listens_for
 from sqlalchemy.engine import Engine
 
-from eidangservices import settings, utils
+from eidangservices import settings
+from eidangservices.stationlite import __version__
 from eidangservices.stationlite.server import create_app
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
@@ -56,8 +57,6 @@ from eidangservices.stationlite.server.routes.misc import \
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ErrorWithTraceback, ExitCodes
 
-
-__version__ = utils.get_version(settings.EIDA_STATIONLITE_SERVICE_ID)
 
 # -----------------------------------------------------------------------------
 class ModWSGIError(ErrorWithTraceback):

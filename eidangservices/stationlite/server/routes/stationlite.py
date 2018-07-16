@@ -46,6 +46,7 @@ from eidangservices.utils import fdsnws
 from eidangservices.utils.httperrors import FDSNHTTPError
 from eidangservices.utils.sncl import StreamEpochsHandler, StreamEpoch
 
+from eidangservices.stationlite import __version__
 from eidangservices.stationlite import misc
 from eidangservices.stationlite.engine import dbquery
 from eidangservices.stationlite.server import db, schema
@@ -69,8 +70,7 @@ class StationLiteResource(Resource):
             context={'request': request}),
         locations=('query',)
     )
-    @fdsnws.with_fdsnws_exception_handling(
-        settings.EIDA_STATIONLITE_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def get(self, args, stream_epochs):
         """
         Process a *StationLite* GET request.
@@ -92,8 +92,7 @@ class StationLiteResource(Resource):
             context={'request': request}),
         locations=('form',)
     )
-    @fdsnws.with_fdsnws_exception_handling(
-        settings.EIDA_STATIONLITE_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def post(self, args, stream_epochs):
         """
         Process a *StationLite* POST request.

@@ -40,6 +40,7 @@ from flask_restful import Resource
 from webargs.flaskparser import use_args
 
 from eidangservices import settings
+from eidangservices.federator import __version__
 from eidangservices.federator.server.schema import DataselectSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
@@ -61,7 +62,7 @@ class DataselectResource(Resource):
         ManyStreamEpochSchema(context={'request': request}),
         locations=('query',)
     )
-    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def get(self, args, stream_epochs):
         # request.method == 'GET'
         self.logger.debug('StreamEpoch objects: %s' % stream_epochs)
@@ -84,7 +85,7 @@ class DataselectResource(Resource):
         ManyStreamEpochSchema(context={'request': request}),
         locations=('form',)
     )
-    @fdsnws.with_fdsnws_exception_handling(settings.EIDA_FEDERATOR_SERVICE_ID)
+    @fdsnws.with_fdsnws_exception_handling(__version__)
     def post(self, args, stream_epochs):
         # request.method == 'POST'
         # NOTE(fab): must be sent as binary to preserve line breaks

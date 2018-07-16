@@ -38,12 +38,12 @@ from flask_sqlalchemy import SQLAlchemy
 from eidangservices import settings
 from eidangservices.utils import httperrors
 from eidangservices.utils.fdsnws import register_parser_errorhandler
+from eidangservices.stationlite import __version__
 
 
 db = SQLAlchemy()
 
-def create_app(config_dict={},
-               service_id=settings.EIDA_STATIONLITE_SERVICE_ID):
+def create_app(config_dict={}, service_version=__version__):
     """
     Factory function for Flask application.
 
@@ -75,7 +75,7 @@ def create_app(config_dict={},
     for err in errors_to_register:
         register_error(err)
 
-    register_parser_errorhandler(service_id=service_id)
+    register_parser_errorhandler(service_version=service_version)
 
     db.init_app(app)
 

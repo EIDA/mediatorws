@@ -34,7 +34,7 @@ from builtins import * # noqa
 
 from flask import request, g
 
-from eidangservices import settings, utils
+from eidangservices import settings
 
 # Error <CODE>: <SIMPLE ERROR DESCRIPTION>
 # <MORE DETAILED ERROR DESCRIPTION>
@@ -66,13 +66,13 @@ Service version:
 
 def get_error_message(code, description_short, description_long,
                       documentation_uri, request_url, request_time,
-                      service_id):
+                      service_version):
     """Return text of error message."""
 
     return ERROR_MESSAGE_TEMPLATE % (code, description_short,
                                      description_long, documentation_uri,
                                      request_url, request_time,
-                                     utils.get_version(service_id))
+                                     service_version)
 
 # get_error_message ()
 
@@ -90,7 +90,7 @@ class FDSNHTTPError(Exception):
     error_desc_short = ''
 
     DOCUMENTATION_URI = settings.FDSN_SERVICE_DOCUMENTATION_URI
-    SERVICE_ID = ''
+    SERVICE_VERSION = ''
 
     @staticmethod
     def create(status_code, *args, **kwargs):
@@ -114,18 +114,19 @@ class FDSNHTTPError(Exception):
 
     # create
 
-    def __init__(self, documentation_uri=None, service_id=None):
+    def __init__(self, documentation_uri=None, service_version=None):
         super().__init__()
 
         self.documentation_uri = (documentation_uri if documentation_uri else
                                   self.DOCUMENTATION_URI)
-        self.service = service_id if service_id else self.SERVICE_ID
+        self.service_version = (service_version if service_version else
+                                self.SERVICE_VERSION)
 
         self.description = get_error_message(
             self.code, self.error_desc_short, self.error_desc_short,
             self.documentation_uri, request.url,
             g.request_start_time.isoformat(),
-            self.service)
+            self.service_version)
 
     # __init__ ()
 

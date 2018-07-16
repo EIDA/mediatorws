@@ -48,7 +48,8 @@ from sqlalchemy import inspect
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.exc import OperationalError
 
-from eidangservices import settings, utils
+from eidangservices import settings
+from eidangservices.stationlite import __version__
 from eidangservices.stationlite.engine import db, orm
 from eidangservices.stationlite.misc import db_engine, node_generator
 from eidangservices.utils.app import CustomParser, App, AppError
@@ -59,8 +60,6 @@ from eidangservices.utils.request import (binary_request, RequestsError,
 
 # TODO(damb):
 #   - fix *cached_services* issue
-
-__version__ = utils.get_version("stationlite")
 
 CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
 

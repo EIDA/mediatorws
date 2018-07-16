@@ -37,11 +37,11 @@ from flask import Flask, make_response, g
 # from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from eidangservices import settings
+from eidangservices.federator import __version__
 from eidangservices.utils import httperrors
 from eidangservices.utils.fdsnws import register_parser_errorhandler
 
-def create_app(config_dict={},
-               service_id=settings.EIDA_FEDERATOR_SERVICE_ID):
+def create_app(config_dict={}, service_version=__version__):
     """
     Factory function for Flask application.
 
@@ -77,7 +77,7 @@ def create_app(config_dict={},
     for err in errors_to_register:
         register_error(err)
 
-    register_parser_errorhandler(service_id=service_id)
+    register_parser_errorhandler(service_version=service_version)
 
     return app
 

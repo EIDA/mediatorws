@@ -44,6 +44,7 @@ import traceback
 from flask_restful import Api
 
 from eidangservices import settings, utils
+from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
@@ -55,9 +56,6 @@ from eidangservices.federator.server.routes.station import StationResource
 from eidangservices.federator.server.routes.wfcatalog import WFCatalogResource
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
-
-
-__version__ = utils.get_version(settings.EIDA_FEDERATOR_SERVICE_ID)
 
 
 def thread_config(config_dict):

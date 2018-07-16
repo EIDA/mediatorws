@@ -68,25 +68,6 @@ Route = collections.namedtuple('Route', ['url', 'streams'])
 
 
 # -----------------------------------------------------------------------------
-def get_version(namespace_pkg_name=None):
-    """
-    fetch version string
-
-    :param str namespace_pkg_name: distribution name of the namespace package
-    :returns: version string
-    :rtype: str
-    """
-    try:
-        # distributed as namespace package
-        if namespace_pkg_name:
-            return pkg_resources.get_distribution(namespace_pkg_name).version
-        raise
-    except: # noqa
-        return pkg_resources.get_distribution("eidangservices").version
-
-# get_version ()
-
-
 def realpath(p):
     return os.path.realpath(os.path.expanduser(p))
 
