@@ -43,6 +43,7 @@ import requests
 
 from eidangservices import settings, utils
 from eidangservices.utils.schema import StreamEpochSchema
+from eidangservices.federator import __version__
 
 
 class RequestHandlerBase(object):
@@ -54,6 +55,8 @@ class RequestHandlerBase(object):
     :param list stream_epochs: List of
     :cls:`eidangservices.utils.sncl.StreamEpoch` objects
     """
+    HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
+
     def __init__(self, url, query_params={}, stream_epochs=[]):
         if isinstance(url, bytes):
             url = url.decode('utf-8')
@@ -167,11 +170,11 @@ class RoutingRequestHandler(RequestHandlerBase):
 
     def get(self):
         return functools.partial(requests.get, self.url,
-                                 params=self.payload_get)
+                                 params=self.payload_get, headers=self.HEADERS)
 
     def post(self):
         return functools.partial(requests.post, self.url,
-                                 data=self.payload_post)
+                                 data=self.payload_post, headers=self.HEADERS)
 
 # class RoutingURL
 
@@ -198,7 +201,7 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
 
     def post(self):
         return functools.partial(requests.post, self.url,
-                                 data=self.payload_post)
+                                 data=self.payload_post, headers=self.HEADERS)
 
 # class GranularFdsnRequestHandler
 
