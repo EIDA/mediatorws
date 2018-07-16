@@ -43,7 +43,7 @@ import traceback
 
 from flask_restful import Api
 
-from eidangservices import settings, utils
+from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
 from eidangservices.federator.server.routes.misc import (
