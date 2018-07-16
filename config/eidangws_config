@@ -26,11 +26,8 @@
 # 
 # port=PORT
 # ----
-# Set the routing service url and identifier. (default:
-# http://geofon.gfz-potsdam.de/eidaws/routing/1/)
-#
-# For a complete list of routing services see:
-# https://www.orfeus-eu.org/data/eida/webservices/
+# Set the eida-stationlite routing service url and identifier. (default:
+# http://localhost/eidaws/routing/1/)
 #
 # routing=SERVICE_URL/IDENTIFIER
 # ----

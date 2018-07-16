@@ -120,7 +120,8 @@ class FederatorWebservice(App):
                             EIDA_FEDERATOR_DEFAULT_ROUTING_URL,
                             dest='routing',
                             # TODO(damb): Perform integrity check.
-                            help=("routing service url (including identifier)"
+                            help=("stationlite routing service url "
+                                  "(including identifier) "
                                   "(default: %(default)s)"))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',

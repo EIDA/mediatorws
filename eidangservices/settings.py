@@ -568,7 +568,7 @@ EIDA_FEDERATOR_SERVICE_ID = 'federator'
 EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
 # default StationLite service URL
 EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
-    'http://mediator-devel.ethz.ch/eidaws/routing/1/'
+    'http://localhost/eidaws/routing/1/'
 # default federator endpoint resources
 EIDA_FEDERATOR_DEFAULT_RESOURCES = (
     'fdsnws-dataselect', 'fdsnws-station', 'eidaws-wfcatalog')
