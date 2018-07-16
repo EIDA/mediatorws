@@ -55,6 +55,8 @@ class RequestHandlerBase(object):
     :param list stream_epochs: List of
     :cls:`eidangservices.utils.sncl.StreamEpoch` objects
     """
+    HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
+
     def __init__(self, url, query_params={}, stream_epochs=[]):
         if isinstance(url, bytes):
             url = url.decode('utf-8')
@@ -119,7 +121,6 @@ class RoutingRequestHandler(RequestHandlerBase):
     """
     Representation of a eidaws-routing request handler.
     """
-    HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
     QUERY_PARAMS = set(('service',
                         'level',
                         'minlatitude',
@@ -182,7 +183,6 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
     """
     Representation of a FDSN webservice request handler.
     """
-    HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
     QUERY_PARAMS = set(('service',
                         'nodata'))
 
