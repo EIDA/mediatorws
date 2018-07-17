@@ -25,6 +25,9 @@
 # REVISION AND CHANGES
 # 2018/03/14        V0.1    Daniel Armbruster
 # =============================================================================
+"""
+EIDA NG StationLite webservice implementation.
+"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -43,11 +46,13 @@ from eidangservices.stationlite import __version__
 
 db = SQLAlchemy()
 
-def create_app(config_dict={}, service_version=__version__):
+def create_app(config_dict, service_version=__version__):
     """
     Factory function for Flask application.
 
-    :param :cls:`flask.Config config` flask configuration object
+    :param config_dict: flask configuration object
+    :type config_dict: :py:class:`flask.Config`
+    :param str service_version: Version string
     """
     app = Flask(__name__)
     app.config.update(config_dict)

@@ -25,7 +25,7 @@
 # 2018/06/05        V0.1    Daniel Armbruster
 # =============================================================================
 """
-General purpose utils for EIDA NG webservices
+General purpose utils for EIDA NG webservices.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -49,16 +49,22 @@ from eidangservices.utils.httperrors import FDSNHTTPError
 # -----------------------------------------------------------------------------
 class FDSNWSParser(FlaskParser):
     """
-    FDSNWS parser with enhanced SNCL parsing.
+    FDSNWS parser providing enhanced SNCL parsing facilities. The parser was
+    implemented following the instructions from the `webargs documentation
+    <https://webargs.readthedocs.io/en/latest/advanced.html#custom-parsers>`_.
     """
 
     def parse_querystring(self, req, name, field):
         """
-        Parse SNCL arguments from req.args.
+        Parse SNCL arguments from :code:`req.args`.
+
+        :param req: Request object to be parsed
+        :type req: :py:class:`flask.Request`
         """
         def _get_values(keys, raw=False):
             """
-            look up keys in req.args
+            Look up keys in :code:`req.args`
+
             :param keys: an iterable with keys to look up
             :param bool raw: return the raw value if True - else the value is
             splitted
@@ -106,6 +112,12 @@ class FDSNWSParser(FlaskParser):
         """
         Intended to emulate parsing SNCL arguments from FDSNWS formatted
         postfiles.
+
+        :param req: Request object to be parsed
+        :type req: :py:class:`flask.Request`
+
+        See also:
+        http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf
         """
 
         buf = req.stream.read()
@@ -160,7 +172,7 @@ use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 def with_exception_handling(func, service_version):
     """
     Method decorator providing a generic exception handling. A well-formatted
-    FDSN exception instead is raised. The exception itself is logged.
+    FDSN exception is raised. The exception itself is logged.
     """
     @functools.wraps(func)
     def decorator(self, *args, **kwargs):
@@ -184,6 +196,9 @@ def with_exception_handling(func, service_version):
 
 
 def with_fdsnws_exception_handling(service_version):
+    """
+    Wrapper of :py:func:`with_exception_handling`.
+    """
     return functools.partial(with_exception_handling,
                              service_version=service_version)
 
@@ -192,7 +207,8 @@ def with_fdsnws_exception_handling(service_version):
 
 def register_parser_errorhandler(service_version):
     """
-    register webargs parser errorhandler
+    Register webargs parser `errorhandler
+    <https://webargs.readthedocs.io/en/latest/quickstart.html#error-handling>`_.
     """
     @fdsnws_parser.error_handler
     @flaskparser.error_handler

@@ -179,7 +179,7 @@ class StationLiteWebservice(App):
         Setup and configure the Flask app with its API.
 
         :returns: The configured Flask application instance.
-        :rtype :py:class:`flask.Flask`:
+        :rtype: :py:class:`flask.Flask`
         """
 
         api = Api()

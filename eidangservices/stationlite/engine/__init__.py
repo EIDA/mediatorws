@@ -1,1 +1,3 @@
-"""Required for imports."""
+"""
+EIDA NG StationLite engine facilities.
+"""

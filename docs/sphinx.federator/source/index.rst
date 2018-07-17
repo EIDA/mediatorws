@@ -6,14 +6,16 @@
 Welcome to EIDA NG Federator's documentation!
 =============================================
 
+API Documentation
++++++++++++++++++
+
 .. toctree::
    :maxdepth: 4
-   :caption: Contents:
 
    eidangservices
 
 Indices and tables
-==================
+++++++++++++++++++
 
 * :ref:`genindex`
 * :ref:`modindex`

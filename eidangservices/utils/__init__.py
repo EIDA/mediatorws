@@ -25,7 +25,7 @@
 # 2017/12/12        V0.1    Daniel Armbruster
 # =============================================================================
 """
-General purpose utils for EIDA NG webservices
+General purpose utils for EIDA NG webservices.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -65,6 +65,13 @@ _iso8601_re = re.compile(
 
 # -----------------------------------------------------------------------------
 Route = collections.namedtuple('Route', ['url', 'streams'])
+"""
+Container for routes.
+
+:param str url: URL
+:param list streams: List of stream epoch like objects (see
+    :py:mod:`eidangservices.utils.sncl` module).
+"""
 
 
 # -----------------------------------------------------------------------------
@@ -76,7 +83,9 @@ def realpath(p):
 
 def real_file_path(path):
     """
-    check if file exists
+    Check if file exists.
+
+    :param str path: Path to be checked
     :returns: realpath in case the file exists
     :rtype: str
     :raises argparse.ArgumentTypeError: if file does not exist
@@ -91,7 +100,9 @@ def real_file_path(path):
 
 def real_dir_path(path):
     """
-    check if directory exists
+    Check if directory exists.
+
+    :param str path: Path to be checked
     :returns: realpath in case the directory exists
     :rtype: str
     :raises argparse.ArgumentTypeError: if directory does not exist
@@ -106,8 +117,14 @@ def real_dir_path(path):
 
 def from_fdsnws_datetime(datestring, use_dateutil=True):
     """
-    parse a datestring from a string specified by the fdsnws datetime
-    specification
+    Parse a datestring from a string specified by the FDSNWS datetime
+    specification.
+
+    :param str datestring: String to be parsed
+    :param bool use_dateutil: Make use of the :code:`dateutil` package if set
+        to :code:`True`
+    :returns: Datetime
+    :rtype: :py:class:`datetime.datetime`
 
     See: http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf
     """
@@ -133,23 +150,39 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
 
 
 def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
+    """
+    Convert a :py:class:`datetime.datetime` object to a ISO8601 conform string.
+
+    :param datetime.datetime dt: Datetime object to be converted
+    :param bool localtime: The parameter is ignored
+    :returns: ISO8601 conform datetime string
+    :rtype: str
+    """
     # ignores localtime parameter
     return dt.isoformat(*args, **kwargs)
 
 
-def convert_scnl_dicts_to_query_params(stream_epochs_dict):
+def convert_sncl_dicts_to_query_params(stream_epochs_dict):
     """
-    Convert a list of StreamEpoch objects to StreamEpoch FDSNWS query
-    parameters.
+    Convert a list of :py:class:`sncl.StreamEpoch` objects to FDSNWS HTTP
+    **GET** query parameters.
 
-    :param list stream_epochs_dict: A list of :py:class`sncl.StreamEpoch` dicts
-    :return: StreamEpoch related query parameters
-    :retval: dict
+    :param list stream_epochs_dict: A list of :py:class:`sncl.StreamEpoch`
+        dictionaries
+    :return: StreamEpoch related FDSNWS conform HTTP **GET** query parameters
+    :rtype: :py:class:`dict`
     :raises ValueError: If temporal constraints differ between stream epochs.
+
+    Usage:
+
+    .. code::
+
+        se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
+        retval = convert_sncl_dicts_to_query_params(se_schema.dump(stream_epochs))
 
     .. note::
 
-        StreamEpoch objects are flattened.
+        :py:class:`sncl.StreamEpoch` objects are flattened.
     """
     retval = collections.defaultdict(set)
     _temporal_constraints_params = ('starttime', 'endtime')
@@ -168,13 +201,15 @@ def convert_scnl_dicts_to_query_params(stream_epochs_dict):
 
     return retval
 
-# convert_scnl_dicts_to_query_params ()
+# convert_sncl_dicts_to_query_params ()
 
 def get_version_response(version_string):
     """
-    Return Response object for version string with correct mimetype.
+    Return :py:class:`flask.Response` object for version string with correct
+    mimetype.
 
-    :param str version_string: version string to be responded.
+    :param str version_string: Version string to be responded
+    :rtype: :py:class:`flask.Response`
     """
 
     response = make_response(version_string)

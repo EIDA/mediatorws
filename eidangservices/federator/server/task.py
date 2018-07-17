@@ -87,7 +87,8 @@ class Result(collections.namedtuple('Result', ['status',
                                                'length',
                                                'warning'])):
     """
-    General purpose task result. Properties correspond to a tiny subset of HTTP.
+    General purpose task result. Properties correspond to a tiny subset of
+    HTTP.
     """
     @classmethod
     def ok(cls, data, length=None):
@@ -206,11 +207,13 @@ class CombinerTask(TaskBase):
 
 class StationXMLNetworkCombinerTask(CombinerTask):
     """
-    Task downloading and combining StationXML information for a network
-    element. Downloading is performed concurrently.
+    Task downloading and combining `StationXML
+    <http://www.fdsn.org/xml/station/>`_ information for a network element.
+    Downloading is performed concurrently.
 
-    :param routes: Routes to combine. Must belong to exclusively a single
-    network code.
+    :param list routes: Routes to combine. Must belong to exclusively a single
+        network code.
+
     """
     # TODO(damb): The combiner has to write metadata to the log database.
     # Also in case of errors.
@@ -254,7 +257,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _run(self):
         """
-        Combine StationXML <Network></Network> information.
+        Combine StationXML `<Network></Network>` information.
         """
         self.logger.info('Executing task {!r}.'.format(self))
         self._pool = ThreadPool(processes=self._num_workers)
@@ -360,7 +363,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     def _extract_sta_elements(self, path_xml,
                               namespaces=settings.STATIONXML_NAMESPACES):
         """
-        Extract <Station><Station> elements from <Network></Network> tree.
+        Extract `<Station><Station>` elements from `<Network></Network>` tree.
         """
         station_tags = ['{}{}'.format(ns, self.STATION_TAG)
                         for ns in namespaces]
@@ -381,7 +384,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     def _extract_cha_elements(self, sta_element,
                               namespaces=settings.STATIONXML_NAMESPACES):
         """
-        Extract all <Channel><Channel> elements from <Station></Station> tree.
+        Extract all `<Channel><Channel>` elements from `<Station></Station>`
+        tree.
         """
         channel_tags = ['{}{}'.format(ns, self.CHANNEL_TAG)
                         for ns in namespaces]
@@ -460,7 +464,7 @@ class SplitAndAlignTask(TaskBase):
         """
         Split a stream epoch's epoch into `num` epochs.
 
-        :param :cls:`eidangservices.utils.sncl.StreamEpoch` stream_epoch:
+        :param :py:class:`eidangservices.utils.sncl.StreamEpoch` stream_epoch:
         Stream epoch object to split
         :param int num: Number of resulting stream epoch objects
         :return: List of split stream epochs
@@ -575,8 +579,10 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
     implemented synchronously i.e. the task returns as soon as the last epoch
     segment is downloaded and aligned.
 
-    .. note:: The task requires parsing and analyzing (i.e. gradually loading)
-    the stream of WFCatalog JSON objects.
+    .. note::
+
+        The task requires parsing and analyzing (i.e. gradually loading)
+        the stream of WFCatalog JSON objects.
     """
     LOGGER = 'flask.app.task_saa_wfcatalog'
 
@@ -784,11 +790,13 @@ class StationTextDownloadTask(RawDownloadTask):
 
 class StationXMLDownloadTask(RawDownloadTask):
     """
-    Download StationXML from an endpoint. Emerge <Network></Network> specific
+    Download StationXML from an endpoint. Emerge `<Network></Network>` specific
     data from StationXML.
 
-    .. note:: This task temporarly loads the entire result into memory.
-    However, for a granular endpoint request approach this seems doable.
+    .. note::
+
+        This task temporarly loads the entire result into memory. However, for
+        a granular endpoint request approach this seems doable.
     """
     NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
 

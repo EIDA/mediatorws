@@ -45,7 +45,9 @@ def create_app(config_dict={}, service_version=__version__):
     """
     Factory function for Flask application.
 
-    :param :cls:`flask.Config config` flask configuration object
+    :param config_dict: flask configuration object
+    :type config_dict: :py:class:`flask.Config`
+    :param str service_version: Version string
     """
     app = Flask(__name__)
     app.config.update(config_dict)

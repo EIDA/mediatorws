@@ -61,7 +61,9 @@ SPHINX_CHECK:=$(strip \
 	$(shell python setup.py --help-commands | grep build_sphinx))
 SPHINX_PKGS=$(sort $(dir $(wildcard $(PATH_EIDANGSERVICES)/*/)))
 SPHINX_EXCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
-							 __pycache__ tests))
+							 __pycache__ utils/tests))
+SPHINX_INCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
+							 utils))
 
 TOXENVS=py27 py34 py35 py36
 
@@ -96,6 +98,8 @@ build-clean:
 
 doc-clean:
 	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
+	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/eidangservices.*.rst)
+	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/modules.rst)
 
 .PHONY: ls
 ls:
@@ -132,7 +136,8 @@ pep8:
 %.sphinx-apidoc: $(PATH_DOCS)/sphinx.%/source %.sphinx-service-exclude
 	$(if $(SPHINX_CHECK),,$(error ERROR: sphinx not installed))
 	sphinx-apidoc -M -o $< $(PATH_EIDANGSERVICES) \
-		$(filter-out $(PATH_EIDANGSERVICES)/$(@:.sphinx-apidoc=)/, $(SPHINX_PKGS)) \
+		$(filter-out $(PATH_EIDANGSERVICES)/$(@:.sphinx-apidoc=)/ \
+		$(SPHINX_INCLUDE), $(SPHINX_PKGS)) \
 		$(SPHINX_EXCLUDE) $(SPHINX_SERVICE_EXCLUDE)
 
 %.sphinx-service-exclude:

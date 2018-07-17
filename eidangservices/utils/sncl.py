@@ -26,7 +26,7 @@
 # 2018/01/10        V0.1    Daniel Armbruster
 # =============================================================================
 """
-SNCL related utilities.
+SNCL related facilities.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -51,7 +51,11 @@ Epochs = IntervalTree
 @contextlib.contextmanager
 def none_as_max(endtime):
     """
-    Use ``datetime.datetime.max`` instead of ``None``.
+    Contextmanager for :code:`endtime`. Uses :py:obj:`datetime.datetime.max`
+    instead of :code:`None`.
+
+    :param endtime: Endtime to be processed
+    :type endtime: :py:class:`datetime.datetime` or None
     """
     # convert endtime to datetime.datetime.max if None
     end = endtime
@@ -64,9 +68,14 @@ def none_as_max(endtime):
 @contextlib.contextmanager
 def none_as_now(endtime, now=datetime.datetime.utcnow()):
     """
-    Use ``datetime.datetime.max`` instead of ``None``.
+    Contextmanager for :code:`endtime`. Uses :code:`now` instead of
+    :code:`None`.
+
+    :param endtime: Endtime to be processed
+    :type endtime: :py:class:`datetime.datetime` or None
+    :param datetime.datetime now: Value to be used for :code:`now`
     """
-    # convert endtime to datetime.datetime.max if None
+    # convert endtime to now if None
     end = endtime
     if end is None:
         end = now
@@ -77,7 +86,10 @@ def none_as_now(endtime, now=datetime.datetime.utcnow()):
 @contextlib.contextmanager
 def max_as_none(endtime):
     """
-    Convert ``datetime.datetime.max`` to ``None``.
+    Contextmanager for :code:`endtime`. Converts
+    :py:obj:`datetime.datetime.max` back to :code:`None`.
+
+    :param datetime.datetime endtime: Endtime to be processed
     """
     end = endtime
     if end == datetime.datetime.max:
@@ -89,7 +101,10 @@ def max_as_none(endtime):
 @contextlib.contextmanager
 def max_as_empty(endtime):
     """
-    Convert ``datetime.datetime.max`` to ``None``.
+    Contextmanager for :code:`endtime`. Converts
+    :py:obj:`datetime.datetime.max` back to the empty string.
+
+    :param datetime.datetime endtime: Endtime to be processed
     """
     end = endtime
     if end == datetime.datetime.max:
@@ -101,17 +116,19 @@ def max_as_empty(endtime):
 def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
                             like_escape='/'):
     """
-    Replace the FDSNWS wildcard characters in *str_old* with the corresponding
-    SQL LIKE statement character.
+    Replace the FDSNWS wildcard characters in :code:`str_old` with the
+    corresponding SQL LIKE statement character.
 
-    :param str like_multiple: Character replacing the FDSNWS * wildcard
-    character
-    :param str like_single: Character replacing the FDSNWS _ wildcard
-    character
-    :param str like_escape: Character used in the SQL ESCAPE clause.
+    :param str str_old: String to be processed
+    :param str like_multiple: Character replacing the FDSNWS :code:`*` wildcard
+        character
+    :param str like_single: Character replacing the FDSNWS :code:`?` wildcard
+        character
+    :param str like_escape: Character used in the `SQL ESCAPE` clause
+    :returns: Converted string
+    :rtype: str
     """
-
-    # NOTE(damb): first escape the *like_single* character, then replace '?'
+    # NOTE(damb): first escape the *like_single* character, then replace '*'
     return str_old.replace(
         like_single, like_escape+like_single).replace(
         settings.FDSNWS_QUERY_WILDCARD_SINGLE_CHAR, like_single).\
@@ -140,6 +157,11 @@ class Stream(namedtuple('Stream',
     FIELDS_SHORT = ('net', 'sta', 'loc', 'cha')
 
     def id(self, sep='.'):
+        """
+        Returns the :py:class:`Stream`'s identifier.
+        
+        :param str sep: Separator to be used
+        """
         # TODO(damb): configure separator globally (i.e. in settings module)
         return sep.join([self.network, self.station, self.location,
                         self.channel])
@@ -152,6 +174,10 @@ class Stream(namedtuple('Stream',
 
     @classmethod
     def from_route_attrs(cls, **kwargs):
+        """
+        Creates a :py:class:`Stream` from attributes found at *eidaws-routing*
+        :code:`localconfig` configuration files.
+        """
         return super().__new__(cls,
                                network=kwargs.get('networkCode', '*'),
                                station=kwargs.get('stationCode', '*'),
@@ -159,7 +185,12 @@ class Stream(namedtuple('Stream',
                                channel=kwargs.get('streamCode', '*'))
 
     def _asdict(self, short_keys=False):
-        """Return a new OrderedDict which maps field names to their values."""
+        """
+        Return a new OrderedDict which maps field names to their values.
+
+        :param bool short_keys: Use short keys instead of the long version e.g.
+            uses :code:`net` instead of :code:`network`
+        """
         fields = self.FIELDS_SHORT if short_keys else self._fields
         return OrderedDict(zip(fields, self))
 
@@ -186,8 +217,8 @@ class Stream(namedtuple('Stream',
 class StreamEpoch(namedtuple('StreamEpoch',
                   ['stream', 'starttime', 'endtime'])):
     """
-    This class represents a stream epoch i.e. a Stream object + epoch
-    (starttime + endtime).
+    This class represents a stream epoch i.e. a :py:class:`Stream` object +
+    epoch (:code:`starttime` + :code:`endtime`).
     """
 
     __slots__ = ()
@@ -202,6 +233,9 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     @classmethod
     def from_sncl(cls, **kwargs):
+        """
+        Creates a :py:class:StreamEpoch` from SNCL-like attributes.
+        """
         net = (kwargs.get('network') if kwargs.get('network') is not None else
                kwargs.get('net', '*'))
         sta = (kwargs.get('station') if kwargs.get('station') is not None else
@@ -233,9 +267,10 @@ class StreamEpoch(namedtuple('StreamEpoch',
         Create a StreamEpoch from a SNCL line (FDSN POST format).
 
         :param str line: SNCL line in FDSN POST format i.e.
-        `NET STA LOC CHA START END`
-        :param :cls:`datetime.datetime` default_endtime: Substitute an empty
-        endtime with the datetime passed.
+            :code:`NET STA LOC CHA START END`
+        :param default_endtime: Substitute an empty endtime with the datetime
+            passed.
+        :type default_endtime: :py:class:`datetime.datetime`
         """
         if isinstance(line, bytes):
             line = line.decode('utf-8')
@@ -258,6 +293,9 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     @classmethod
     def from_orm(cls, stream_epoch):
+        """
+        Creates a :py:class:`StreamEpoch` from a corresponding ORM object.
+        """
         return cls(stream=Stream(network=stream_epoch.network.name,
                                  station=stream_epoch.station.name,
                                  location=stream_epoch.location,
@@ -267,6 +305,9 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     @classmethod
     def from_streamepochs(cls, stream_epochs):
+        """
+        Creates a :py:class:`StreamEpoch` from :py:class:`StreamEpochs`.
+        """
         return cls(stream=Stream(network=stream_epochs.network,
                                  station=stream_epochs.station,
                                  location=stream_epochs.location,
@@ -277,6 +318,11 @@ class StreamEpoch(namedtuple('StreamEpoch',
     # from_streamepochs ()
 
     def id(self, sep='.'):
+        """
+        Returns the :py:class:`StreamEpoch`'s identifier.
+        
+        :param str sep: Separator to be used
+        """
         return self.stream.id(sep=sep)
 
     def fdsnws_to_sql_wildcards(self, like_multiple='%', like_single='_',
@@ -287,11 +333,13 @@ class StreamEpoch(namedtuple('StreamEpoch',
         character. Since StreamEpoch is immutable a new StreamEpoch instance is
         returned.
 
-        :param str like_multiple: Character replacing the FDSNWS * wildcard
-        character
-        :param str like_single: Character replacing the FDSNWS _ wildcard
-        character
-        :param str like_escape: Character used in the SQL ESCAPE clause.
+        :param str like_multiple: Character replacing the FDSNWS :code:`*` wildcard
+            character
+        :param str like_single: Character replacing the FDSNWS :code:`?` wildcard
+            character
+        :param str like_escape: Character used in the `SQL ESCAPE` clause
+        :returns: A new :py:class:`StreamEpoch` object
+        :rtype: :py:class:`StreamEpoch`
         """
         net = fdsnws_to_sql_wildcards(self.network, like_multiple, like_single,
                                       like_escape)
@@ -309,12 +357,13 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     def slice(self, num=2, default_endtime=datetime.datetime.utcnow()):
         """
-        Split StreamEpoch into `num` chunks.
+        Split :py:class:`StreamEpoch` into :code:`num` equally sized chunks.
 
-        :param int num: Number of StreamEpochs to be splitted.
-        :param :cls:`datetime.datetime` default_endtime: Default endtime to
-        use in case `self.endtime == None`.
-        :returns: List of :cls:`StreamEpoch` objects.
+        :param int num: Number of resulting :py:class:`StreamEpoch` objects
+        :param  default_endtime: Default endtime to use in case
+            :code:`self.endtime == None`
+        :type default_endtime: :py:class:`datetime.datetime` 
+        :returns: List of :py:class:`StreamEpoch` objects
         """
         if num < 2:
             return [self]
@@ -333,7 +382,10 @@ class StreamEpoch(namedtuple('StreamEpoch',
     # slice ()
 
     def _asdict(self, short_keys=False):
-        """Return a new OrderedDict which maps field names to their values."""
+        """
+        Return a new :py:class:`OrderedDict` which maps field names to their
+        values.
+        """
         fields = self.FIELDS_SHORT if short_keys else self._fields
         return OrderedDict(zip(fields, self))
 
@@ -357,7 +409,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
     def __eq__(self, other):
         """
-        allows comparing StreamEpoch objects
+        Allows comparing :py:class:`StreamEpoch` objects.
         """
         return (self.stream == other.stream and
                 self.starttime == other.starttime and
@@ -392,14 +444,13 @@ class StreamEpoch(namedtuple('StreamEpoch',
 @functools.total_ordering
 class StreamEpochs(object):
     """
-    This class represents a mapping of a Stream object to multiple epochs. In
-    an abstract sense it is a container for StreamEpoch objects.
+    This class represents a mapping of a :py:class:`Stream` object to multiple
+    epochs. In an abstract sense it is a container for :py:class:`StreamEpoch`
+    objects.
 
-    Uses IntervalTree, https://github.com/chaimleib/intervaltree
+    Uses `IntervalTree <https://github.com/chaimleib/intervaltree>`_.
 
-    ..note::
-
-        Intervals within the tree are automatically merged.
+    .. note:: Intervals within the tree are automatically merged.
     """
 
     def __init__(self, network='*', station='*', location='*', channel='*',
@@ -410,8 +461,8 @@ class StreamEpochs(object):
         :param str location: Location code
         :param str channel: Channel code
         :param list epochs: Epochs is a list of (t1, t2) tuples, with t1 and t2
-        of type datetime.datetime. It can contain overlaps.
-        The intervals are merged in the constructor.
+            of type datetime.datetime. It can contain overlaps. The intervals
+            are merged within the constructor.
         """
 
         self._stream = Stream(network=network,
@@ -429,6 +480,9 @@ class StreamEpochs(object):
 
     @classmethod
     def from_stream_epoch(cls, stream_epoch):
+        """
+        Creates a :py:class:`StreamEpochs` object from :py:class:`StreamEpoch`.
+        """
         return cls(network=stream_epoch.network,
                    station=stream_epoch.station,
                    location=stream_epoch.location,
@@ -438,18 +492,28 @@ class StreamEpochs(object):
 
     @classmethod
     def from_stream(cls, stream, epochs=[]):
+        """
+        Creates a :py:class:`StreamEpochs` object from :py:class:`Stream` and a
+        list of :code:`epochs`.
+        """
         return cls(network=stream.network,
                    station=stream.station,
                    location=stream.location,
                    channel=stream.channel,
                    epochs=epochs)
 
-    def id(self):
-        return self._stream.id()
+    def id(self, sep='.'):
+        """
+        Returns the :py:class:`StreamEpoch`'s identifier.
+        
+        :param str sep: Separator to be used
+        """
+        return self._stream.id(sep)
 
     def merge(self, epochs):
         """
-        Merge an epoch list into an existing SNCLE.
+        Merge an epoch list into an existing :py:class:`StreamEpochs` object.
+
         :param list epochs: List of (t1, t2) tuples
         """
 
@@ -468,9 +532,9 @@ class StreamEpochs(object):
         character. Replacement is done inplace.
 
         :param str like_multiple: Character replacing the FDSNWS * wildcard
-        character
+            character
         :param str like_single: Character replacing the FDSNWS _ wildcard
-        character
+            character
         :param str like_escape: Character used in the SQL ESCAPE clause.
         """
         net = fdsnws_to_sql_wildcards(self.network, like_multiple, like_single,
@@ -489,7 +553,15 @@ class StreamEpochs(object):
 
     def modify_with_temporal_constraints(self, start=None, end=None):
         """
-        modify epochs by performing a real intersection
+        Modify epochs by performing a real intersection.
+
+        Using the :code:`start` and :code:`end` parameter the method also
+        provides truncation facilities.
+
+        :param start: Truncate epochs beginning from :code:`start`
+        :type start: :py:class:`datetime.datetime` or None
+        :param end: Truncate epochs terminating with :code:`end`
+        :type end: :py:class:`datetime.datetime` or None
         """
         # perform a real intersection i.e.
         # ------..----..--------
@@ -550,7 +622,9 @@ class StreamEpochs(object):
 
     def __iter__(self):
         """
-        iterator protocol by means of a generator
+        Iterator protocol by means of a generator.
+
+        The generator emerges :py:class:`StreamEpoch` objects.
         """
         for epoch in self.epochs:
             yield StreamEpoch.from_sncl(network=self.network,
@@ -563,7 +637,7 @@ class StreamEpochs(object):
 
     def __eq__(self, other):
         """
-        allows comparing StreamEpochs objects
+        Allows comparing :py:class:`StreamEpochs` objects.
         """
         return (self._stream == other._stream and self.epochs == other.epochs)
 
@@ -595,8 +669,8 @@ class StreamEpochs(object):
 
 class StreamEpochsHandler(object):
     """
-    This class is intended to represent a handler/container for StreamEpochs
-    objects.
+    This class is intended to represent a handler/container for
+    :py:class:`StreamEpochs` objects.
     """
 
     def __init__(self, stream_epochs=[]):
@@ -607,7 +681,15 @@ class StreamEpochsHandler(object):
 
     def modify_with_temporal_constraints(self, start=None, end=None):
         """
-        modify epochs by performing a real intersection
+        Modify epochs by performing a real intersection.
+
+        Using the :code:`start` and :code:`end` parameter the method also
+        provides truncation facilities.
+
+        :param start: Truncate epochs beginning from :code:`start`
+        :type start: :py:class:`datetime.datetime` or None
+        :param end: Truncate epochs terminating with :code:`end`
+        :type end: :py:class:`datetime.datetime` or None
         """
         # perform a real intersection i.e.
         # ------..----..--------
@@ -627,7 +709,7 @@ class StreamEpochsHandler(object):
 
     def merge(self, others):
         """
-        Merge other StreamEpochs to object.
+        Merge a list of other :py:class:`StreamEpochs` to objects.
 
         :param list others: List of :py:class:`StreamEpochs` objects
         """
@@ -658,7 +740,9 @@ class StreamEpochsHandler(object):
 
     def __iter__(self):
         """
-        iterator protocol by means of a generator
+        Iterator protocol by means of a generator.
+
+        The iterator emerges objects of type :py:class:`StreamEpochs`.
         """
         for stream_id, stream_epochs in self.d.items():
             yield StreamEpochs.from_stream(

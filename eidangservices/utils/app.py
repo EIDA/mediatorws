@@ -54,10 +54,15 @@ except ImportError:
 # ------------------------------------------------------------------------------
 class CustomParser(argparse.ArgumentParser):
     """
-    Custom argument parser
+    Custom argument parser.
     """
 
     def error(self, message):
+        """
+        Display both an error and print the help.
+
+        :param str message: Error message to be displayed
+        """
         sys.stderr.write('USAGE ERROR: %s\n' % message)
         self.print_help()
         sys.exit(ExitCodes.EXIT_ERROR)
@@ -73,6 +78,8 @@ class LoggingConfOptionAlreadyAvailable(AppError):
 class App(object):
     """
     Implementation of a configurable application.
+
+    :param str log_id: Default identifier to be used when logging
     """
 
     def __init__(self, log_id='EIDAWS'):
@@ -89,13 +96,14 @@ class App(object):
         """
         Configure the application.
 
-        :param str path_default_config: Path to the default configuration file.
+        :param str path_default_config: Path to the default configuration file
         :param str config_section: Name of the configuration section in the
-        configuration file.
-        :param list positional_required_args: List of *argparse* `dest` values
-        of positional_required_args. If such a parameter was found in the
-        configuration file it is **always** appended to the
-        :param bool capture_warnings: Capture warnings.
+            configuration file.
+        :param list positional_required_args: List of :py:mod:`argparse`
+            :code:`dest` values of positional required commandline arguments.
+            If such a parameter was found in the configuration file it is
+            **always** appended to the parameters parsed
+        :param bool capture_warnings: Capture warnings
         """
         c_parser = self._build_configfile_parser(path_default_config)
         args, remaining_argv = c_parser.parse_known_args()
@@ -189,6 +197,9 @@ class App(object):
     def _setup_logger(self):
         """
         Initialize the logger of the application.
+
+        In case the initialization was not successful a fallback logger (using
+        :py:class:`logging.handlers.SyslogHandler`) is set up.
         """
         if self.args.path_logging_conf:
             try:
@@ -207,7 +218,7 @@ class App(object):
     # _setup_logger ()
 
     def _setup_fallback_logger(self):
-        """setup a fallback logger"""
+        """Setup a fallback logger."""
         # NOTE(damb): Provide fallback syslog logger.
         self.logger = logging.getLogger()
         fallback_handler = logging.handlers.SysLogHandler('/dev/log',
@@ -229,7 +240,7 @@ class App(object):
         Abstract method to configure a parser. This method must be implemented
         by clients.
 
-        :param list parents: list of parent parsers
+        :param list parents: List of parent parsers
         :returns: parser
         :rtype: :py:class:`argparse.ArgumentParser`
         """

@@ -67,11 +67,11 @@ def demux_routes(routes):
 
 def group_routes_by(routes, key='network'):
     """
-    Group routes by a certain :cls:`eidangservices.sncl.Stream` keyword.
+    Group routes by a certain :py:class:`eidangservices.sncl.Stream` keyword.
     Combined keywords are also possible e.g. network.station. When combining
     keys the seperating character is `.`. Routes are demultiplexed.
 
-    :param list routes: List of :cls:`eidangservices.utils.Route` objects
+    :param list routes: List of :py:class:`eidangservices.utils.Route` objects
     :param str key: Key used for grouping.
     """
     SEP = '.'
@@ -149,8 +149,8 @@ class RequestProcessor(object):
 
         :param str service: Service identifier.
         :param dict kwargs: A dictionary passed to the combiner constructors.
-        :return: A concrete :cls:`RequestProcessor` implementation
-        :rtype: :cls:`RequestProcessor`
+        :return: A concrete :py:class:`RequestProcessor` implementation
+        :rtype: :py:class:`RequestProcessor`
         :raises KeyError: if an invalid format string was passed
         """
         if service == 'dataselect':
@@ -172,7 +172,7 @@ class RequestProcessor(object):
     @property
     def streamed_response(self):
         """
-        Return a streamed :cls:`flask.Response`.
+        Return a streamed :py:class:`flask.Response`.
         """
         self._request()
 

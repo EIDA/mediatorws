@@ -40,7 +40,7 @@ class OutputStream(object):
     """
     Base class for the StationLite ouput stream format.
 
-    :param list routes: List of :cls:`eidangservices.utils.Route` objects.
+    :param list routes: List of :py:class:`eidangservices.utils.Route` objects
     """
     def __init__(self, routes=[]):
         self.routes = routes

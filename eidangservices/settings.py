@@ -25,11 +25,7 @@
 # 2018/03/28        V0.1    Daniel Armbruster
 # =============================================================================
 """
-
-EIDA next generation web services settings.
-
-This file is part of the EIDA mediator/federator webservices.
-
+EIDA NG web services settings.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)

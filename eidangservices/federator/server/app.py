@@ -23,10 +23,7 @@
 #
 # -----------------------------------------------------------------------------
 """
-Launch federator server.
-
-This file is part of the EIDA mediator/federator webservices.
-
+Launch EIDA NG Federator.
 """
 
 from __future__ import (absolute_import, division, print_function,
@@ -186,8 +183,7 @@ class FederatorWebservice(App):
         """
         Build the Flask app.
 
-        :param dict args: app configuration arguments
-        :rtype :py:class:`flask.Flask`:
+        :rtype :py:class:`flask.Flask`
         """
 
         if self.args.tmpdir:

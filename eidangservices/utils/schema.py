@@ -76,7 +76,7 @@ NoData = functools.partial(
 # -----------------------------------------------------------------------------
 class JSONBool(fields.Bool):
     """
-    A field serialializing to a JSON boolean.
+    Custom field serialializing to a JSON boolean.
     """
     #: Values that will (de)serialize to `True`. If an empty set, any non-falsy
     #  value will deserialize to `true`.
@@ -103,10 +103,10 @@ FDSNWSBool = JSONBool
 
 class FDSNWSDateTime(fields.DateTime):
     """
-    Class extends marshmallow standard DateTime with a *FDSNWS datetime*
+    The class extends marshmallow standard DateTime with a FDSNWS *datetime*
     format.
 
-    The *FDSNWS DateTime* format is described in the `FDSN Web Service
+    The FDSNWS *datetime* format is described in the `FDSN Web Service
     Specifications
     <http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf>`_.
     """
@@ -125,10 +125,13 @@ class FDSNWSDateTime(fields.DateTime):
 # -----------------------------------------------------------------------------
 class StreamEpochSchema(Schema):
     """
-    A StreamEpoch Schema. The name *StreamEpoch* refers to the *FDSNWS* POST
-    format. A StreamEpoch is a line consisting of:
+    A marshmallow StreamEpoch Schema. The name *StreamEpoch* refers to the
+    FDSNWS **POST** format. A StreamEpoch is a line consisting of:
+
+    .. code::
 
         network station location channel starttime endtime
+
     """
     network = fields.Str(missing='*', validate=validate_net_sta_cha)
     net = fields.Str(load_only=True)
@@ -156,8 +159,8 @@ class StreamEpochSchema(Schema):
 
         .. note::
 
-            The default webargs parser does not provide this feature by
-            default such that `data_key` field parameters are exclusively
+            The default :py:mod:`webargs` parser does not provide this feature
+            by default such that :code:`data_key` field parameters are exclusively
             parsed.
         """
         _mappings = [
@@ -177,12 +180,20 @@ class StreamEpochSchema(Schema):
 
     @post_load
     def make_stream_epoch(self, data):
+        """
+        Factory method generating
+        :py:class:`eidangservices.utils.sncl.StreamEpoch` objects.
+        """
         if data['location'] == '--':
             data['location'] = ''
         return sncl.StreamEpoch.from_sncl(**data)
 
     @post_dump
     def skip_empty_datetimes(self, data):
+        """
+        Provides context dependend skipping of *empty* datetimes when
+        serializing.
+        """
         if (self.context.get('request') and
                 self.context.get('request').method == 'GET'):
             if data.get('starttime') is None:
@@ -208,6 +219,9 @@ class StreamEpochSchema(Schema):
 
     @validates_schema
     def validate_temporal_constraints(self, data):
+        """
+        Validation of temporal constraints.
+        """
         # NOTE(damb): context dependent validation
         if self.context.get('request'):
 
@@ -241,8 +255,9 @@ class StreamEpochSchema(Schema):
 class ManyStreamEpochSchema(Schema):
     """
     A schema class intended to provide a :code:`many=True` replacement for
-    webargs locations different from *json*. This way we are able to treat
-    StreamEpoch objects like json bulk type arguments.
+    :py:mod:`webargs` locations different from *JSON*. This way we are able to
+    treat :py:class:`eidangservices.utils.sncl.StreamEpoch` objects like JSON
+    bulk type arguments.
     """
     stream_epochs = fields.Nested('StreamEpochSchema', many=True)
 

@@ -25,7 +25,7 @@
 # 2018/06/18        V0.1    Daniel Armbruster
 # =============================================================================
 """
-EIDA webservice request handling facilities
+EIDA webservice request handling facilities.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -60,6 +60,11 @@ def binary_request(request,
                    timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
     """
     Make a request.
+
+    :param request: Request object to be used
+    :type request: :py:class:`requests.Request`
+    :param float timeout: Timeout in seconds
+    :rtype: io.BytesIO
     """
     try:
         with request(timeout=timeout) as r:
@@ -85,6 +90,11 @@ def raw_request(request,
                 timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
     """
     Make a request. Return the raw, streamed response.
+
+    :param request: Request object to be used
+    :type request: :py:class:`requests.Request`
+    :param float timeout: Timeout in seconds
+    :rtype: io.BytesIO
     """
     try:
         with request(stream=True, timeout=timeout) as r:
@@ -113,18 +123,21 @@ def stream_request(request,
     """
     Generator function making a streamed request.
 
-    :param int timeout: Timeout in seconds
+    :param request: Request object to be used
+    :type request: :py:class:`requests.Request`
+    :param float timeout: Timeout in seconds
     :param int chunksize: Chunksize in bytes
     :param bool decode_unicode: Content will be decoded using the best
-    available encoding based on the response.
+        available encoding based on the response.
     :param string method: Streaming depending on method. Valid values are
-    `iter_content` (default), `iter_lines`, `raw`
+        `iter_content` (default), `iter_lines`, `raw`
 
     .. note::
 
-        `method=iter_content` may lead to significant performance issues. Use
-        `method=raw` instead.
+        :code:`method=iter_content` may lead to significant performance issues.
+        Use :code:`method=raw` instead.
     """
+
     METHODS = ('iter_content', 'iter_lines', 'raw')
     if method not in METHODS:
         raise ValueError('Invalid method chosen: {!r}.'.format(method))

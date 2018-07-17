@@ -25,7 +25,7 @@
 # 2018/02/16        V0.1    Daniel Armbruster
 # =============================================================================
 """
-Station "light" (stationlite) DB tools.
+StationLite (stationlite) DB tools.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -118,8 +118,10 @@ def clean(session, timestamp):
     """
     Clean DB from data older than timestamp.
 
-    :param :cls:`sqlalchemy.orm.sessionSession` session: SQLAlchemy session
-    :param :cls:`obspy.UTCDateTime` Data older than timestamp will be removed.
+    :param :py:class:`sqlalchemy.orm.sessionSession` session: SQLAlchemy
+        session
+    :param :py:class:`obspy.UTCDateTime` Data older than timestamp will
+        be removed.
 
     :returns: Total number of removed rows.
     :rtype int:

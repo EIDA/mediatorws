@@ -141,11 +141,13 @@ class RoutingHarvester(Harvester):
     EIDA node's routing service local configuration. The routing configuration
     is stored within
 
-    <ns0:routing>
-        <ns0:route>
-            ...
-        <ns0:route>
-    </ns0:routing>
+    .. code::
+
+        <ns0:routing>
+            <ns0:route>
+                ...
+            <ns0:route>
+        </ns0:routing>
 
     elements.
 

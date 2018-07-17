@@ -53,7 +53,8 @@ class RequestHandlerBase(object):
     :param str url: URL
     :param dict query_params: Dictionary of query parameters
     :param list stream_epochs: List of
-    :cls:`eidangservices.utils.sncl.StreamEpoch` objects
+        :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
+
     """
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
 
@@ -119,7 +120,13 @@ class RequestHandlerBase(object):
 
 class RoutingRequestHandler(RequestHandlerBase):
     """
-    Representation of a eidaws-routing request handler.
+    Representation of a `eidaws-routing` request handler.
+
+    .. note::
+
+        Since both `eidaws-routing` and `eida-stationlite` implement the same
+        interface :py:class:`RoutingRequestHandler` may be used for both
+        webservices.
     """
     QUERY_PARAMS = set(('service',
                         'level',
@@ -152,7 +159,7 @@ class RoutingRequestHandler(RequestHandlerBase):
         se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
 
         qp = self._query_params
-        qp.update(utils.convert_scnl_dicts_to_query_params(
+        qp.update(utils.convert_sncl_dicts_to_query_params(
                   se_schema.dump(self._stream_epochs)))
         return qp
 

@@ -26,7 +26,6 @@
 # =============================================================================
 """
 DB query tools for stationlite web service.
-
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -49,8 +48,8 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     """
     Resolve a stream epoch regarding virtual networks.
 
-    :returns: List of :cls:`eidangservices.utils.sncl.StreamEpoch` object
-    instances.
+    :returns: List of :py:class:`eidangservices.utils.sncl.StreamEpoch` object
+        instances.
     :rtype: list
     """
     if (stream_epoch.network == settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR or
@@ -119,21 +118,22 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     """
     Return routes for a given stream epoch.
 
-    :param :cls:`sqlalchemy.orm.sessionSession` session: SQLAlchemy session
-    :param :py:class:`sncl.StreamEpoch`: StreamEpoch the database query is
-    performed with
+    :param session: SQLAlchemy session
+    :type session: :py:class:`sqlalchemy.orm.sessionSession`
+    :param stream_epoch: StreamEpoch the database query is performed with
+    :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
-    :param str like_escape: Character used for the SQL ESCAPE statement
+    :param str level: Optional `fdsnws-station` *level* parameter
     :param float minlat: Latitude larger than or equal to the specified minimum
     :param float maxlat: Latitude smaller than or equal to the specified
-    maximum
+        maximum
     :param float minlon: Longitude larger than or equal to the specified
-    minimum
+        minimum
     :param float maxlon: Longitude smaller than or equal to the specified
-    maximum
-
-    :returns: List of :py:class:`utils.Route` objects
-    :rtype list:
+        maximum
+    :param str like_escape: Character used for the `SQL ESCAPE` statement
+    :return: List of :py:class:`eidangservices.utils.Route` objects
+    :rtype: list
     """
     logger.debug('Processing request for (SQL) {0!r}'.format(stream_epoch))
     sql_stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
