@@ -362,6 +362,20 @@ custom location comment out the lines
 in your :code:`*.wsgi` file. Also, adjust the path. Finally, restart the
 Apache2 server.
 
+Stationlite configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to run the *stationlite* webservice in production mode within
+your `eidangws_config` you must provide a valid `URL` to a *stationlite* DB.
+
+Within the configuration section `CONFIG_STATIONLITE` in your `eidangws_config`
+comment out the line 
+
+.. code::
+
+  # db_url = sqlite:////abs/path/to/stationlite.db
+
+and set the path accordingly. Restart Apache and check your `error.log`.
 
 StationLite harvesting
 ======================
