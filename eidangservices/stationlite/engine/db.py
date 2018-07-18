@@ -36,6 +36,8 @@ import logging
 
 from contextlib import contextmanager
 
+from sqlalchemy.engine import Engine
+from sqlalchemy.event import listens_for
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from eidangservices.stationlite.engine import orm
@@ -45,6 +47,9 @@ from eidangservices.utils.error import Error, ErrorWithTraceback
 logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
+class DBError(ErrorWithTraceback):
+    """Base DB error ({})."""
+
 class StationLiteDBEngineError(Error):
     """General purpose EIDA StationLite DB engine error ({})."""
 
@@ -115,6 +120,24 @@ def session_guard(session):
         session.close()
 
 # session_guard ()
+
+def configure_db(pragmas):
+    """
+    Wraps up DB specific configuration.
+
+    :param list pragmas: List of pragmas (:py:class:`str` objects) to be
+        executed.
+    :raises: :py:class:`DBError`
+    """
+    @listens_for(Engine, 'connect', named=True)
+    def configure_pragmas(dbapi_connection, **kwargs):
+        try:
+            for pragma in pragmas:
+                dbapi_connection.execute(pragma)
+        except Exception as err:
+            raise DBError(err)
+
+# configure_db ()
 
 
 def clean(session, timestamp):

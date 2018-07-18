@@ -872,6 +872,7 @@ class StationLiteHarvestApp(App):
     """
     Implementation of the harvesting application for EIDA StationLite.
     """
+    DB_PRAGMAS = ['PRAGMA journal_mode=WAL']
 
     def build_parser(self, parents=[]):
         """
@@ -947,6 +948,8 @@ class StationLiteHarvestApp(App):
 
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
+
+            db.configure_db(self.DB_PRAGMAS)
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
