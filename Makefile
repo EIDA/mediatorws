@@ -98,7 +98,7 @@ build-clean:
 
 doc-clean:
 	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
-	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/eidangservices.*.rst)
+	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/eidangservices*rst)
 	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/modules.rst)
 
 .PHONY: ls
