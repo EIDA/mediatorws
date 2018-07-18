@@ -70,9 +70,12 @@ class ScopedSession:
     <http://www.sphinx-doc.org/en/stable/rest.html#hyperlinks>`_
 
     Usage:
-    Session = db.ScopedSession()
-    Session.configure(engine)
-    session = Session()
+
+    .. code::
+
+        Session = db.ScopedSession()
+        Session.configure(engine)
+        session = Session()
     """
     # TODO(damb): Make a ScopedSession a Singleton
 
