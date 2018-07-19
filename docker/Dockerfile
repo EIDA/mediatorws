@@ -13,7 +13,7 @@
 # docker exec -it eida-federator /bin/bash
 
 # Base image
-FROM ubuntu:16.04 
+FROM ubuntu:18.04 
 
 # Add label metadata
 LABEL maintainer="Massimo Fares"
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          zlib* \
                                          python-pip \
                                          pkg-config \
-                                         libpng12-dev \
+                                         libpng-dev \
                                          libfreetype6-dev \
                                          libblas-dev \
                                          liblapack-dev \
@@ -47,7 +47,7 @@ RUN virtualenv /var/www/federator/venv && virtualenv /var/www/stationlite/venv
 
 # Install the services
 WORKDIR /var/www/mediatorws
-RUN make ls && make install
+RUN make install
 
 # Copy Apache configuration configuration
 COPY federator.conf /etc/apache2/sites-available/
