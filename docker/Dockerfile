@@ -4,7 +4,7 @@
 # https://github.com/EIDA/mediatorws
 #
 # Build Container:
-# docker build -t eida-federator:1.0
+# docker build -t eida-federator:1.0 .
 #
 # Run Container:
 # docker run [-d] [--rm] [--name eida-federator] -p 8080:80 eidang_federator:1.0
