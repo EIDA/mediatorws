@@ -1,0 +1,161 @@
+# This is <eidangws_config>
+
+[CONFIG_FEDERATOR]
+# Configuration section for the EIDA NG Federator Webservice. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. The syntax for option setting is:
+# 
+# key=value
+#
+# You obtain additional information as well as default configuration values
+# when entering:
+#
+# $ eida-federator -h
+# 
+# See also the Python configparser module documentation:
+#   - https://docs.python.org/library/configparser.html
+#
+# -----------------------------------------------------------------------------
+# Start the application by means of the local Flask WSGI server. 
+# (default: False)
+#
+# start_local={True,False}
+# ----
+# Set the port number the local Flask WSGI server is serving. Note, that this
+# parameter is taken only into consideration if start_local=True.
+# 
+# port=PORT
+# ----
+# Set the routing service url and identifier. (default:
+# http://geofon.gfz-potsdam.de/eidaws/routing/1/)
+#
+# For a complete list of routing services see:
+# https://www.orfeus-eu.org/data/eida/webservices/
+#
+# routing=SERVICE_URL/IDENTIFIER
+# ----
+# Set the routing/federating service request timeout in seconds. 
+#
+# timeout=SECONDS
+# ----
+# Set the maximum number of retries for routing/federating services.
+#
+# retries=NUM_RETRIES
+# ----
+# Set the seconds to wait before each retry.
+#
+# retry_wait=SECONDS
+# ----
+# While retrying lock an URL for other federator instance.
+# 
+# retry_lock={True,False}
+# ----
+# Configure where temporary files will be located.
+# 
+# tmpdir=/path/to/tmpdir
+# ----
+# Set the path to a logging configuration file. For information on howto setup
+# a logging configuration file visit the official Python documentation:
+# https://docs.python.org/3/library/logging.config.html#configuration-file-format
+#
+# path_logging_conf=/path/to/logging.conf
+#
+# ----------------------------------------------------------------------------
+[CONFIG_STATIONLITE]
+# Configuration section for the EIDA StationLite Webservice. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. The syntax for option setting is:
+#
+# key=value
+#
+# You obtain additional information as well as default configuration values
+# when entering:
+#
+# $ eida-stationlite --help
+#
+# See also the Python configparser module documentation:
+#   - https://docs.python.org/library/configparser.html
+#
+# -----------------------------------------------------------------------------
+# Start the application by means of the local Flask WSGI server.
+# (default: False)
+#
+# start_local={True,False}
+# ----
+# Set the port number the local Flask WSGI server is serving. Note, that this
+# parameter is taken only into consideration if start_local=True.
+#
+# port=PORT
+# ----
+# DB URL indicating the database dialect and connection arguments. For SQlite
+# only a absolute file path is supported.
+# See also:
+# http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+#
+db_url=sqlite:////var/www/mediatorws/db/stationlite.db
+#
+# ----
+# Set the path to a logging configuration file. For information on howto setup
+# a logging configuration file visit the official Python documentation:
+# https://docs.python.org/3/library/logging.config.html#configuration-file-format
+#
+#path_logging_conf=/var/www/mediatorws/config/syslog.conf
+#
+# ----------------------------------------------------------------------------
+[CONFIG_STATIONLITE_HARVEST]
+# Configuration section for the EIDA StationLite Harvesting. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. The syntax for option setting is:
+#
+# key=value
+#
+# You obtain additional information as well as default configuration values
+# when entering:
+#
+# $ eida-stationlite-harvest --help
+#
+# See also the Python configparser module documentation:
+#   - https://docs.python.org/library/configparser.html
+#
+# -----------------------------------------------------------------------------
+# Path to PID (lock) file.
+# (default: /var/tmp/eida-stationlite-harvesting.pid)
+#
+# path_pidfile = /path/to/eida-stationlite-harvest/pidfile
+# ----
+# Exclude EIDA nodes from harvesting. A whitespace separated list of nodes to
+# be excluded. Choices are: {bgr, eth, gfz, ingv, ipgp, koeri, lmu, niep, noa,
+# odc, resif}.
+#
+# nodes_exclude = bgr eth gfz
+# ----
+# Do not harvest <route></route> information while harvesting.
+# (default: False)
+#
+# no_routes={True,False}
+# ----
+# Do not harvest <vnetwork></vnetwork> information while harvesting.
+# (default: False)
+#
+# no_vnetworks={True,False}
+# ----
+# Truncate DB i.e. delete outdated information. The TIMESTAMP format must agree
+# with formats supported by obspy.UTCDateTime.
+# See also:
+# https://docs.obspy.org/packages/autogen/obspy.core.utcdatetime.UTCDateTime.html
+#
+# truncate=2017-01-01T00:00:00
+# ----
+# Set the path to a logging configuration file. For information on howto setup
+# a logging configuration file visit the official Python documentation:
+# https://docs.python.org/3/library/logging.config.html#configuration-file-format
+#
+# path_logging_conf=/path/to/logging.conf
+# ----
+# DB URL indicating the database dialect and the connection arguments.
+# See also:
+# http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+#
+# db_engine = sqlite:////abs/path/to/stationlite.db
+#
+# ---- END OF <eidangws_config> ----
