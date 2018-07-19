@@ -37,13 +37,10 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          libapache2-mod-wsgi
 
 # Install the Python dependencies
-RUN pip install numpy obspy virtualenv
+RUN pip install numpy obspy
 
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
-
-# Create virtual environments for federator/stationlite
-RUN virtualenv /var/www/federator/venv && virtualenv /var/www/stationlite/venv
 
 # Install the services
 WORKDIR /var/www/mediatorws
