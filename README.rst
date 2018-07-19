@@ -310,7 +310,7 @@ When you installed the webservices successfully return to this point.
 Install *mod_wsgi*
 ------------------
 
-If you don’t have `mod_wsgi <https://modwsgi.readthedocs.io/en/develop/>`_
+If you don't have `mod_wsgi <https://modwsgi.readthedocs.io/en/develop/>`_
 installed yet you have to either install it using a package manager or compile
 it yourself.
 
