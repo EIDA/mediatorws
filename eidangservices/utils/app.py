@@ -141,8 +141,8 @@ class App(object):
         # set defaults taken from configuration file
         self.parser.set_defaults(**defaults)
         # set the config_file default explicitly since adding the c_parser as a
-        # parent would change the args.config_file to default=PATH_IROUTED_CONF
-        # within the child parser
+        # parent would change the args.config_file to
+        # default=PATH_EIDANGWS_CONF within the child parser
         self.parser.set_defaults(config_file=args.config_file)
 
         try:
