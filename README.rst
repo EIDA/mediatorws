@@ -226,12 +226,12 @@ Images are hosted on `Docker Hub <https://hub.docker.com/r/damb/mediatorws/>`_.
 
 **Features provided**:
 
-* `ubuntu:16.04`
-* `mod_wsgi` for Python 3
+* :code:`ubuntu:16.04`
+* :code:`mod_wsgi` for Python 3
 * *federator* and *stationlite* are set up separately i.e. each
   service is installed into its own virtual environment
 * the services use Python3
-* user `eida:www` runs the `mod_wsgi` deamon processes
+* user :code:`eida:www` runs the :code:`mod_wsgi` deamon processes
 
 **Available tags**:
 
@@ -245,7 +245,7 @@ Images are hosted on `Docker Hub <https://hub.docker.com/r/damb/mediatorws/>`_.
 
   $ docker run --name <container_name> -d -p 8080:80 damb/mediatorws:latest
 
-Then the services are available under `http://localhost:8080`. In order to have
+Then the services are available under :code:`http://localhost:8080`. In order to have
 a working *stationlite* service invoke
 
 .. code::
