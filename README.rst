@@ -37,11 +37,15 @@ Besides an alpha version of the *stationlite* service is implemented.
 Content
 =======
 * `Installation`_
+  
+  - `Developers`_
 
-  - `Dependencies`_
-  - `Download`_
-  - `Installing virtualenv`_
-  - `Install`_
+    + `Dependencies`_
+    + `Download`_
+    + `Installing virtualenv`_
+    + `Install`_
+
+  - `Docker`_
 
 * `Run the Test WSGI servers`_
 * `Deploying to a webserver`_
@@ -59,14 +63,18 @@ Content
 Installation
 ============
 
+Developers
+----------
+
+To develop with the EIDA NG webservices an installation from source must be
+performed. The installation is performed by means of the `virtualenv
+<https://pypi.python.org/pypi/virtualenv>`_ package.
+
 .. note::
 
   This installation method currently only is prepared for the EIDA Federator
   and StationLite webservices.
 
-This is the recommended installation method of the EIDA NG webservices in order
-to run a simple test server. The installation is performed by means of the
-`virtualenv <https://pypi.python.org/pypi/virtualenv>`_ package.
 
 First of all, choose an installation directory:
 
@@ -75,7 +83,7 @@ First of all, choose an installation directory:
   $ export PATH_INSTALLATION_DIRECTORY=$HOME/work
 
 Dependencies
-------------
+^^^^^^^^^^^^
 
 Make sure the following software is installed:
 
@@ -93,7 +101,7 @@ Debian/Ubuntu:
   $ sudo apt-get install libxml2-dev libxslt-dev python-dev
 
 Download
---------
+^^^^^^^^
 
 From the `EIDA GitHub <https://github.com/EIDA/mediatorws>`_ download a copy of
 the *mediatorws* source code:
@@ -104,7 +112,7 @@ the *mediatorws* source code:
   $ git clone https://github.com/EIDA/mediatorws
 
 Installing *virtualenv*
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 In case *virtualenv* is not available yet, install the package via pip:
 
@@ -149,7 +157,7 @@ When you are done disable it:
   (venv) $ deactivate
 
 Install
--------
+^^^^^^^
 
 EIDA NG webservices provide simple and reusable installation routines. After
 activating the virtual environment with
@@ -204,6 +212,48 @@ environment:
 .. code::
 
   (venv) $ deactivate
+
+Docker
+------
+
+A basic knowledge about `Docker <https://docs.docker.com/engine/>`__ and how
+this kind of application containers work is required. For more information
+about operating system support (which includes Linux, macOS and specific
+versions of Windows) and on how to install Docker, please refer to the official
+`Docker website <https://www.docker.com/products/docker>`_.
+
+Images are hosted on `Docker Hub <https://hub.docker.com/r/damb/mediatorws/>`_.
+
+**Features provided**:
+
+* `ubuntu:16.04`
+* `mod_wsgi` for Python 3
+* *federator* and *stationlite* are set up separately i.e. each
+  service is installed into its own virtual environment
+* the services use Python3
+* user `eida:www` runs the `mod_wsgi` deamon processes
+
+**Available tags**:
+
+.. code::
+
+  $ docker pull damb/mediatorws:latest
+
+**Deployment**:
+
+.. code::
+
+  $ docker run --name <container_name> -d -p 8080:80 damb/mediatorws:latest
+
+Then the services are available under `http://localhost:8080`. In order to have
+a working *stationlite* service invoke
+
+.. code::
+
+  $ docker exec --user eida <container_name> \
+  /var/www/stationlite/venv3/bin/eida-stationlite-harvest sqlite:////var/www/stationlite/db/stationlite.db 
+
+Harvesting may take some time.
 
 
 Run the Test WSGI servers
