@@ -227,7 +227,7 @@ Images are hosted on `Docker Hub <https://hub.docker.com/r/damb/mediatorws/>`_.
 **Features provided**:
 
 * based on `baseimage <https://hub.docker.com/r/phusion/baseimage/>`_ 
-* :code:`mod_wsgi` for Python 3
+* :code:`apache2` + `mod_wsgi <https://github.com/GrahamDumpleton/mod_wsgi>`_ for Python 3
 * *federator* and *stationlite* are set up separately i.e. each
   service is installed into its own virtual environment
 * services use Python3
