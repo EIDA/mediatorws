@@ -34,6 +34,7 @@ from builtins import * # noqa
 import argparse
 import copy
 import json
+import os
 import sys
 import tempfile
 import traceback
@@ -155,7 +156,11 @@ class FederatorWebservice(App):
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
-                app.run(threaded=True, debug=True, port=self.args.port)
+                app.run(threaded=True, port=self.args.port,
+                        debug=(True if os.environ.get('DEBUG') == 'True' else
+                               False),
+                        use_reloader=True, passthrough_errors=True)
+
             else:
                 try:
                     from mod_wsgi import version  # noqa

@@ -180,8 +180,12 @@ class RequestProcessor(object):
         # is available. Use a timeout and process errors here.
         self._wait()
 
-        return Response(stream_with_context(self), mimetype=self.mimetype,
+        resp = Response(stream_with_context(self), mimetype=self.mimetype,
                         content_type=self.mimetype)
+
+        resp.call_on_close(self._call_on_close)
+
+        return resp
 
     # streamed_response ()
 
@@ -313,6 +317,24 @@ class RequestProcessor(object):
         Template method.
         """
         raise NotImplementedError
+
+    def _call_on_close(self):
+        """
+        Template method which will be called when :py:class:`flask.Response` is
+        closed. By default pending tasks are terminated.
+
+        When using `mod_wsgi <http://modwsgi.readthedocs.io/en/latest/>`_ the
+        method is called either in case the request successfully was responded
+        or an exception occurred while sending the response. `Graham Dumpleton
+        <https://github.com/GrahamDumpleton>`_ descibes the situation in this
+        `thread post
+        <https://groups.google.com/forum/#!topic/modwsgi/jr2ayp0xesk>`_ very
+        detailed.
+        """
+        self._pool.terminate()
+        self._pool = None
+
+    # _call_on_close ()
 
     def __iter__(self):
         raise NotImplementedError
