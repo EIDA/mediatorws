@@ -46,7 +46,8 @@ from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
-from eidangservices.federator.server.misc import get_temp_filepath
+from eidangservices.federator.server.misc import (get_temp_filepath,
+                                                  elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -236,6 +237,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
+        self._network_elements = []
         self.path_tempfile = None
 
     # __init__ ()
@@ -265,12 +267,12 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
-            t = StationXMLDownloadTask(
+            t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
-                network_tag=self.NETWORK_TAG)
+                decode_unicode=True)
 
             # apply DownloadTask asynchronoulsy to the worker pool
             result = self._pool.apply_async(t)
@@ -279,7 +281,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         self._pool.close()
 
-        _root = None
         # fetch results ready
         while True:
             ready = []
@@ -289,33 +290,62 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                     if _result.status_code == 200:
                         if self._level in ('channel', 'response'):
                             # merge <Channel></Channel> elements into
-                            # <Station></Station>
-                            if _root is None:
-                                _root = self._extract_net_element(_result.data)
-                            else:
-                                for sta_element in self._extract_sta_elements(
-                                        _result.data):
-                                    self._merge_sta_element(_root, sta_element)
+                            # <Station></Station> from the correct
+                            # <Network></Network> epoch element
+                            for _net_element in self._extract_net_elements(
+                                    _result.data):
 
-                            self._clean(_result)
+                                # find the correct <Network></Network> epoch
+                                # element
+                                net_element, known = self._emerge_net_element(
+                                    _net_element,
+                                    exclude_tags=[
+                                        '{}{}'.format(ns, self.STATION_TAG)
+                                        for ns in \
+                                        settings.STATIONXML_NAMESPACES])
+
+                                if not known:
+                                    continue
+
+                                # append/merge station elements
+                                for sta_element in \
+                                        self._emerge_sta_elements(
+                                            _net_element):
+                                    self._merge_sta_element(
+                                        net_element,
+                                        sta_element)
 
                         elif self._level == 'station':
-                            # append <Station></Station> elements to
-                            # <Network></Network>
-                            if _root is None:
-                                _root = self._extract_net_element(_result.data)
-                            else:
-                                for sta_element in self._extract_sta_elements(
-                                        _result.data):
-                                    _root.append(sta_element)
+                            # append <Station></Station> elements to the
+                            # corresponding <Network></Network> epoch
+                            for _net_element in self._extract_net_elements(
+                                    _result.data):
 
-                            self._clean(_result)
+                                net_element, known = self._emerge_net_element(
+                                    _net_element,
+                                    exclude_tags=[
+                                        '{}{}'.format(ns, self.STATION_TAG)
+                                        for ns in \
+                                        settings.STATIONXML_NAMESPACES])
+
+                                if not known:
+                                    continue
+
+                                # append station elements
+                                # NOTE(damb): <Station></Station> elements
+                                # defined by multiple EIDA nodes are simply
+                                # appended; no merging is performed
+                                for sta_element in \
+                                        self._emerge_sta_elements(
+                                            _net_element):
+                                    net_element.append(sta_element)
 
                         elif self._level == 'network':
-                            # do not merge; do not remove temporary files;
-                            # simply return the downloading task's result
-                            self.path_tempfile = _result.data
+                            for net_element in self._extract_net_elements(
+                                    _result.data):
+                                _, _ = self._emerge_net_element(net_element)
 
+                        self._clean(_result)
                         self._sizes.append(_result.length)
 
                     else:
@@ -337,89 +367,132 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 'Task {!r} terminates with no valid result.'.format(self))
             return Result.nocontent()
 
-        _length = sum(self._sizes)
-        # dump xml tree for <Network></Network> to temporary file
-        if self._level in ('station', 'channel', 'response'):
-            self.path_tempfile = get_temp_filepath()
-            with open(self.path_tempfile, 'wb') as ofd:
-                s = etree.tostring(_root)
-                _length = len(s)
+        _length = 0
+        # dump xml tree for <Network></Network> epochs to temporary file
+        self.path_tempfile = get_temp_filepath()
+        with open(self.path_tempfile, 'wb') as ofd:
+            for net_element in self._network_elements:
+                s = etree.tostring(net_element)
+                _length += len(s)
                 ofd.write(s)
 
         self.logger.info(
             ('Task {!r} sucessfully finished '
-             '(total bytes processed: {}).').format(self, sum(self._sizes)))
+             '(total bytes processed: {}, after processing: {}).').format(
+                 self, sum(self._sizes), _length))
 
         return Result.ok(data=self.path_tempfile, length=_length)
 
     # _run ()
 
-    def _extract_net_element(self, path_xml):
-        with open(path_xml, 'rb') as ifd:
-            return etree.parse(ifd).getroot()
-
-    # _extract_net_element ()
-
-    def _extract_sta_elements(self, path_xml,
-                              namespaces=settings.STATIONXML_NAMESPACES):
+    def _emerge_net_element(self, net_element, exclude_tags=[]):
         """
-        Extract `<Station><Station>` elements from `<Network></Network>` tree.
+        Emerge a :code:`<Network></Network>` epoch element.
+
+        :param net_element: Emerge a network epoch element
+        :type net_element: :py:class:`lxml.etree.Element`
+        :param list exclude_tags: List of child element tags to be excluded
+            while comparing
+        :returns: Tuple of :code:`net_element` or a reference to an already
+            existing network epoch element and a boolean value if the network
+            element already is known (:code:`True`) else :code:`False`
+        :rtype: tuple
+        """
+        # order child elements by tag
+        net_element[:] = sorted(net_element, key=lambda c: c.tag)
+
+        for existing_net_element in self._network_elements:
+            if elements_equal(
+                net_element,
+                existing_net_element,
+                exclude_tags,
+                    recursive=True):
+                return existing_net_element, True
+
+        self._network_elements.append(net_element)
+        return net_element, False
+
+    # _emerge_net_element ()
+
+    def _emerge_sta_elements(self, net_element,
+                             namespaces=settings.STATIONXML_NAMESPACES):
+        """
+        Generator function emerging :code:`<Station><Station>` elements from
+        :code:`<Network></Network>` tree.
+
+        :param net_element: Network epoch `StationXML
+        <http://www.fdsn.org/xml/station/>`_ element
+        :type net_element: :py:class:`lxml.etree.Element`
+        :param list namespaces: List of XML namespaces to be taken into
+            consideration.
         """
         station_tags = ['{}{}'.format(ns, self.STATION_TAG)
                         for ns in namespaces]
-        with open(path_xml, 'rb') as ifd:
-            root = etree.parse(ifd).getroot()
-            for tag in station_tags:
-                sta_elements = root.findall(tag)
-                if not sta_elements:
-                    continue
-                return sta_elements
+        for tag in station_tags:
+            for sta_element in net_element.findall(tag):
+                yield sta_element
 
-        raise self.TaskError(
-            'Missing XML element for tags {!r}.'.format(
-                station_tags))
+    # _emerge_sta_elements ()
 
-    # _extract_sta_elements ()
-
-    def _extract_cha_elements(self, sta_element,
-                              namespaces=settings.STATIONXML_NAMESPACES):
+    def _emerge_cha_elements(self, sta_element,
+                             namespaces=settings.STATIONXML_NAMESPACES):
         """
-        Extract all `<Channel><Channel>` elements from `<Station></Station>`
-        tree.
+        Generator function emerging :code:`<Channel><Channel>` elements from
+        :code:`<Station></Station>` tree.
         """
         channel_tags = ['{}{}'.format(ns, self.CHANNEL_TAG)
                         for ns in namespaces]
         for tag in channel_tags:
-            cha_elements = sta_element.findall(tag)
-            if not cha_elements:
-                continue
-            return cha_elements
+            for cha_element in sta_element.findall(tag):
+                yield cha_element
 
-        raise self.TaskError(
-            'Missing XML element for tags {!r}.'.format(
-                channel_tags))
+    # _emerge_cha_elements ()
 
-    # _extract_cha_elements ()
+    def _extract_net_elements(self, path_xml,
+                              namespaces=settings.STATIONXML_NAMESPACES):
+        """
+        Extract :code:`<Network></Network>` epoch elements from `StationXML
+        <http://www.fdsn.org/xml/station/>`_.
 
-    def _merge_sta_element(self, root, sta_element,
+        :param str path_xml: Path to `StationXML
+            <http://www.fdsn.org/xml/station/>`_ file.
+        """
+        network_tags = ['{}{}'.format(ns, self.NETWORK_TAG)
+                        for ns in namespaces]
+
+        with open(path_xml, 'rb') as ifd:
+            station_xml = etree.parse(ifd).getroot()
+            return [net_element
+                    for net_element in station_xml.iter(*network_tags)]
+
+    # _extract_net_elements ()
+
+    def _merge_sta_element(self, net_element, sta_element,
                            namespaces=settings.STATIONXML_NAMESPACES):
 
-        def equals_attrib(_sta_element, attrib):
-            return (_sta_element.get(attrib) and
-                    sta_element.get(attrib) and
-                    _sta_element.get(attrib) == sta_element.get(attrib))
+        # order child elements by tag
+        sta_element[:] = sorted(sta_element, key=lambda c: c.tag)
 
-        # XXX(damb): check if station already available - if not, then append
-        for _sta_element in root.iterfind(sta_element.tag):
-            if (equals_attrib(_sta_element, 'code') and
-                    equals_attrib(_sta_element, 'startDate')):
-                for _cha_element in self._extract_cha_elements(sta_element,
-                                                               namespaces):
+        # XXX(damb): Check if <Station></Station> epoch element is already
+        # available - if not simply append.
+        for _sta_element in net_element.iterfind(sta_element.tag):
+
+            _sta_element[:] = sorted(_sta_element, key=lambda c: c.tag)
+            if elements_equal(sta_element,
+                              _sta_element,
+                              exclude_tags=[
+                                  '{}{}'.format(ns, self.CHANNEL_TAG)
+                                  for ns in namespaces],
+                              recursive=False):
+                # XXX(damb): Channels are ALWAYS appended; no merging is
+                # performed
+                for _cha_element in self._emerge_cha_elements(sta_element,
+                                                              namespaces):
                     _sta_element.append(_cha_element)
-
                 break
+
         else:
-            root.append(sta_element)
+            net_element.append(sta_element)
 
     # _merge_sta_element ()
 
@@ -669,11 +742,14 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
 class RawDownloadTask(TaskBase):
     """
     Task downloading the data for a single StreamEpoch by means of streaming.
+
+    :param bool decode_unicode: Decode the stream.
     """
 
     LOGGER = 'flask.app.federator.task_download_raw'
 
     CHUNK_SIZE = 1024 * 1024
+    DECODE_UNICODE = False
 
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER)
@@ -683,6 +759,9 @@ class RawDownloadTask(TaskBase):
         self.chunk_size = (self.CHUNK_SIZE
                            if kwargs.get('chunk_size') is None
                            else kwargs.get('chunk_size'))
+        self.decode_unicode = (self.DECODE_UNICODE
+                               if kwargs.get('decode_unicode') is None
+                               else kwargs.get('decode_unicode'))
 
         self._size = 0
 
@@ -698,9 +777,11 @@ class RawDownloadTask(TaskBase):
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
-                for chunk in stream_request(self._request_handler.post(),
-                                            chunk_size=self.chunk_size,
-                                            method='raw'):
+                for chunk in stream_request(
+                        self._request_handler.post(),
+                        chunk_size=self.chunk_size,
+                        method='raw',
+                        decode_unicode=self.decode_unicode):
                     self._size += len(chunk)
                     ofd.write(chunk)
 
@@ -786,58 +867,6 @@ class StationTextDownloadTask(RawDownloadTask):
     # __call__ ()
 
 # class StationTextDownloadTask
-
-
-class StationXMLDownloadTask(RawDownloadTask):
-    """
-    Download StationXML from an endpoint. Emerge `<Network></Network>` specific
-    data from StationXML.
-
-    .. note::
-
-        This task temporarly loads the entire result into memory. However, for
-        a granular endpoint request approach this seems doable.
-    """
-    NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
-
-    def __init__(self, request_handler, **kwargs):
-        super().__init__(request_handler, **kwargs)
-        self.network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
-
-    @catch_default_task_exception
-    def __call__(self):
-
-        self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
-
-        network_tags = ['{}{}'.format(ns, self.network_tag)
-                        for ns in settings.STATIONXML_NAMESPACES]
-
-        try:
-            with open(self.path_tempfile, 'wb') as ofd:
-                # XXX(damb): Load the entire result into memory.
-                with binary_request(self._request_handler.post()) as ifd:
-                    station_xml = etree.parse(ifd).getroot()
-                    for net_element in station_xml.iter(*network_tags):
-                        s = etree.tostring(net_element)
-                        self._size += len(s)
-                        ofd.write(s)
-
-        except RequestsError as err:
-            return self._handle_error(err)
-        else:
-            self.logger.debug(
-                'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
-                    self._request_handler.stream_epochs))
-
-        return Result.ok(data=self.path_tempfile, length=self._size)
-
-    # __call__ ()
-
-# class StationXMLDownloadTask
 
 
 # ---- END OF <task.py> ----
