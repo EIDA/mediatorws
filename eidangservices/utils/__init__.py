@@ -37,7 +37,6 @@ import collections
 import datetime
 #import logging
 import os
-import pkg_resources
 import re
 
 import marshmallow as ma
@@ -178,7 +177,8 @@ def convert_sncl_dicts_to_query_params(stream_epochs_dict):
     .. code::
 
         se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
-        retval = convert_sncl_dicts_to_query_params(se_schema.dump(stream_epochs))
+        retval = convert_sncl_dicts_to_query_params(
+            se_schema.dump(stream_epochs))
 
     .. note::
 

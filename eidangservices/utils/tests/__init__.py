@@ -80,7 +80,7 @@ def federator_testsuite():
     federator_testsuite = general_testsuite()
     if federator_available:
         federator_testsuite.addTests(
-                eidangservices.federator.tests.testsuite())
+            eidangservices.federator.tests.testsuite())
     return federator_testsuite
 
 # federator_testsuite()
@@ -93,7 +93,7 @@ def mediator_testsuite():
     mediator_testsuite = general_testsuite()
     if mediator_available:
         mediator_testsuite.addTests(
-                eidangservices.mediator.tests.testsuite())
+            eidangservices.mediator.tests.testsuite())
     return mediator_testsuite
 
 # mediator_testsuite ()
@@ -106,7 +106,7 @@ def stationlite_testsuite():
     stationlite_testsuite = general_testsuite()
     if stationlite_available:
         stationlite_testsuite.addTests(
-                eidangservices.stationlite.tests.testsuite())
+            eidangservices.stationlite.tests.testsuite())
     return stationlite_testsuite
 
 # stationlite_testsuite ()

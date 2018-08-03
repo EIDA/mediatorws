@@ -160,8 +160,8 @@ class StreamEpochSchema(Schema):
         .. note::
 
             The default :py:mod:`webargs` parser does not provide this feature
-            by default such that :code:`data_key` field parameters are exclusively
-            parsed.
+            by default such that :code:`data_key` field parameters are
+            exclusively parsed.
         """
         _mappings = [
             ('net', 'network'),

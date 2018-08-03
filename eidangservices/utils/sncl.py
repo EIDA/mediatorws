@@ -159,7 +159,7 @@ class Stream(namedtuple('Stream',
     def id(self, sep='.'):
         """
         Returns the :py:class:`Stream`'s identifier.
-        
+
         :param str sep: Separator to be used
         """
         # TODO(damb): configure separator globally (i.e. in settings module)
@@ -320,7 +320,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
     def id(self, sep='.'):
         """
         Returns the :py:class:`StreamEpoch`'s identifier.
-        
+
         :param str sep: Separator to be used
         """
         return self.stream.id(sep=sep)
@@ -333,10 +333,10 @@ class StreamEpoch(namedtuple('StreamEpoch',
         character. Since StreamEpoch is immutable a new StreamEpoch instance is
         returned.
 
-        :param str like_multiple: Character replacing the FDSNWS :code:`*` wildcard
-            character
-        :param str like_single: Character replacing the FDSNWS :code:`?` wildcard
-            character
+        :param str like_multiple: Character replacing the FDSNWS :code:`*`
+            wildcard character
+        :param str like_single: Character replacing the FDSNWS :code:`?`
+            wildcard character
         :param str like_escape: Character used in the `SQL ESCAPE` clause
         :returns: A new :py:class:`StreamEpoch` object
         :rtype: :py:class:`StreamEpoch`
@@ -362,7 +362,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
         :param int num: Number of resulting :py:class:`StreamEpoch` objects
         :param  default_endtime: Default endtime to use in case
             :code:`self.endtime == None`
-        :type default_endtime: :py:class:`datetime.datetime` 
+        :type default_endtime: :py:class:`datetime.datetime`
         :returns: List of :py:class:`StreamEpoch` objects
         """
         if num < 2:
@@ -505,7 +505,7 @@ class StreamEpochs(object):
     def id(self, sep='.'):
         """
         Returns the :py:class:`StreamEpoch`'s identifier.
-        
+
         :param str sep: Separator to be used
         """
         return self._stream.id(sep)
