@@ -89,8 +89,8 @@ test: $(patsubst %,%.test,$(SERVICES))
 doc: $(patsubst %,%.doc,$(SERVICES))
 tox: $(patsubst %,%.tox,$(SERVICES))
 
-.PHONY: clean build-clean doc-clean
-clean: build-clean doc-clean
+.PHONY: clean build-clean doc-clean tox-clean
+clean: build-clean doc-clean tox-clean
 
 build-clean:
 	rm -rfv build
@@ -100,6 +100,9 @@ doc-clean:
 	rm -rvf $(wildcard $(PATH_DOCS)/docs.*)
 	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/eidangservices*rst)
 	rm -rvf $(wildcard $(PATH_DOCS)/sphinx.*/source/modules.rst)
+
+tox-clean:
+	rm -rfv .tox
 
 .PHONY: ls
 ls:
