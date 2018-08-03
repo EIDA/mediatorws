@@ -107,7 +107,7 @@ ls:
 
 .PHONY: pep8
 pep8:
-	-tox -e pep8
+	tox -e pep8
 
 # install services
 %.install: clean
