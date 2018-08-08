@@ -74,20 +74,18 @@ _deps_all = [
     # 'mock:python_version<"3.3"',
     'future>=0.16.0',
     'intervaltree>=2.1',
+    'lxml>=4.2.0',
     'marshmallow==3.0.0b11',
     'python-dateutil>=2.6.1',
+    'requests>=2.18.4',
     'webargs==3.0.0', ]
 _deps_federator = _deps_all + [
-    'ijson>=2.3',
-    'lxml>=4.2.0',
-    'requests>=2.18.4', ]
+    'ijson>=2.3', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
     'obspy>=1.1.0',
-    'lxml>=4.2.0',
-    'SQLAlchemy>=1.2.0',
-    'requests>=2.18.4', ]
+    'SQLAlchemy>=1.2.0', ]
 _deps = _deps_federator
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))
@@ -141,10 +139,11 @@ if 'federator' == subsys:
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
                      "fabian.euchner@sed.ethz.ch")
     _description = ("EIDA NG Federator webservice")
-    _entry_points = _entry_points_federator
     _includes = ('eidangservices', 'eidangservices.utils',
                  'eidangservices.utils.tests',
                  '*.federator', 'federator.*', '*.federator.*')
+    _entry_points = _entry_points_federator
+
     _deps = _deps_federator
     _data_files = _data_files_federator
 
