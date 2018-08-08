@@ -30,6 +30,7 @@ setup.py for EIDA NG Mediator/Federator webservices
 
 import os
 import sys
+from copy import deepcopy
 from setuptools import setup, find_packages
 
 if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 4):
@@ -86,7 +87,7 @@ _deps_stationlite = _deps_all + [
     'Flask-SQLAlchemy>=2.3.2',
     'obspy>=1.1.0',
     'SQLAlchemy>=1.2.0', ]
-_deps = _deps_federator
+_deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))
 
