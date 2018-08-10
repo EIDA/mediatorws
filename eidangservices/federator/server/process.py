@@ -125,6 +125,9 @@ class RequestProcessor(object):
     def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
                  **kwargs):
         self.mimetype = mimetype
+        self.content_type = (
+            '{}; {}'.format(self.mimetype, settings.CHARSET_TEXT)
+            if self.mimetype == settings.MIMETYPE_TEXT else self.mimetype)
         self.query_params = query_params
         self.stream_epochs = stream_epochs
         self.post = post
@@ -181,7 +184,7 @@ class RequestProcessor(object):
         self._wait()
 
         resp = Response(stream_with_context(self), mimetype=self.mimetype,
-                        content_type=self.mimetype)
+                        content_type=self.content_type)
 
         resp.call_on_close(self._call_on_close)
 

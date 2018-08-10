@@ -63,8 +63,10 @@ def create_app(config_dict={}, service_version=__version__):
     def register_error(err):
         @app.errorhandler(err)
         def handle_error(error):
-            return make_response(error.description, error.code,
-                                 {'Content-Type': settings.ERROR_MIMETYPE})
+            return make_response(
+                error.description, error.code,
+                {'Content-Type': '{}; {}'.format(settings.ERROR_MIMETYPE,
+                                                 settings.CHARSET_TEXT)})
 
     # register_error ()
 
