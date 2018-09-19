@@ -151,13 +151,11 @@ environment:
 Run the Test WSGI servers
 =========================
 
-The webservices are implemented using the `Flask <http://flask.pocoo.org/>`_
-framework.
-
-The examples bellow use the built-in Flask server, which is not recommended to
-use in production. In production environments the usage of a WSGI server should
-be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
-the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
+The examples bellow use the built-in `Flask <http://flask.pocoo.org/>`_ server,
+which is not recommended to use in production. In production environments the
+usage of a WSGI server should be preferred. An exemplary setup with *mod_wsgi*
+and Apache2 is described in the section `Deploying to a webserver`_.
+Alternatively use Gunicorn or uWSGI.
 
 Federator server
 ----------------
