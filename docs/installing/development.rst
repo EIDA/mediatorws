@@ -1,5 +1,9 @@
+********************************************************
 Installing the EIDA NG webservices for development usage
-========================================================
+********************************************************
+
+Installing
+==========
 
 In order to develop with the EIDA NG webservices an installation from source
 must be performed. The installation is performed by means of the `virtualenv
@@ -18,7 +22,7 @@ First of all, choose an installation directory:
   $ export PATH_INSTALLATION_DIRECTORY=$HOME/work
 
 Dependencies
-^^^^^^^^^^^^
+------------
 
 Make sure the following software is installed:
 
@@ -36,7 +40,7 @@ Debian/Ubuntu:
   $ sudo apt-get install libxml2-dev libxslt-dev python-dev
 
 Download
-^^^^^^^^
+--------
 
 From the `EIDA GitHub <https://github.com/EIDA/mediatorws>`_ download a copy of
 the *mediatorws* source code:
@@ -47,7 +51,7 @@ the *mediatorws* source code:
   $ git clone https://github.com/EIDA/mediatorws
 
 Installing *virtualenv*
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 In case *virtualenv* is not available yet, install the package via pip:
 
@@ -92,7 +96,7 @@ When you are done disable it:
   (venv) $ deactivate
 
 Install
-^^^^^^^
+-------
 
 EIDA NG webservices provide simple and reusable installation routines. After
 activating the virtual environment with
