@@ -69,10 +69,6 @@ use in production. In production environments the usage of a WSGI server should
 be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
 the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
 
-To expose the service to port 80, a `reverse proxy
-<https://en.wikipedia.org/wiki/Reverse_proxy>`_ like `nginx
-<https://www.nginx.com/>`_ should be used. 
-
 Federator server
 ----------------
 
