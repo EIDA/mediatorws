@@ -148,4 +148,171 @@ environment:
 
   (venv) $ deactivate
 
+Run the Test WSGI servers
+=========================
+
+The webservices are implemented using the `Flask <http://flask.pocoo.org/>`_
+framework.
+
+The examples bellow use the built-in Flask server, which is not recommended to
+use in production. In production environments the usage of a WSGI server should
+be preferred. An exemplary setup with *mod_wsgi* and Apache2 is described in
+the section `Deploying to a webserver`_. Alternatively use Gunicorn or uWSGI.
+
+Federator server
+----------------
+
+To launch a local test WSGI server (**NOT** for production environments) enter:
+
+.. code::
+
+  (venv) $ eida-federator --start-local --tmpdir='/path/to/tmp'
+
+For further configuration options invoke
+
+.. code::
+
+  (venv) $ eida-federator -h
+
+The service currently writes temporary files to the :code:`tmpdir`, so this directory will
+fill up. It is recommended to purge this directory regularly, e.g., using a
+tool like `tmpreaper`.
+
+StationLite server
+------------------
+
+To launch a local test WSGI server (**NOT** for production environments) enter:
+
+.. code::
+
+  (venv) $ eida-stationlite --start-local URL
+
+`URL` is a database url as described at the `SQLAlchemy documentation
+<http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
+For further configuration options invoke
+
+.. code::
+
+  (venv) $ eida-stationlite -h
+
+Mediator server
+---------------
+
+.. note::
+
+  The EIDA Mediator webservice currently still does not provide an installation
+  routine. However, a test server can be started as described bellow. Note,
+  that you have to install all dependencies required manually.
+
+Add the repository directory to your PYTHONPATH. Then, the server can be
+started as
+
+.. code::
+
+  $ python -m eidangservices.mediator.server --port=5001 --tmpdir='/path/to/tmp'
+
+The server writes temporary files to the tmpdir, so this directory will fill up.
+It is recommended to purge this directory regularly, e.g., using a tool like
+`tmpreaper`.
+
+
+Deploying to a webserver
+========================
+
+.. note::
+
+  Currently the deployment to a webserver only is setup for the EIDA Federator
+  and StationLite webservices.
+
+This HOWTO describes the deployment by means of *mod_wsgi* for the Apache2
+webserver. Make sure, that Apache2 is installed. 
+
+It is also assumed, that you install the EIDA NG webservices to 
+
+.. code::
+
+  $ export PATH_INSTALLATION_DIRECTORY=/var/www
+
+Next, proceed as described for a *test* installation from the `Download`_
+section on.
+
+When you installed the webservices successfully return to this point.
+
+.. note::
+
+  In case you would like to install the webservices to a different location
+  i.e. :code:`PATH_INSTALLATION_DIRECTORY=/path/to/my/eida/webservices` make
+  sure to adjust the configuration in the files
+  :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/apache2/YOUR_SERVICE.{conf,wsgi}` manually.
+
+Install *mod_wsgi*
+------------------
+
+If you don't have `mod_wsgi <https://modwsgi.readthedocs.io/en/develop/>`_
+installed yet you have to either install it using a package manager or compile
+it yourself.
+
+If you are using Ubuntu/Debian you can apt-get it and activate it as follows:
+
+.. code::
+
+  # apt-get install libapache2-mod-wsgi
+  # service apache2 restart
+
+Setup a virtual host
+--------------------
+
+Exemplary Apache2 virtual host configuration files are found at
+:code:`PATH_INSTALLATION_DIRECTORY/mediatorws/apache2/*.conf`. Adjust a copy of
+those files according to your needs. Assuming you have an Ubuntu Apache2
+configuration, copy the adjusted files to :code:`/etc/apache2/sites-available/`.
+Then, enable the virtual hosts and reload the apache2 configuration:
+
+.. code::
+
+  # export MY_EIDA_SERVICES="list of EIDA NG services"
+  # cd /etc/apache2/sites-available
+  # for s in $MY_EIDA_SERVICES; do a2ensite $s.config; done
+  # service apache2 reload
+
+.. note::
+
+  When using domain names in virtual host configuration files make sure to
+  add an entry for those domain names in :code:`/etc/hosts`.
+  
+Configure the webservice 
+------------------------
+
+Besides of passing configuration options on the commandline, the EIDA NG
+webservices also may be configured by means of an INI configuration file. You
+find a documented version of this file under
+:code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/eidangws_config`.
+
+The default location of the configuration file is
+:code:`/var/www/mediatorws/config/eidangws_config`. To load this file from your
+custom location comment out the lines 
+
+.. code:: python
+
+  #import eidangservices.settings as settings
+  #settings.PATH_EIDANGWS_CONF = '/path/to/your/custom/eidangws_config'
+
+in your :code:`*.wsgi` file. Also, adjust the path. Finally, restart the
+Apache2 server.
+
+Stationlite configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to run the *stationlite* webservice in production mode within
+your `eidangws_config` you must provide a valid `URL` to a *stationlite* DB.
+
+Within the configuration section `CONFIG_STATIONLITE` in your `eidangws_config`
+comment out the line 
+
+.. code::
+
+  # db_url = sqlite:////abs/path/to/stationlite.db
+
+and set the path accordingly. Restart Apache and check your `error.log`.
+
 
