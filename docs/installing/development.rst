@@ -315,6 +315,6 @@ comment out the line
 
   # db_url = sqlite:////abs/path/to/stationlite.db
 
-and set the path accordingly. Restart Apache and check your `error.log`.
+and set the path accordingly. Restart Apache and check your :code:`error.log`.
 
 
