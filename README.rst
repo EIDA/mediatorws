@@ -266,7 +266,7 @@ For debugging purposes EIDA NG webservices also provide logging facilities.
 Simply configure your webservice with a logging configuration file. Use the INI
 `logging configuration file format
 <https://docs.python.org/library/logging.config.html#configuration-file-format>`_.
-In case initialzation failed a fallback `SysLogHandler
+In case initialization failed a fallback `SysLogHandler
 <https://docs.python.org/library/logging.handlers.html#sysloghandler>`_ is
 set up:
 
