@@ -15,7 +15,7 @@ Images are hosted on `Docker Hub <https://hub.docker.com/r/damb/mediatorws/>`_.
 
 **Features provided**:
 
-* based on `baseimage <https://hub.docker.com/r/phusion/baseimage/>`_ 
+* based on `baseimage <https://hub.docker.com/r/phusion/baseimage/>`_
 * :code:`apache2` + `mod_wsgi <https://github.com/GrahamDumpleton/mod_wsgi>`_ for Python 3
 * *federator* and *stationlite* are set up separately i.e. each
   service is installed into its own virtual environment
@@ -41,9 +41,6 @@ a working *stationlite* service invoke
 .. code::
 
   $ docker exec --user eida <container_name> \
-  /var/www/stationlite/venv3/bin/eida-stationlite-harvest sqlite:////var/www/stationlite/db/stationlite.db 
+  /var/www/stationlite/venv3/bin/eida-stationlite-harvest sqlite:////var/www/stationlite/db/stationlite.db
 
 Harvesting may take some time.
-
-
-
