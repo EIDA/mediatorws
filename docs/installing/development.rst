@@ -242,10 +242,11 @@ Stationlite configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to run the *stationlite* webservice in production mode within
-your `eidangws_config` you must provide a valid `URL` to a *stationlite* DB.
+your :code:`eidangws_config` you must provide a valid :code:`URL` to a
+*stationlite* DB.
 
-Within the configuration section `CONFIG_STATIONLITE` in your `eidangws_config`
-comment out the line 
+Within the configuration section :code:`CONFIG_STATIONLITE` in your
+:code:`eidangws_config` comment out the line 
 
 .. code::
 
