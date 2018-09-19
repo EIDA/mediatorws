@@ -143,7 +143,8 @@ webservice installation enter
   (venv) $ eida-federator -V
 
 The version of your *federator* installation should be displayed. Now you are
-ready to launch the `Test WSGI servers <#Run the Test WSGI Servers>`_.
+ready to launch the `Test WSGI servers
+<https://github.com/EIDA/mediatorws/tree/master#run-the-test-wsgi-servers>`_.
 
 When you are done with your tests do not forget to deactivate the virtual
 environment:

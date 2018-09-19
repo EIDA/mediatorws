@@ -36,6 +36,7 @@ Besides an alpha version of the *stationlite* service is implemented.
 
 Content
 =======
+
 * `Installation`_
 * `Run the Test WSGI servers`_
 * `StationLite harvesting`_
@@ -57,8 +58,9 @@ Run the Test WSGI servers
 The examples bellow use the built-in `Flask <http://flask.pocoo.org/>`_ server,
 which is not recommended to use in production. In production environments the
 usage of a WSGI server should be preferred. An exemplary setup with *mod_wsgi*
-and Apache2 is described in the section `Deploying to a webserver`_.
-Alternatively use Gunicorn or uWSGI.
+and Apache2 is described in the section `Deploying to a webserver
+<https://github.com/EIDA/mediatorws/tree/master/docs/installing/development.rst#Deploying
+to a webserver>`_. Alternatively use Gunicorn or uWSGI.
 
 Federator server
 ----------------
