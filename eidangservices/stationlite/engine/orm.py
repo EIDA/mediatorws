@@ -6,7 +6,7 @@ EIDA NG stationlite ORM.
 import datetime
 
 from sqlalchemy import (Column, Integer, Float, String, Unicode, DateTime,
-                        ForeignKey)
+                        Enum, ForeignKey)
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.orm import relationship
 
@@ -47,6 +47,16 @@ class LastSeenMixin:
                       onupdate=datetime.datetime.utcnow)
 
 
+class RestrictedStatusMixin(object):
+
+    @declared_attr
+    def restrictedstatus(cls):
+        return Column(Enum('open', 'closed', name='restricted_status'),
+                      default='open')
+
+# class RestrictedStatusMixin
+
+
 # -----------------------------------------------------------------------------
 ORMBase = declarative_base(cls=Base)
 
@@ -64,7 +74,7 @@ class Network(ORMBase):
         return '<Network(code=%s)>' % self.name
 
 
-class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class NetworkEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
     network_ref = Column(Integer, ForeignKey('network.oid'),
                          index=True)
@@ -73,7 +83,7 @@ class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
     network = relationship('Network', back_populates='network_epochs')
 
 
-class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class ChannelEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
     network_ref = Column(Integer, ForeignKey('network.oid'),
                          index=True)
@@ -112,7 +122,7 @@ class Station(ORMBase):
         return '<Station(code=%s)>' % self.name
 
 
-class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class StationEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
     station_ref = Column(Integer, ForeignKey('station.oid'),
                          index=True)
