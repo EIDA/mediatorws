@@ -44,7 +44,8 @@ from flask import current_app, stream_with_context, Response
 from eidangservices import utils, settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.request import (
-    RoutingRequestHandler, GranularFdsnRequestHandler)
+    RoutingRequestHandler, GranularFdsnRequestHandler,
+    BulkFdsnRequestHandler)
 from eidangservices.federator.server.task import (
     RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLNetworkCombinerTask, WFCatalogSplitAndAlignTask)
@@ -100,9 +101,6 @@ def group_routes_by(routes, key='network'):
     return retval
 
 # group_routes_by ()
-
-def flatten_routes(grouped_routes):
-    return [route for routes in grouped_routes.values() for route in routes]
 
 
 class RequestProcessorError(ErrorWithTraceback):
@@ -520,7 +518,30 @@ class StationRequestProcessor(RequestProcessor):
     # create ()
 
     def _route(self):
-        return group_routes_by(super()._route(), key='network')
+        """
+        Multiplexed routing i.e. one route contains multiple stream epochs
+        (for a unique network code). Allows bulk requests based on network
+        codes.
+        """
+        # NOTE(damb): We group routes by network code, first. This later will
+        # enable us to easier provide station metadata combination for
+        # distributed physical networks. However, currently we exclusively
+        # combine station-xml. For station-text we issue still granular
+        # download tasks.
+        # Afterwards, grouped routes are multiplex by network code, again.
+
+        retval = collections.defaultdict(list)
+        for net, _routes in group_routes_by(
+                super()._route(), key='network').items():
+            # sort by url
+            mux_routes = collections.defaultdict(list)
+            for r in _routes:
+                mux_routes[r.url].append(r.streams[0])
+
+            for url, ses in mux_routes.items():
+                retval[net].append(utils.Route(url=url, streams=ses))
+
+        return retval
 
     # _route ()
 
@@ -685,8 +706,12 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
 class StationTextRequestProcessor(StationRequestProcessor):
     """
-    This processor implementation implements fdsnws-station text federatation.
-    Data is fetched multithreaded from endpoints.
+    This processor implements fdsnws-station text  federation.
+
+    Data is fetched multithreaded from endpoints by means of bulk requests.
+
+    Data from distributed physical networks (networks hosted at multiple
+    datacenters currently is not merged.)
     """
     HEADER_NETWORK = '#Network|Description|StartTime|EndTime|TotalStations'
     HEADER_STATION = (
@@ -705,7 +730,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
         """
         Process a federated fdsnws-station text request
         """
-        routes = flatten_routes(self._route())
+        routes = self._route()
 
         pool_size = (len(routes) if
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
@@ -713,17 +738,22 @@ class StationTextRequestProcessor(StationRequestProcessor):
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
 
-        for route in routes:
+        for net, bulk_routes in routes.items():
             self.logger.debug(
-                'Creating DownloadTask for {!r} ...'.format(
-                    route))
-            t = StationTextDownloadTask(
-                GranularFdsnRequestHandler(
-                    route.url,
-                    route.streams[0],
-                    query_params=self.query_params))
-            result = self._pool.apply_async(t)
-            self._results.append(result)
+                'Creating DownloadTasks for network code {!r} ...'.format(
+                    net))
+
+            for bulk_route in bulk_routes:
+
+                self.logger.debug(
+                    'Creating DownloadTask for {!r} ...'.format(bulk_route))
+                t = StationTextDownloadTask(
+                    BulkFdsnRequestHandler(
+                        bulk_route.url,
+                        stream_epochs=bulk_route.streams,
+                        query_params=self.query_params))
+                result = self._pool.apply_async(t)
+                self._results.append(result)
 
         self._pool.close()
 
