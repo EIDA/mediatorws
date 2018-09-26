@@ -60,6 +60,7 @@ from eidangservices.utils.sncl import StreamEpoch
 # Processors using exclusively DownloadTask objects must perform a detailed
 # logging to the log DB. Processors using Combiners delegate logging to the
 # corresponding combiner tasks.
+# For bulk requests no detailed logging can be provided.
 
 def demux_routes(routes):
     return [utils.Route(route.url, streams=[se]) for route in routes
