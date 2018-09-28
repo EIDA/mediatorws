@@ -32,7 +32,10 @@ class StationLiteSchema(Schema):
 
     nodata = NoData()
     alternative = FDSNWSBool(missing='false')
-
+    access = fields.Str(
+        missing='any',
+        validate=validate.OneOf(
+            ['open', 'closed', 'any']))
     level = fields.Str(
         missing='channel',
         validate=validate.OneOf(
@@ -110,6 +113,13 @@ class StationLiteSchema(Schema):
             raise ValidationError(
                 "Bad Request: Invalid 'level' value {!r} for service "
                 "{!r}.".format(data['level'], data['service']))
+
+    @validates_schema
+    def validate_access(self, data, **kwargs):
+        if (data['access'] != 'any' and data['service'] != 'dataselect'):
+            raise ValidationError(
+                "Bad Request: Invalid 'access' value {!r} for service "
+                "{!r}".format(data['access'], data['service']))
 
     class Meta:
         strict = True

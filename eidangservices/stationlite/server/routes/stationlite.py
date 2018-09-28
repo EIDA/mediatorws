@@ -117,7 +117,7 @@ class StationLiteResource(Resource):
             # query
             _routes = dbquery.find_streamepochs_and_routes(
                 db.session, stream_epoch, args['service'],
-                level=args['level'],
+                level=args['level'], access=args['access'],
                 minlat=args['minlatitude'],
                 maxlat=args['maxlatitude'],
                 minlon=args['minlongitude'],

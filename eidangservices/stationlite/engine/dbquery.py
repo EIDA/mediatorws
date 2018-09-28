@@ -84,7 +84,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
 
 
 def find_streamepochs_and_routes(session, stream_epoch, service,
-                                 level='channel',
+                                 level='channel', access='any',
                                  minlat=-90., maxlat=90., minlon=-180.,
                                  maxlon=180., like_escape='/'):
     """
@@ -96,6 +96,8 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
     :param str level: Optional `fdsnws-station` *level* parameter
+    :param str access: Optional access parameter; The parameter is only taken
+        into consideration if :code:`service` equal :code:`dataselect`
     :param float minlat: Latitude larger than or equal to the specified minimum
     :param float maxlat: Latitude smaller than or equal to the specified
         maximum
@@ -107,6 +109,12 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :return: List of :py:class:`eidangservices.utils.Route` objects
     :rtype: list
     """
+    VALID_ACCESS = ('open', 'closed', 'any')
+
+    if access not in VALID_ACCESS:
+        raise ValueError(
+            'Invalid restriction parameter: {!r}'.format(access))
+
     logger.debug('Processing request for (SQL) {0!r}'.format(stream_epoch))
     sql_stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
 
@@ -151,6 +159,10 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     if sql_stream_epoch.endtime:
         query = query.\
             filter(orm.ChannelEpoch.starttime < sql_stream_epoch.endtime)
+
+    if access != 'any' and service == 'dataselect':
+        query = query.\
+            filter(orm.ChannelEpoch.restrictedstatus == access)
 
     routes = collections.defaultdict(StreamEpochsHandler)
 
