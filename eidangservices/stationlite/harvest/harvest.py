@@ -880,7 +880,6 @@ class StationLiteHarvestApp(App):
         """
         Run application.
         """
-        # output work with
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
