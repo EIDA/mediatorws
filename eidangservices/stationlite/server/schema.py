@@ -80,9 +80,9 @@ class StationLiteSchema(Schema):
         values.
 
         .. note::
-            The default webargs parser does not provide this feature by
-            default such that `load_from` fields parameters are exclusively
-            parsed.
+            The default :py:module:`webargs` parser does not provide this
+            feature by default such that :code:`load_only` field parameters are
+            exclusively parsed.
 
         :param dict data: data
         """
