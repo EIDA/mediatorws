@@ -621,9 +621,6 @@ class VNetHarvester(Harvester):
     class VNetHarvesterError(Harvester.HarvesterError):
         """Base error for virtual netowork harvesting ({})."""
 
-    def __init__(self, node_id, url_vnet_config):
-        super().__init__(node_id, url_vnet_config)
-
     def harvest(self, session):
 
         vnet_tag = '{}vnetwork'.format(self.NS_ROUTINGXML)
