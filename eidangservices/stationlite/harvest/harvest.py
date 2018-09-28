@@ -3,6 +3,7 @@
 EIDA NG stationlite harvesting facilities.
 """
 
+import collections
 import datetime
 import functools
 import logging
@@ -122,8 +123,12 @@ class RoutingHarvester(Harvester):
 
     STATION_TAG = 'station'
 
+    DEFAULT_RESTRICTED_STATUS = 'open'
+
     class StationXMLParsingError(Harvester.HarvesterError):
         """Error while parsing StationXML: ({})"""
+
+    BaseNode = collections.namedtuple('BaseNode', ['restricted_status'])
 
     def __init__(self, node_id, url_routing_config, **kwargs):
         super().__init__(node_id, url_routing_config)
@@ -283,20 +288,21 @@ class RoutingHarvester(Harvester):
         for inv_network in inventory.networks:
             self.logger.debug("Processing network: {0!r}".format(
                               inv_network))
-            net = self._emerge_network(session, inv_network)
+            net, base_node = self._emerge_network(session, inv_network)
             nets.append(net)
 
             for inv_station in inv_network.stations:
                 self.logger.debug("Processing station: {0!r}".format(
                                   inv_station))
-                sta = self._emerge_station(session, inv_station)
+                sta, base_node = self._emerge_station(session, inv_station,
+                                                      base_node)
                 stas.append(sta)
 
                 for inv_channel in inv_station.channels:
                     self.logger.debug(
                         "Processing channel: {0!r}".format(inv_channel))
                     cha_epoch = self._emerge_channelepoch(
-                        session, inv_channel, net, sta)
+                        session, inv_channel, net, sta, base_node)
                     chas.append(cha_epoch)
 
         return nets, stas, chas
@@ -345,7 +351,12 @@ class RoutingHarvester(Harvester):
 
     def _emerge_network(self, session, network):
         """
-        Factory method for a orm.Network object.
+        Factory method for a :py:class:`orm.Network` object.
+
+        .. note::
+
+            Currently for network epochs there is no validation performed if an
+            overlapping epoch exists.
         """
         try:
             net = session.query(orm.Network).\
@@ -358,13 +369,18 @@ class RoutingHarvester(Harvester):
         if end_date is not None:
             end_date = end_date.datetime
 
+        restricted_status = (self.DEFAULT_RESTRICTED_STATUS
+                             if network.restricted_status is None else
+                             network.restricted_status)
+
         # check if network already available - else create a new one
         if net is None:
             net = orm.Network(name=network.code)
             net_epoch = orm.NetworkEpoch(
                 description=network.description,
                 starttime=network.start_date.datetime,
-                endtime=end_date)
+                endtime=end_date,
+                restrictedstatus=restricted_status)
             net.network_epochs.append(net_epoch)
             self.logger.debug("Created new network object '{}'".format(net))
 
@@ -381,6 +397,8 @@ class RoutingHarvester(Harvester):
                     filter(orm.NetworkEpoch.starttime ==
                            network.start_date.datetime).\
                     filter(orm.NetworkEpoch.endtime == end_date).\
+                    filter(orm.NetworkEpoch.restrictedstatus ==
+                           restricted_status).\
                     one_or_none()
             except MultipleResultsFound as err:
                 raise self.IntegrityError(err)
@@ -389,19 +407,28 @@ class RoutingHarvester(Harvester):
                 net_epoch = orm.NetworkEpoch(
                     description=network.description,
                     starttime=network.start_date.datetime,
-                    endtime=end_date)
+                    endtime=end_date,
+                    restrictedstatus=restricted_status)
                 net.network_epochs.append(net_epoch)
                 self.logger.debug(
                     "Created new network_epoch object '{}'".format(
                         net_epoch))
             else:
+                # XXX(damb): silently update epoch parameters
+                self._update_epoch(net_epoch,
+                                   restricted_status=restricted_status)
                 self._update_lastseen(net_epoch)
 
-        return net
+        return net, self.BaseNode(restricted_status=restricted_status)
 
-    def _emerge_station(self, session, station):
+    def _emerge_station(self, session, station, base_node):
         """
-        Factory method for a orm.Station object.
+        Factory method for a :py:class:`orm.Station` object.
+
+        .. note::
+
+            Currently for station epochs there is no validation performed if an
+            overlapping epoch exists.
         """
         try:
             sta = session.query(orm.Station).\
@@ -414,6 +441,11 @@ class RoutingHarvester(Harvester):
         if end_date is not None:
             end_date = end_date.datetime
 
+        restricted_status = (
+            base_node.restricted_status
+            if station.restricted_status is None else
+            station.restricted_status)
+
         # check if station already available - else create a new one
         if sta is None:
             sta = orm.Station(name=station.code)
@@ -422,7 +454,8 @@ class RoutingHarvester(Harvester):
                 starttime=station.start_date.datetime,
                 endtime=end_date,
                 latitude=station.latitude,
-                longitude=station.longitude)
+                longitude=station.longitude,
+                restrictedstatus=station.restricted_status)
             sta.station_epochs.append(station_epoch)
             self.logger.debug("Created new station object '{}'".format(sta))
 
@@ -451,23 +484,33 @@ class RoutingHarvester(Harvester):
                     starttime=station.start_date.datetime,
                     endtime=end_date,
                     latitude=station.latitude,
-                    longitude=station.longitude)
+                    longitude=station.longitude,
+                    restrictedstatus=restricted_status)
                 sta.station_epochs.append(station_epoch)
                 self.logger.debug(
                     "Created new station_epoch object '{}'".format(
                         station_epoch))
             else:
+                # XXX(damb): silently update inherited base node parameters
+                self._update_epoch(sta_epoch,
+                                   restricted_status=restricted_status)
                 self._update_lastseen(sta_epoch)
 
-        return sta
+        return sta, self.BaseNode(restricted_status=restricted_status)
 
-    def _emerge_channelepoch(self, session, channel, network, station):
+    def _emerge_channelepoch(self, session, channel, network, station,
+                             base_node):
         """
-        Factory method for a orm.ChannelEpoch object.
+        Factory method for a :py:class:`orm.ChannelEpoch` object.
         """
         end_date = channel.end_date
         if end_date is not None:
             end_date = end_date.datetime
+
+        restricted_status = (
+            base_node.restricted_status
+            if channel.restricted_status is None else
+            channel.restricted_status)
 
         # check for available, overlapping channel_epoch (not identical)
         # XXX(damb) Overlapping orm.ChannelEpochs regarding time constraints
@@ -499,21 +542,32 @@ class RoutingHarvester(Harvester):
                          channel.start_date.datetime) &
                         (end_date > orm.ChannelEpoch.starttime)))
 
-        cha_epochs = query.all()
+        cha_epochs_to_update = query.all()
 
-        if cha_epochs:
+        if cha_epochs_to_update:
             self.logger.warning('Found overlapping orm.ChannelEpoch objects '
-                                '{}'.format(cha_epochs))
-        # delete overlapping epochs including the corresponding orm.Routing
-        # entries
-        for cha_epoch in cha_epochs:
+                                '{}'.format(cha_epochs_to_update))
+
+        # check for ChannelEpochs with changed restricted status property
+        query = session.query(orm.ChannelEpoch).\
+            filter(orm.ChannelEpoch.network == network).\
+            filter(orm.ChannelEpoch.station == station).\
+            filter(orm.ChannelEpoch.channel == channel.code).\
+            filter(orm.ChannelEpoch.locationcode == channel.location_code).\
+            filter(orm.ChannelEpoch.restrictedstatus !=
+                   channel.restricted_status)
+
+        cha_epochs_to_update.extend(query.all())
+
+        # delete affected (overlapping/ changed restrictedstatus) epochs
+        # including the corresponding orm.Routing entries
+        for cha_epoch in cha_epochs_to_update:
             _ = session.query(orm.Routing).\
                 filter(orm.Routing.channel_epoch == cha_epoch).delete()
 
             if session.delete(cha_epoch):
                 self.logger.info(
-                    'Removed {0!r} (matching query: {}).'.format(
-                        cha_epoch, query))
+                    'Removed referenced {0!r}.'.format(cha_epoch))
 
         # check for an identical orm.ChannelEpoch
         try:
@@ -526,6 +580,8 @@ class RoutingHarvester(Harvester):
                 filter(orm.ChannelEpoch.endtime == end_date).\
                 filter(orm.ChannelEpoch.station == station).\
                 filter(orm.ChannelEpoch.network == network).\
+                filter(orm.ChannelEpoch.restrictedstatus ==
+                       channel.restricted_status).\
                 one_or_none()
         except MultipleResultsFound as err:
             raise self.IntegrityError(err)
@@ -537,7 +593,8 @@ class RoutingHarvester(Harvester):
                 starttime=channel.start_date.datetime,
                 endtime=end_date,
                 station=station,
-                network=network)
+                network=network,
+                restrictedstatus=restricted_status)
             self.logger.debug("Created new channel_epoch object '{}'".format(
                               cha_epoch))
             session.add(cha_epoch)
@@ -607,6 +664,23 @@ class RoutingHarvester(Harvester):
             self._update_lastseen(routing)
 
         return routing
+
+    @staticmethod
+    def _update_epoch(epoch, **kwargs):
+        """
+        Update basenode epoch properties.
+
+        :param epoch: Epoch to be updated.
+        :param kwargs: Keyword value parameters to be updated.
+
+        Allowed parameters are:
+        * :code:`restricted_status`
+        """
+        restricted_status = kwargs.get('restricted_status')
+
+        if (epoch.restrictedstatus != restricted_status and
+                restricted_status is not None):
+            epoch.restrictedstatus = restricted_status
 
 
 class VNetHarvester(Harvester):
