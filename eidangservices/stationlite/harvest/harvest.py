@@ -42,6 +42,9 @@ class AlreadyHarvesting(Error):
 class Harvester:
     """
     Abstract base class for harvesters, harvesting EIDA nodes.
+
+    :param str node_id: EIDA node identifier
+    :param str url_routing_config: URL to routing configuration file.
     """
     LOGGER = 'eidangservices.stationlite.harvest.harvester'
 
