@@ -630,6 +630,8 @@ EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
 EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
     os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
 
+EIDA_STATIONLITE_HARVEST_SERVICES = ('station', 'dataselect', 'wfcatalog')
+
 # -----------------------------------------------------------------------------
 # Mediator related
 

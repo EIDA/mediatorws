@@ -198,6 +198,12 @@
 # truncate=2017-01-01T00:00:00
 #
 # ----
+# Whitespace separated list of FDSN and EIDA services to be cached from
+# eida-routing localconfig configuration files. Choices are: {station,
+# dataselect, wfcatalog}. By default all services are cached.
+#
+# services = station dataselect wfcatalog
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format

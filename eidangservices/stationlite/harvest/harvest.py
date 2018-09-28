@@ -29,17 +29,7 @@ from eidangservices.utils.sncl import Stream, StreamEpoch
 from eidangservices.utils.request import (binary_request, RequestsError,
                                           NoContent)
 
-# TODO(damb):
-#   - fix *cached_services* issue
 
-CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
-
-
-def get_cached_services():
-    return [s for s in CACHED_SERVICES]
-
-
-# ----------------------------------------------------------------------------
 class NothingToDo(Error):
     """Nothing to do."""
 
@@ -118,7 +108,13 @@ class RoutingHarvester(Harvester):
 
     elements.
 
-    This harvester does not rely on the EIDA routing service anymore.
+    This harvester relies on the :code:`eida-routing` :code:`localconfig`
+    configuration files.
+
+    :param str node_id: EIDA node identifier
+    :param str url_routing_config: URL to :code:`eida-routing`
+        :code:`localconfig: configuration files
+    :param list services: List of EIDA services to be harvested
     """
 
     STATION_TAG = 'station'
@@ -126,13 +122,20 @@ class RoutingHarvester(Harvester):
     class StationXMLParsingError(Harvester.HarvesterError):
         """Error while parsing StationXML: ({})"""
 
+    def __init__(self, node_id, url_routing_config, **kwargs):
+        super().__init__(node_id, url_routing_config)
+
+        self._services = kwargs.get(
+            'services', settings.EIDA_STATIONLITE_HARVEST_SERVICES)
+
+    # __init__ ()
+
     def harvest(self, session):
         """Harvest the routing configuration."""
 
         route_tag = '{}route'.format(self.NS_ROUTINGXML)
-        _cached_services = get_cached_services()
         _cached_services = ['{}{}'.format(self.NS_ROUTINGXML, s)
-                            for s in _cached_services]
+                            for s in self._services]
         self.logger.debug('Harvesting routes for %s.' % self.node)
         # event driven parsing
         for event, route_element in etree.iterparse(self.config,
@@ -844,6 +847,15 @@ class StationLiteHarvestApp(App):
                             choices=sorted(settings.EIDA_NODES),
                             help=('Whitespace-separated list of nodes to be '
                                   'excluded. (choices: {%(choices)s})'))
+        parser.add_argument('-S', '--services', nargs='+',
+                            type=str, metavar='SERVICES',
+                            default=sorted(
+                                settings.EIDA_STATIONLITE_HARVEST_SERVICES),
+                            choices=sorted(
+                                settings.EIDA_STATIONLITE_HARVEST_SERVICES),
+                            help=('Whitespace-separated list of services to '
+                                  'be cached. (choices: {%(choices)s}) '
+                                  '(default: {%(default)s})'))
         parser.add_argument('--no-routes', action='store_true', default=False,
                             dest='no_routes',
                             help=('Do not harvest <route></route> '
@@ -970,7 +982,8 @@ class StationLiteHarvestApp(App):
             self.logger.info(
                 'Processing routes from EIDA node %r.' % node_name)
             try:
-                h = RoutingHarvester(node_name, url_routing_config)
+                h = RoutingHarvester(node_name, url_routing_config,
+                                     services=self.args.services)
 
                 session = Session()
                 # XXX(damb): Maintain sessions within the scope of a
