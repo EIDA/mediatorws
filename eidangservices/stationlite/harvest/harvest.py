@@ -59,9 +59,6 @@ class Harvester:
     class ValidationError(HarvesterError):
         """ValidationError ({})."""
 
-    class InvalidNodeConfiguration(HarvesterError):
-        """DB Node configuration is not valid for node '{}'."""
-
     class RoutingConfigXMLParsingError(HarvesterError):
         """Error while parsing routing configuration ({})."""
 
