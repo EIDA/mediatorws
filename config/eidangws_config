@@ -204,6 +204,15 @@
 #
 # services = station dataselect wfcatalog
 # ----
+# Depending on the restrictedStatus property of channel epochs, force them to
+# use the correct corresponding dataselect method token for restricted access
+# while routing.
+# By default the dataselect query method token is adjusted automatically.
+# (default: False)
+#
+# strict_restricted={True,False}
+# ----
+# no_routes={True,False}
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format

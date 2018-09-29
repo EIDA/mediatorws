@@ -13,7 +13,7 @@ import warnings
 
 import requests
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from fasteners import InterProcessLock
 from lxml import etree
@@ -33,6 +33,18 @@ from eidangservices.utils.request import (binary_request, RequestsError,
                                           NoContent)
 
 
+def get_method_token(url):
+    """
+    Utility function returning the method token from the URL's path.
+
+    :param str url: URL
+    :returns: Method token
+    :retval: str
+    """
+    return urlparse(url).path.split('/')[-1]
+
+
+# ----------------------------------------------------------------------------
 class NothingToDo(Error):
     """Nothing to do."""
 
@@ -121,6 +133,9 @@ class RoutingHarvester(Harvester):
     :param str url_routing_config: URL to :code:`eida-routing`
         :code:`localconfig: configuration files
     :param list services: List of EIDA services to be harvested
+    :param bool force_restricted: Automatically correct the *dataselect* method
+        token for restricted :py:class:`orm.ChannelEpoch` objects
+        (default: :code:`True`)
     """
 
     STATION_TAG = 'station'
@@ -137,6 +152,8 @@ class RoutingHarvester(Harvester):
 
         self._services = kwargs.get(
             'services', settings.EIDA_STATIONLITE_HARVEST_SERVICES)
+        self._force_restricted = kwargs.get(
+            'force_restricted', True)
 
     # __init__ ()
 
@@ -253,23 +270,83 @@ class RoutingHarvester(Harvester):
                     # configure routings
                     for cha_epoch in chas:
 
-                        if inspect(cha_epoch).deleted:
-                            # In case a orm.ChannelEpoch object is marked as
-                            # deleted but harvested within the same harvesting
-                            # run this is a strong hint for an integrity issue
-                            # within the FDSN station InventoryXML.
-                            msg = ('InventoryXML integrity issue for '
-                                   '{0!r}'.format(cha_epoch))
-                            warnings.warn(msg)
-                            self.logger.warning(msg)
+                        try:
+                            if inspect(cha_epoch).deleted:
+                                # In case a orm.ChannelEpoch object is marked
+                                # as deleted but harvested within the same
+                                # harvesting run this is a strong hint for an
+                                # integrity issue within the FDSN station
+                                # InventoryXML.
+                                raise self.IntegrityError(
+                                    'Inventory integrity issue for '
+                                    '{0!r}'.format(cha_epoch))
+
+                            if (('dataselect' == service_tag and not
+                                 self._force_restricted) and
+                                (('open' == cha_epoch.restrictedstatus and
+                                  settings.
+                                  FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN ==
+                                  get_method_token(endpoint.url)) or
+                                 ('closed' == cha_epoch.restrictedstatus and
+                                  settings.FDSN_QUERY_METHOD_TOKEN ==
+                                    get_method_token(endpoint.url)))):
+                                # invalid method token for channel epoch
+                                # specified
+                                raise self.IntegrityError(
+                                    'Inventory integrity issue for {!r}: '
+                                    'restricted_status and query method token '
+                                    'do not match. Skipping.'.format(
+                                        cha_epoch))
+
+                        except self.IntegrityError as err:
+                            warnings.warn(str(err))
+                            self.logger.warning(err)
+                            if session.delete(cha_epoch):
+                                self.logger.warning(
+                                    'Removed {!r} due to integrity '
+                                    'error.'.format(cha_epoch))
                             continue
+
+                        _endpoint = endpoint
+
+                        if (self._force_restricted and
+                                'dataselect' == service_tag):
+
+                            if ('closed' == cha_epoch.restrictedstatus and
+                                settings.FDSN_QUERY_METHOD_TOKEN ==
+                                    get_method_token(_endpoint.url)):
+
+                                fdsn_dataselect_url = urljoin(
+                                    _endpoint.url,
+                                    settings.
+                                    FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN)
+
+                            elif ('open' == cha_epoch.restrictedstatus and
+                                  settings.
+                                  FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN ==
+                                    get_method_token(_endpoint.url)):
+
+                                fdsn_dataselect_url = urljoin(
+                                    _endpoint.url,
+                                    settings.FDSN_QUERY_METHOD_TOKEN)
+
+                            try:
+                                _endpoint = self._emerge_endpoint(
+                                    session, fdsn_dataselect_url, service)
+                            except NameError:
+                                pass
+                            else:
+                                self.logger.debug(
+                                    'Forced query method token adjustment for '
+                                    '{!r}.'.format(cha_epoch))
+                                del fdsn_dataselect_url
 
                         self.logger.debug(
                             'Processing ChannelEpoch<->Endpoint relation '
                             '{}<->{} ...'.format(cha_epoch, endpoint))
 
                         _ = self._emerge_routing(
-                            session, cha_epoch, endpoint, routing_starttime,
+                            session, cha_epoch, _endpoint, routing_starttime,
                             routing_endtime)
 
         # TODO(damb): Show stats for updated/inserted elements
@@ -969,6 +1046,14 @@ class StationLiteHarvestApp(App):
                             help=('Whitespace-separated list of services to '
                                   'be cached. (choices: {%(choices)s}) '
                                   '(default: {%(default)s})'))
+        parser.add_argument('--strict-restricted', action='store_true',
+                            default=False, dest='strict_restricted',
+                            help=('Perform a strict validation of channel '
+                                  'epochs to use the correct '
+                                  'dataselect method token depending on '
+                                  'their restricted status. By default method '
+                                  'tokens are adjusted automatically. '
+                                  '(default: %(default)s)'))
         parser.add_argument('--no-routes', action='store_true', default=False,
                             dest='no_routes',
                             help=('Do not harvest <route></route> '
@@ -1094,8 +1179,10 @@ class StationLiteHarvestApp(App):
             self.logger.info(
                 'Processing routes from EIDA node %r.' % node_name)
             try:
-                h = RoutingHarvester(node_name, url_routing_config,
-                                     services=self.args.services)
+                h = RoutingHarvester(
+                    node_name, url_routing_config,
+                    services=self.args.services,
+                    force_restricted=not self.args.strict_restricted)
 
                 session = Session()
                 # XXX(damb): Maintain sessions within the scope of a
