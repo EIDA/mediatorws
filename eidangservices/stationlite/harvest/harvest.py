@@ -142,8 +142,9 @@ class RoutingHarvester(Harvester):
         """Harvest the routing configuration."""
 
         route_tag = '{}route'.format(self.NS_ROUTINGXML)
-        _cached_services = ['{}{}'.format(self.NS_ROUTINGXML, s)
-                            for s in self._services]
+        _services = ['{}{}'.format(self.NS_ROUTINGXML, s)
+                     for s in self._services]
+
         self.logger.debug('Harvesting routes for %s.' % self.node)
         # event driven parsing
         for event, route_element in etree.iterparse(self.config,
@@ -204,8 +205,7 @@ class RoutingHarvester(Harvester):
                     self.logger.warning(str(err))
                     continue
 
-                # NOTE(damb): currently only consider CACHED_SERVICEs
-                for service_element in route_element.iter(*_cached_services):
+                for service_element in route_element.iter(*_services):
                     # only consider priority=1
                     priority = service_element.get('priority')
                     if not priority or int(priority) != 1:
