@@ -13,6 +13,8 @@ import warnings
 
 import requests
 
+from urllib.parse import urlparse
+
 from fasteners import InterProcessLock
 from lxml import etree
 from obspy import read_inventory, UTCDateTime
@@ -53,6 +55,9 @@ class Harvester:
 
     class HarvesterError(Error):
         """Base harvester error ({})."""
+
+    class ValidationError(HarvesterError):
+        """ValidationError ({})."""
 
     class InvalidNodeConfiguration(HarvesterError):
         """DB Node configuration is not valid for node '{}'."""
@@ -183,6 +188,8 @@ class RoutingHarvester(Harvester):
                 _url_fdsn_station = '{}?{}&level=channel'.format(
                     urls.pop(), query_params)
 
+                self._validate_url_path(_url_fdsn_station, 'station')
+
                 # XXX(damb): For every single route resolve FDSN wildcards
                 # using the route's station service.
                 # XXX(damb): Use the station service's GET method since the
@@ -220,6 +227,8 @@ class RoutingHarvester(Harvester):
                     if not endpoint_url:
                         raise self.RoutingConfigXMLParsingError(
                             "Missing 'address' attrib.")
+
+                    self._validate_url_path(endpoint_url, service_tag)
 
                     service = self._emerge_service(session, service_tag)
                     endpoint = self._emerge_endpoint(session, endpoint_url,
@@ -681,6 +690,37 @@ class RoutingHarvester(Harvester):
         if (epoch.restrictedstatus != restricted_status and
                 restricted_status is not None):
             epoch.restrictedstatus = restricted_status
+
+    @staticmethod
+    def _validate_url_path(url, service):
+        """
+        Validate FDSN/EIDA service URLs.
+
+        :param str url: URL to validate
+        :param str service: Service identifier.
+        :raises Harvester.ValidationError: If the URL path does not match the
+            the service specifications.
+        """
+        p = urlparse(url).path
+
+        if ('station' == service and
+            p == '{}{}'.format(settings.FDSN_STATION_PATH,
+                               settings.FDSN_QUERY_METHOD_TOKEN)):
+            return
+        elif ('dataselect' == service and
+              p in ('{}{}'.format(settings.FDSN_DATASELECT_PATH,
+                                  settings.FDSN_QUERY_METHOD_TOKEN),
+                    '{}{}'.format(
+                        settings.FDSN_DATASELECT_PATH,
+                        settings.FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN))):
+            return
+        elif ('wfcatalog' == service and
+              p == '{}{}'.format(settings.EIDA_WFCATALOG_PATH,
+                                 settings.FDSN_QUERY_METHOD_TOKEN)):
+            return
+
+        raise Harvester.ValidationError(
+            'Invalid path {!r} for URL {!r}.'.format(p, url))
 
 
 class VNetHarvester(Harvester):
