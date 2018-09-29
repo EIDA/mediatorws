@@ -268,7 +268,7 @@ class RoutingHarvester(Harvester):
                             continue
 
                         self.logger.debug(
-                            'Checking ChannelEpoch<->Endpoint relation '
+                            'Processing ChannelEpoch<->Endpoint relation '
                             '{}<->{} ...'.format(cha_epoch, endpoint))
 
                         _ = self._emerge_routing(
@@ -614,10 +614,10 @@ class RoutingHarvester(Harvester):
 
     def _emerge_routing(self, session, cha_epoch, endpoint, start, end):
         """
-        Factory method for a orm.Routing object.
+        Factory method for a :py:class:`orm.Routing` object.
         """
         # check for available, overlapping routing(_epoch)(not identical)
-        # XXX(damb) Overlapping orm.Routing regarding time constraints
+        # XXX(damb): Overlapping orm.Routing regarding time constraints
         # are updated (i.e. implemented as: delete - insert).
         query = session.query(orm.Routing).\
             filter(orm.Routing.endpoint == endpoint).\
