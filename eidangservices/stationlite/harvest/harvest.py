@@ -1192,6 +1192,8 @@ class StationLiteHarvestApp(App):
 
             except RequestsError as err:
                 self.logger.warning(str(err))
+            except Harvester.HarvesterError as err:
+                self.logger.error(str(err))
 
     def _harvest_vnetworks(self, Session):
         """
@@ -1220,6 +1222,8 @@ class StationLiteHarvestApp(App):
 
             except RequestsError as err:
                 self.logger.warning(str(err))
+            except Harvester.HarvesterError as err:
+                self.logger.error(str(err))
 
 
 # ----------------------------------------------------------------------------
