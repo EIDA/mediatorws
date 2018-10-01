@@ -104,5 +104,12 @@ class StationLiteSchema(Schema):
                 data['minlongitude'] >= data['maxlongitude']):
             raise ValidationError('Bad Request: Invalid spatial constraints.')
 
+    @validates_schema
+    def validate_level(self, data, **kwargs):
+        if (data['level'] != 'channel' and data['service'] != 'station'):
+            raise ValidationError(
+                "Bad Request: Invalid 'level' value {!r} for service "
+                "{!r}.".format(data['level'], data['service']))
+
     class Meta:
         strict = True
