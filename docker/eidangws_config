@@ -52,13 +52,13 @@
 # ----
 # Configure where temporary files will be located.
 # 
-# tmpdir=/path/to/tmpdir
+tmpdir=/var/tmp
 # ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
-# path_logging_conf=/path/to/logging.conf
+path_logging_conf=/var/www/mediatorws/config/logging.conf
 #
 # ----------------------------------------------------------------------------
 [CONFIG_STATIONLITE]

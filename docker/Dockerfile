@@ -13,11 +13,13 @@
 # docker exec -it eida-federator /bin/bash
 
 # Base image
-FROM ubuntu:18.04 
+FROM phusion/baseimage:latest
 
 # Add label metadata
 LABEL maintainer="Massimo Fares"
 LABEL email="massimo.fares@ingv.it"
+
+CMD ["/sbin/my_init"]
 
 # System dependencies
 RUN apt-get update && apt-get install -y libxml2-dev \
@@ -35,6 +37,9 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          liblapack-dev \
                                          apache2 \
                                          libapache2-mod-wsgi
+
+# Update pip
+RUN pip install --upgrade pip
 
 # Install the Python dependencies
 RUN pip install numpy obspy
@@ -65,8 +70,20 @@ RUN chmod +r /var/www/mediatorws/apache2/*.wsgi
 # Enable the supplied WSGI modules
 RUN a2ensite federator.conf
 
+# Add the apache2 service
+RUN mkdir /etc/service/apache2
+COPY apache2.sh /etc/service/apache2/run
+RUN chmod +x /etc/service/apache2/run
+
+# Add the harvesting cronjob (once per day)
+RUN (crontab -l ; echo "0 1 * * * python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
+
+RUN mkdir /var/www/mediatorws/log && chown www-data: /var/www/mediatorws/log
+
+COPY logging.conf /var/www/mediatorws/config/logging.conf
+
 # Expose Apache2 default port
 EXPOSE 80
 
-# Run Apache in the foreground
-CMD ["apachectl", "-D", "FOREGROUND"]
+# Clean up
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
