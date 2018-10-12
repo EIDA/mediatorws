@@ -1,4 +1,4 @@
-# Dockerizing EIDA NG Mediator, Federator and StationLite images
+# Dockerizing EIDA NG Federator and StationLite images
 # Following the instructions from:
 #
 # https://github.com/EIDA/mediatorws
@@ -16,8 +16,8 @@
 FROM phusion/baseimage:latest
 
 # Add label metadata
-LABEL maintainer="Massimo Fares"
-LABEL email="massimo.fares@ingv.it"
+LABEL maintainer="Mathijs Koymans"
+LABEL email="koymans@knmi.nl"
 
 CMD ["/sbin/my_init"]
 
@@ -64,26 +64,26 @@ COPY eidangws_config /var/www/mediatorws/config/
 RUN cp db/stationlite.db.empty db/stationlite.db
 
 # Give read permissions
-RUN chmod +r /var/www/mediatorws/config/eidangws_config
-RUN chmod +r /var/www/mediatorws/apache2/*.wsgi
+RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
 
 # Enable the supplied WSGI modules
 RUN a2ensite federator.conf
 
 # Add the apache2 service
-RUN mkdir /etc/service/apache2
-COPY apache2.sh /etc/service/apache2/run
-RUN chmod +x /etc/service/apache2/run
+RUN mkdir /etc/service/apache2 && \
+	echo "#!/bin/sh\nexec apachectl -D FOREGROUND" > /etc/service/apache2/run && \
+	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
 RUN (crontab -l ; echo "0 1 * * * python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
 
 RUN mkdir /var/www/mediatorws/log && chown www-data: /var/www/mediatorws/log
 
+# Add the logging configuration
 COPY logging.conf /var/www/mediatorws/config/logging.conf
 
 # Expose Apache2 default port
 EXPOSE 80
 
-# Clean up
+# Clean up (baseimage recommended)
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

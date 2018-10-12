@@ -3,3 +3,4 @@
 .kdev4/
 *.pyc
 *.swp
+docker/data
