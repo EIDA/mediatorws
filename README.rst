@@ -49,7 +49,7 @@ Installation
 
 * `Development
   <https://github.com/EIDA/mediatorws/tree/master/docs/installing/development.rst>`_
-* `Docker <https://github.com/EIDA/mediatorws/tree/master/docs/docker.rst>`_
+* `Docker <https://github.com/EIDA/mediatorws/tree/master/docs/installing/docker.rst>`_
 
 
 Run the Test WSGI servers
