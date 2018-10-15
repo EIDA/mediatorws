@@ -3,9 +3,11 @@ services:
 
   # Driver for the SeisComP3 database
   federator:
-    image: fedie:1.0 
+    image: eida-federator:1.0 
     restart: always
     volumes:
       - ./data/var/log:/var/www/mediatorws/log
       - ./data/db:/var/www/mediatorws/db
       - ./data/var/tmp:/var/tmp
+    ports:
+      - "8080:80"

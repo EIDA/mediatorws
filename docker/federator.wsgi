@@ -15,7 +15,6 @@ see also:
 
 import sys
 
-"""
 # use a virtual environment
 activate_this = '/var/www/federator/venv/bin/activate_this.py'
 
@@ -26,7 +25,6 @@ except:
   # Python 3
   with open(activate_this) as file_:
       exec(file_.read(), dict(__file__=activate_this))
-"""
 
 # NOTE: In case you would like to place the eidangws_conf file on a custom
 # location comment out the two lines bellow. Also, adjust the path to the

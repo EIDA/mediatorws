@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y libxml2-dev \
 RUN pip install --upgrade pip
 
 # Install the Python dependencies
-RUN pip install numpy obspy
+RUN pip install numpy obspy virtualenv
 
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
@@ -50,6 +50,10 @@ RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
 # Install the services
 WORKDIR /var/www/mediatorws
 RUN make install
+
+# Create the virtual environments
+RUN mkdir /var/www/federator && cd /var/www/federator && virtualenv venv
+RUN mkdir /var/www/stationlite && cd /var/www/stationlite && virtualenv venv
 
 # Copy Apache configuration configuration
 COPY federator.conf /etc/apache2/sites-available/
@@ -80,7 +84,8 @@ RUN (crontab -l ; echo "0 1 * * * python /var/www/mediatorws/eidangservices/stat
 RUN mkdir /var/www/mediatorws/log && chown www-data: /var/www/mediatorws/log
 
 # Add the logging configuration
-COPY logging.conf /var/www/mediatorws/config/logging.conf
+COPY stl-logging.conf /var/www/mediatorws/config/fed-logging.conf
+COPY fed-logging.conf /var/www/mediatorws/config/stl-logging.conf
 
 # Expose Apache2 default port
 EXPOSE 80
