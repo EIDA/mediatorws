@@ -44,7 +44,7 @@ from eidangservices.federator import __version__
 from eidangservices.federator.server.schema import WFCatalogSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
-from eidangservices.utils.httperrors import BadRequestError
+from eidangservices.utils.httperrors import FDSNHTTPError
 from eidangservices.utils.schema import ManyStreamEpochSchema
 
 
@@ -75,7 +75,7 @@ class WFCatalogResource(Resource):
         # sanity check - starttime and endtime must be specified
         if (not stream_epochs or stream_epochs[0].starttime is None or
                 stream_epochs[0].endtime is None):
-            raise BadRequestError(service_id='federator')
+            raise FDSNHTTPError.create(400, service_version=__version__)
 
         self.logger.debug('StreamEpoch objects: %r' % stream_epochs)
 

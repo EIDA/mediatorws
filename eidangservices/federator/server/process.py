@@ -42,6 +42,7 @@ import time
 from flask import current_app, stream_with_context, Response
 
 from eidangservices import utils, settings
+from eidangservices.federator import __version__
 from eidangservices.federator.server.request import (
     RoutingRequestHandler, GranularFdsnRequestHandler)
 from eidangservices.federator.server.task import (
@@ -241,8 +242,7 @@ class RequestProcessor(object):
                     settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
         except RequestsError as err:
             self.logger.error(err)
-            raise FDSNHTTPError.create(
-                500, service_id=settings.EIDA_FEDERATOR_SERVICE_ID)
+            raise FDSNHTTPError.create(500, service_version=__version__)
         else:
             self.logger.debug(
                 'Number of routes received: {}'.format(len(routing_table)))
@@ -259,8 +259,7 @@ class RequestProcessor(object):
             'Handle endpoint HTTP status code 413 (url={}, '
             'stream_epochs={}).'.format(result.data.url,
                                         result.data.stream_epochs))
-        raise FDSNHTTPError.create(
-            413, service_id=settings.EIDA_FEDERATOR_SERVICE_ID)
+        raise FDSNHTTPError.create(413, service_version=__version__)
 
     # _handle_413 ()
 
