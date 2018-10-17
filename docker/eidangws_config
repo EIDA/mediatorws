@@ -150,7 +150,7 @@ path_logging_conf=/var/www/mediatorws/config/stl-logging.conf
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
-#path_logging_conf=/var/www/mediatorws/config/logging.conf
+path_logging_conf=/var/www/mediatorws/config/harvest-logging.conf
 # ----
 # DB URL indicating the database dialect and the connection arguments.
 # See also:

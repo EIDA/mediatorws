@@ -44,3 +44,35 @@ a working *stationlite* service invoke
   /var/www/stationlite/venv3/bin/eida-stationlite-harvest sqlite:////var/www/stationlite/db/stationlite.db
 
 Harvesting may take some time.
+
+**Building**:
+
+To construct a Docker image with the appropriate configuration it is recommended to build your image from a Dockerfile. Change in to the docker directory and build the image
+
+.. code::
+
+  $ cd docker
+  $ docker build -t eida-federtor:1.0 .
+
+  # Create persistent directories (make sure there is plenty of disk space)
+  # These will need to be configured in docker-compose.yml (see below)
+  $ mkdir -p <archive>/db
+  $ mkdir -p <archive>/var/log
+  $ mkdir -p <archive>/var/tmp
+
+  # Add a persistent file for stationlite sqlite to the mounted volume
+  $ cp ../db/stationlite.db.empty <archive>/db/stationlite.db
+
+**Running**:
+
+The container can be run using the provided `docker-compose.yml` configuration. Make sure that the appropriate data volumes are mounted to make sure the stationlite database, log files, and temporary data files are persistent.
+
+.. code::
+
+  $ docker-compose up
+
+  # When running for the first time we will kickstart the harvesting for stationlite
+  # This will automatically run in a daily cronjob
+  $ docker exec <container_name> python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db
+
+After that the Federator should work.

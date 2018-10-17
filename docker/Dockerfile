@@ -84,6 +84,7 @@ RUN mkdir -p /var/tmp/ && chown www-data:www-data /var/tmp/
 # Add the logging configuration
 COPY fed-logging.conf /var/www/mediatorws/config/fed-logging.conf
 COPY stl-logging.conf /var/www/mediatorws/config/stl-logging.conf
+COPY harvest-logging.conf /var/www/mediatorws/config/harvest-logging.conf
 
 # Expose Apache2 default port
 EXPOSE 80

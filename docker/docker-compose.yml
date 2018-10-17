@@ -4,8 +4,8 @@ services:
     image: eida-federator:1.0 
     restart: always
     volumes:
-      - ./data/var/log:/var/www/mediatorws/log
-      - ./data/db:/var/www/mediatorws/db
-      - ./data/var/tmp:/var/tmp
+      - ./archive/var/log:/var/www/mediatorws/log
+      - ./archive/db:/var/www/mediatorws/db
+      - ./archive/var/tmp:/var/tmp
     ports:
       - "8080:80"
