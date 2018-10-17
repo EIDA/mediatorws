@@ -1,7 +1,5 @@
 version: '3.3'
 services:
-
-  # Driver for the SeisComP3 database
   federator:
     image: eida-federator:1.0 
     restart: always

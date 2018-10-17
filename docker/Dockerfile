@@ -24,7 +24,7 @@ CMD ["/sbin/my_init"]
 # System dependencies
 RUN apt-get update && apt-get install -y libxml2-dev \
                                          libxslt-dev \
-                                         python-dev \
+                                         python3-dev \
                                          git \
                                          build-essential \
                                          python-setuptools \
@@ -36,24 +36,23 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          libblas-dev \
                                          liblapack-dev \
                                          apache2 \
-                                         libapache2-mod-wsgi
+                                         libapache2-mod-wsgi-py3
 
 # Update pip
 RUN pip install --upgrade pip
 
 # Install the Python dependencies
-RUN pip install numpy obspy virtualenv
+RUN pip install virtualenv
 
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
 
 # Install the services
 WORKDIR /var/www/mediatorws
-RUN make install
 
 # Create the virtual environments
-RUN mkdir /var/www/federator && cd /var/www/federator && virtualenv venv
-RUN mkdir /var/www/stationlite && cd /var/www/stationlite && virtualenv venv
+RUN mkdir /var/www/federator && cd /var/www/federator && virtualenv -p $(which python3.5) venv3 && /bin/bash -c "source /var/www/federator/venv3/bin/activate && make -C /var/www/mediatorws install SERVICES=federator && deactivate"
+RUN mkdir /var/www/stationlite && cd /var/www/stationlite && virtualenv -p $(which python3.5) venv3 && /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
 
 # Copy Apache configuration configuration
 COPY federator.conf /etc/apache2/sites-available/
@@ -63,9 +62,6 @@ COPY *.wsgi /var/www/mediatorws/apache2/
 
 # The default configuration
 COPY eidangws_config /var/www/mediatorws/config/
-
-# Copy an empty stationlite database
-RUN cp db/stationlite.db.empty db/stationlite.db
 
 # Give read permissions
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
@@ -81,11 +77,13 @@ RUN mkdir /etc/service/apache2 && \
 # Add the harvesting cronjob (once per day)
 RUN (crontab -l ; echo "0 1 * * * python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
 
-RUN mkdir /var/www/mediatorws/log && chown www-data: /var/www/mediatorws/log
+RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
+RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
+RUN mkdir -p /var/tmp/ && chown www-data:www-data /var/tmp/
 
 # Add the logging configuration
-COPY stl-logging.conf /var/www/mediatorws/config/fed-logging.conf
-COPY fed-logging.conf /var/www/mediatorws/config/stl-logging.conf
+COPY fed-logging.conf /var/www/mediatorws/config/fed-logging.conf
+COPY stl-logging.conf /var/www/mediatorws/config/stl-logging.conf
 
 # Expose Apache2 default port
 EXPOSE 80
