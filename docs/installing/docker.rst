@@ -52,7 +52,7 @@ To construct a Docker image with the appropriate configuration it is recommended
 .. code::
 
   $ cd docker
-  $ docker build -t eida-federtor:1.0 .
+  $ docker build -t eida-federator:1.0 .
 
   # Create persistent directories (make sure there is plenty of disk space)
   # These will need to be configured in docker-compose.yml (see below)

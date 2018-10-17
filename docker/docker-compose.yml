@@ -3,9 +3,10 @@ services:
   federator:
     image: eida-federator:1.0 
     restart: always
+    # Change the host volumes to match your save directory (e.g. ./archive) host:container
     volumes:
       - ./archive/var/log:/var/www/mediatorws/log
-      - ./archive/db:/var/www/mediatorws/db
       - ./archive/var/tmp:/var/tmp
+      - ./archive/db:/var/www/mediatorws/db
     ports:
       - "8080:80"
