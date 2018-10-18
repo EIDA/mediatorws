@@ -54,18 +54,9 @@ To construct a Docker image with the appropriate configuration it is recommended
   $ cd docker
   $ docker build -t eida-federator:1.0 .
 
-  # Create persistent directories (make sure there is plenty of disk space)
-  # These will need to be configured in docker-compose.yml (see below)
-  $ mkdir -p <archive>/db
-  $ mkdir -p <archive>/var/log
-  $ mkdir -p <archive>/var/tmp
-
-  # Add a persistent file for stationlite sqlite to the mounted volume
-  $ cp ../db/stationlite.db.empty <archive>/db/stationlite.db
-
 **Running**:
 
-The container can be run using the provided `docker-compose.yml` configuration. Make sure that the appropriate data volumes are mounted to make sure the stationlite database, log files, and temporary data files are persistent.
+The container should be run using the provided `docker-compose.yml` configuration. 
 
 .. code::
 
@@ -73,6 +64,6 @@ The container can be run using the provided `docker-compose.yml` configuration. 
 
   # When running for the first time we will kickstart the harvesting for stationlite
   # This will automatically run in a daily cronjob
-  $ docker exec <container_name> python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db
+  $ docker exec <container_name> source /var/www/stationlite/venv3/bin/activate && python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db
 
-After that the Federator should work.
+Synchronization may take some time, but after its completion the Federator should be up and running.
