@@ -41,9 +41,6 @@ configuration file.
 
   $ docker-compose up -d
 
-+<https://docs.docker.com/storage/volumes/>`_ managed by the Docker engine. Make
-+sure there is plenty of disk space.
-
 The container should be run using the provided :code:`docker-compose.yml` configuration. 
 When deploying for the first time you have to kickstart the harvesting for
 *stationlite*:
