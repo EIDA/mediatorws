@@ -20,7 +20,7 @@ versions of Windows) and on how to install Docker, please refer to the official
   service is installed into its own virtual environment
 * services use Python3
 * *stationlite* harvesting via :code:`cron`
-  logging (file based)
+* logging (file based)
 
 **Building**:
 
@@ -39,19 +39,17 @@ configuration file.
 
 .. code::
 
-  $ docker compose up -d
+  $ docker-compose up -d
 
-+Data is stored persistently on `volumes
 +<https://docs.docker.com/storage/volumes/>`_ managed by the Docker engine. Make
 +sure there is plenty of disk space.
 
-The container should be run using the provided `docker-compose.yml` configuration. 
+The container should be run using the provided :code:`docker-compose.yml` configuration. 
 When deploying for the first time you have to kickstart the harvesting for
 *stationlite*:
 
 .. code::
 
-  $ docker-compose up
   $ docker exec <container_name> \
       /var/www/stationlite/venv3/bin/eida-stationlite-harvest \
       sqlite:////var/www/mediatorws/db/stationlite.db
