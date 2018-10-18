@@ -7,7 +7,7 @@
 # docker build -t eida-federator:1.0 .
 #
 # Run Container:
-# docker run [-d] [--rm] [--name eida-federator] -p 8080:80 eidang_federator:1.0
+# docker run [-d] [--rm] [--name eida-federator] -p 8080:80 eida-federator:1.0
 #
 # Modify running container:
 # docker exec -it eida-federator /bin/bash
@@ -63,6 +63,9 @@ COPY *.wsgi /var/www/mediatorws/apache2/
 # The default configuration
 COPY eidangws_config /var/www/mediatorws/config/
 
+# Create an empty stationlite.db from template
+RUN cp -v db/stationlite.db.empty db/stationlite.db
+
 # Give read permissions
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
 
@@ -75,7 +78,7 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-RUN (crontab -l ; echo "0 1 * * * python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
+RUN (crontab -l ; echo "0 1 * * * source /var/www/stationlite/venv3/bin/activate && python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
