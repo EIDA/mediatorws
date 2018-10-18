@@ -51,8 +51,15 @@ RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
 WORKDIR /var/www/mediatorws
 
 # Create the virtual environments
-RUN mkdir /var/www/federator && cd /var/www/federator && virtualenv -p $(which python3.5) venv3 && /bin/bash -c "source /var/www/federator/venv3/bin/activate && make -C /var/www/mediatorws install SERVICES=federator && deactivate"
-RUN mkdir /var/www/stationlite && cd /var/www/stationlite && virtualenv -p $(which python3.5) venv3 && /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
+RUN mkdir /var/www/federator && cd /var/www/federator && \
+    virtualenv -p $(which python3.5) venv3 && \
+    /bin/bash -c "source /var/www/federator/venv3/bin/activate && \
+    make -C /var/www/mediatorws install SERVICES=federator && deactivate"
+
+RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
+    virtualenv -p $(which python3.5) venv3 && \
+    /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
+    make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
 
 # Copy Apache configuration configuration
 COPY federator.conf /etc/apache2/sites-available/
@@ -78,7 +85,9 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-RUN (crontab -l ; echo "0 1 * * * source /var/www/stationlite/venv3/bin/activate && python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
+RUN (crontab -l ; echo "0 1 * * * source /var/www/stationlite/venv3/bin/activate && \
+     python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py \
+     sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
