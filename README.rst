@@ -77,9 +77,8 @@ For further configuration options invoke
 
   (venv) $ eida-federator -h
 
-The service currently writes temporary files to the :code:`tmpdir`, so this directory will
-fill up. It is recommended to purge this directory regularly, e.g., using a
-tool like `tmpreaper`.
+The service currently writes temporary files to the :code:`tmpdir`. Make sure
+that plenty of space is available.
 
 StationLite server
 ------------------
@@ -90,7 +89,7 @@ To launch a local test WSGI server (**NOT** for production environments) enter:
 
   (venv) $ eida-stationlite --start-local URL
 
-`URL` is a database url as described at the `SQLAlchemy documentation
+:code:`URL` is a database url as described at the `SQLAlchemy documentation
 <http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
 For further configuration options invoke
 
@@ -98,8 +97,8 @@ For further configuration options invoke
 
   (venv) $ eida-stationlite -h
 
-Mediator server
----------------
+Mediator server (deprecated)
+----------------------------
 
 .. note::
 
@@ -122,18 +121,18 @@ StationLite harvesting
 ======================
 
 The *stationlite* webservice data is stored in a database which periodically
-must be harvested. This is done with `eida-stationlite-harvest`. By means of
-the *eidaws-routing* configuration files and the *fdsnws-station* webservice
-`eida-stationlite-harvest` collects and updates the database. Information on
-how to use `eida-stationlite-harvest` is available with
+must be harvested. This is done with :code:`eida-stationlite-harvest`. By means
+of the *eidaws-routing* configuration files and the *fdsnws-station* webservice
+:code:`eida-stationlite-harvest` collects and updates the database. Information
+on how to use :code:`eida-stationlite-harvest` is available with
 
 .. code::
 
   (venv) $ eida-stationlite-harvest -h
 
 In addition the software suite contains an empty exemplary preconfigured
-*SQLite* database (`db/stationlite.db.empty`) which must be filled initially
-after installing the *stationlite* webservice. I.e.
+*SQLite* database (:code:`db/stationlite.db.empty`) which must be filled
+initially after installing the *stationlite* webservice. I.e.
 
 .. code::
 
@@ -171,7 +170,8 @@ set up:
   fallback_handler.setFormatter(fallback_formatter)
 
 An exemplary logging configuration using a SysLogHandler is located at
-:code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/syslog.conf`. At :code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/logging.config` a
+:code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/syslog.conf`. At
+:code:`$PATH_INSTALLATION_DIRECTORY/mediatorws/config/logging.config` a
 `StreamHandler
 <https://docs.python.org/library/logging.handlers.html#streamhandler>`_ is
 configured.
@@ -195,8 +195,7 @@ configured.
 Missing features and limitations
 ================================
 
-* The **/queryauth** route of the `fdsnws-dataselect` service is not yet
-  implemented
+* AAI of the *fdsnws-dataselect* service is not implemented yet
 * *stationlite* currently implements the *eidaws-routing* interface only partly
-  (e.g. `format={post,get}`)
+  (e.g. :code:`format={post,get}`)
 * For issues also visit https://github.com/EIDA/mediatorws/issues.
