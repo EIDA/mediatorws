@@ -15,8 +15,8 @@ services of EIDA NG: (i) the *federator*, (ii) *stationlite* and (iii) the
 **Federator**: Federate *fdsnws-station*, *fdsnws-dataselect*, and 
 *eidaws-wfcatalog* requests across all EIDA nodes. This means, a user can issue 
 a request against a *federator* endpoint without having to know where the data
-is hosted. In order to discover the information location, either the
-*eidaws-routing* or the *eidaws-stationlite* web service is used.
+is hosted. In order to discover the information location the
+*eidaws-stationlite* web service is used.
 
 **StationLite**: A lightweight *fdsnws-station* web service providing routing
 information. The stream epoch information is returned fully resolved (Stream
