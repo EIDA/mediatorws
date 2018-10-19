@@ -1,5 +1,5 @@
-Deploying the EIDA NG webservice Docker container
-=================================================
+Deploying the EIDA NG Federator as a Docker container
+=====================================================
 
 .. note::
 
@@ -34,15 +34,14 @@ change into the :code:`docker/` directory and build the image:
 
 **Deployment**:
 
-The container can be run using the provided :code:`docker-compose.yml`
+The container should be run using the provided :code:`docker-compose.yml`
 configuration file.
 
 .. code::
 
   $ docker-compose up -d
 
-The container should be run using the provided :code:`docker-compose.yml` configuration. 
-When deploying for the first time you have to kickstart the harvesting for
+When deploying for the first time you are required to kickstart the harvesting for
 *stationlite*:
 
 .. code::
@@ -51,5 +50,5 @@ When deploying for the first time you have to kickstart the harvesting for
       /var/www/stationlite/venv3/bin/eida-stationlite-harvest \
       sqlite:////var/www/mediatorws/db/stationlite.db
 
-The initial harvesting may take some time. In future it is run by a daily cronjob.
-Now, the services are available under :code:`http://localhost:8080`.
+The initial harvesting may take some time. In the future it will be run by a daily cronjob.
+The services are now available under :code:`http://localhost:8080`.
