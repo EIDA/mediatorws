@@ -1,0 +1,28 @@
+version: '3.3'
+services:
+  federator:
+    image: eida-federator:1.0 
+    restart: always
+    volumes:
+      - type: volume
+        source: mediatorws_log
+        target: /var/www/mediatorws/log
+        volume:
+          nocopy: false
+      - type: volume
+        source: mediatorws_tmp
+        target: /var/tmp
+        volume:
+          nocopy: false
+      - type: volume
+        source: stationlite_data
+        target: /var/www/mediatorws/db
+        volume:
+          nocopy: false
+    ports:
+      - "8080:80"
+
+volumes:
+  mediatorws_log:
+  mediatorws_tmp:
+  stationlite_data:
