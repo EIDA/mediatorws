@@ -151,14 +151,14 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
                           orm.Routing.starttime,
                           orm.Routing.endtime,
                           orm.Endpoint.url).\
-        join(orm.Routing).\
-        join(orm.Endpoint).\
+        join(orm.Routing,
+             orm.Routing.channel_epoch_ref == orm.ChannelEpoch.oid).\
+        join(orm.Endpoint,
+             orm.Routing.endpoint_ref == orm.Endpoint.oid).\
         join(orm.Service).\
         join(orm.Network).\
         join(orm.Station).\
         join(orm.StationEpoch).\
-        filter((orm.Routing.channel_epoch_ref == orm.ChannelEpoch.oid) &
-               (orm.Routing.endpoint_ref == orm.Endpoint.oid)).\
         filter(orm.Network.name.like(sql_stream_epoch.network,
                                      escape=like_escape)).\
         filter(orm.Station.name.like(sta, escape=like_escape)).\
