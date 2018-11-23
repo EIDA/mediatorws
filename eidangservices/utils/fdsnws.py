@@ -235,7 +235,8 @@ def register_parser_errorhandler(service_version):
         """
         configure webargs error handler
         """
-        raise FDSNHTTPError.create(400, service_version=service_version)
+        raise FDSNHTTPError.create(400, service_version=service_version,
+                                   error_desc_long=str(err))
 
     return handle_parser_error
 
