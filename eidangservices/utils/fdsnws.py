@@ -119,16 +119,7 @@ class FDSNWSParser(FlaskParser):
         See also:
         http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf
         """
-
-        buf = req.stream.read()
-        if buf or req.stream.tell() == 0:
-            req.data = buf
-
-        if isinstance(req.data, bytes):
-            req.data = req.data.decode('utf-8')
-
-        # convert buffer into list
-        req_buffer = req.data.split("\n")
+        req_buffer = self._get_data(req).split('\n')
 
         param_dict = {'stream_epochs': []}
 
@@ -159,6 +150,34 @@ class FDSNWSParser(FlaskParser):
         return webargs.core.get_value(param_dict, name, field)
 
     # parse_form ()
+
+    def _get_data(self, req, as_text=True,
+                  max_content_length=settings.MAX_POST_CONTENT_LENGTH):
+        """
+        Savely reads the buffered incoming data from the client.
+
+        :param req: Request the raw data is read from
+        :type req: :py:class:`flask.Request`
+        :param bool as_text: If set to :code:`True` the return value will be a
+            decoded unicode string.
+        :param int max_content_length: Max bytes accepted
+
+        :returns: Byte string or rather unicode string, respectively. Depending
+            on the :code:`as_text` parameter.
+        """
+        if req.content_length > max_content_length:
+            err = webargs.WebargsError(
+                "Request too large: {} bytes > {} bytes ".format(
+                    req.content_length, max_content_length))
+
+            if self.error_callback:
+                self.error_callback(err, req)
+            else:
+                self.handle_error(err, req)
+
+        return req.get_data(cache=True, as_text=as_text)
+
+    # _get_data ()
 
 # class FDSNWSParser
 

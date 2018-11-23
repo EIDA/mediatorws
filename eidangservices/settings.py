@@ -556,6 +556,9 @@ STATIONXML_ELEMENT_NETWORK = 'Network'
 STATIONXML_ELEMENT_STATION = 'Station'
 STATIONXML_ELEMENT_CHANNEL = 'Channel'
 
+# max bytes allowed for post requests
+MAX_POST_CONTENT_LENGTH = 1024*1024
+
 # -----------------------------------------------------------------------------
 # Federator configuration parameters
 

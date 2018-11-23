@@ -34,7 +34,6 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import datetime
-import io
 import unittest
 
 import flask # noqa
@@ -60,7 +59,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
         class Meta:
             strict = True
 
-    # class TestŜchema
+    # class TestSchema
 
     @mock.patch('flask.request')
     def test_get_single(self, mock_request):
@@ -193,9 +192,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_post_single(self, mock_request):
+        test_str = b"f=value\nNL HGN ?? * 2013-10-10 2013-10-11"
         mock_request.method = 'POST'
-        mock_request.stream = io.StringIO(
-            "f=value\nNL HGN ?? * 2013-10-10 2013-10-11")
+        mock_request.content_length = len(test_str)
+        mock_request.get_data.return_value = test_str.decode('utf-8')
 
         reference_sncls = [sncl.StreamEpoch.from_sncl(
             network='NL',
@@ -217,10 +217,11 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_post_multiple(self, mock_request):
+        test_str = (b"f=value\nNL HGN ?? * 2013-10-10 2013-10-11\n"
+                    b"GR BFO * * 2017-01-01 2017-01-31")
         mock_request.method = 'POST'
-        mock_request.stream = io.StringIO(
-            "f=value\nNL HGN ?? * 2013-10-10 2013-10-11\n"
-            "GR BFO * * 2017-01-01 2017-01-31")
+        mock_request.content_length = len(test_str)
+        mock_request.get_data.return_value = test_str.decode('utf-8')
 
         reference_sncls = [sncl.StreamEpoch.from_sncl(
             network='NL',
@@ -250,8 +251,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_post_empty(self, mock_request):
+        test_str = b""
         mock_request.method = 'POST'
-        mock_request.stream = io.StringIO("")
+        mock_request.content_length = len(test_str)
+        mock_request.get_data.return_value = test_str.decode('utf-8')
 
         with self.assertRaises(HTTPException):
             fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
@@ -263,8 +266,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_post_missing(self, mock_request):
+        test_str = b"f=value\n"
         mock_request.method = 'POST'
-        mock_request.stream = io.StringIO("f=value\n")
+        mock_request.content_length = len(test_str)
+        mock_request.get_data.return_value = test_str.decode('utf-8')
 
         test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
                                                locations=('form',))
@@ -279,9 +284,10 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     @mock.patch('flask.Request')
     def test_post_invalid(self, mock_request):
+        test_str = b"f=value\nNL HGN * 2013-10-10 2013-10-11"
         mock_request.method = 'POST'
-        mock_request.stream = io.StringIO(
-            "f=value\nNL HGN * 2013-10-10 2013-10-11")
+        mock_request.content_length = len(test_str)
+        mock_request.get_data.return_value = test_str.decode('utf-8')
 
         test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
                                                locations=('form',))
