@@ -116,16 +116,19 @@ class FDSNHTTPError(Exception):
 
     # create
 
-    def __init__(self, documentation_uri=None, service_version=None):
+    def __init__(self, documentation_uri=None, service_version=None,
+                 error_desc_long=None):
         super().__init__()
 
         self.documentation_uri = (documentation_uri if documentation_uri else
                                   self.DOCUMENTATION_URI)
         self.service_version = (service_version if service_version else
                                 self.SERVICE_VERSION)
+        self.error_desc_long = (error_desc_long if error_desc_long else
+                                self.error_desc_short)
 
         self.description = get_error_message(
-            self.code, self.error_desc_short, self.error_desc_short,
+            self.code, self.error_desc_short, self.error_desc_long,
             self.documentation_uri, request.url,
             g.request_start_time.isoformat(),
             self.service_version)
