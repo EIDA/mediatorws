@@ -44,14 +44,151 @@ from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
 from eidangservices.utils import fdsnws, schema, sncl
-
 try:
     import mock
 except ImportError:
     import unittest.mock as mock
 
+
 # -----------------------------------------------------------------------------
-class FDSNWSParserTestCase(unittest.TestCase):
+class FDSNWSParserMixinTestCase(unittest.TestCase):
+
+    def test_parse_dict_single(self):
+        arg_dict = MultiDict({'f': 'value',
+                              'net': 'CH',
+                              'sta': 'DAVOX',
+                              'start': '2017-01-01',
+                              'end': '2017-01-07'})
+
+        reference_result = [{
+            'net': 'CH',
+            'sta': 'DAVOX',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}]
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_streamepochs_from_argdict(arg_dict)
+
+        self.assertEqual(test_dict['stream_epochs'], reference_result)
+
+    # test_parse_dict_single ()
+
+    def test_parse_dict_multiple(self):
+        arg_dict = MultiDict({'f': 'value',
+                              'net': 'CH',
+                              'sta': 'DAVOX,BALST',
+                              'start': '2017-01-01',
+                              'end': '2017-01-07'})
+
+        reference_result = [{
+            'net': 'CH',
+            'sta': 'DAVOX',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}, {
+            'net': 'CH',
+            'sta': 'BALST',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}]
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_streamepochs_from_argdict(arg_dict)
+
+        self.assertEqual(test_dict['stream_epochs'], reference_result)
+
+    # test_parse_dict_multiple ()
+
+    def test_postfile_single(self):
+        postfile = "f=value\nNL HGN ?? * 2013-10-10 2013-10-11"
+
+        reference_result = {
+            'f': 'value',
+            'stream_epochs': [{
+                'net': 'NL',
+                'sta': 'HGN',
+                'loc': '??',
+                'cha': '*',
+                'start': '2013-10-10',
+                'end': '2013-10-11'}]}
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_dict, reference_result)
+
+    # test_postfile_single ()
+
+    def test_postfile_multiple(self):
+        postfile = ("f=value\n"
+                    "CH DAVOX * * 2017-01-01 2017-01-07\n"
+                    "CH BALST * * 2017-01-01 2017-01-07")
+
+        reference_result = {
+            'f': 'value',
+            'stream_epochs': [{
+                'net': 'CH',
+                'sta': 'DAVOX',
+                'loc': '*',
+                'cha': '*',
+                'start': '2017-01-01',
+                'end': '2017-01-07'}, {
+                'net': 'CH',
+                'sta': 'BALST',
+                'loc': '*',
+                'cha': '*',
+                'start': '2017-01-01',
+                'end': '2017-01-07'}]}
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_dict, reference_result)
+
+    # test_postfile_multiple ()
+
+    def test_postfile_invalid(self):
+        postfile = "f=value\nNL HGN * 2013-10-10 2013-10-11"
+
+        reference_result = {
+            'f': 'value',
+            'stream_epochs': []}
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_dict, reference_result)
+
+    # test_postfile_invalid ()
+
+    def test_postfile_empty(self):
+        postfile = ''
+        reference_result = {'stream_epochs': []}
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_dict, reference_result)
+
+    # test_postfile_empty ()
+
+    def test_postfile_equal(self):
+        postfile = '='
+        reference_result = {'stream_epochs': []}
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_dict, reference_result)
+
+    # test_postfile_equal ()
+
+# class FDSNWSParserMixinTestCase
+
+
+class FDSNWSFlaskParserTestCase(unittest.TestCase):
 
     class TestSchema(ma.Schema):
         f = ma.fields.Str()
@@ -300,7 +437,7 @@ class FDSNWSParserTestCase(unittest.TestCase):
 
     # test_post_invalid ()
 
-# class FDSNWSParserTestCase
+# class FDSNWSFlaskParserTestCase
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__': # noqa

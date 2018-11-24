@@ -47,30 +47,38 @@ from eidangservices.utils.httperrors import FDSNHTTPError
 
 
 # -----------------------------------------------------------------------------
-class FDSNWSParser(FlaskParser):
+class FDSNWSParserMixin(object):
     """
-    FDSNWS parser providing enhanced SNCL parsing facilities. The parser was
-    implemented following the instructions from the `webargs documentation
-    <https://webargs.readthedocs.io/en/latest/advanced.html#custom-parsers>`_.
+    Mixin providing additional FDSNWS specific parsing facilities for `webargs
+    https://webargs.readthedocs.io/en/latest/`_ parsers.
     """
 
-    def parse_querystring(self, req, name, field):
+    @staticmethod
+    def _parse_streamepochs_from_argdict(arg_dict):
         """
-        Parse SNCL arguments from :code:`req.args`.
+        Parse stream epoch (i.e. :code:`network`, :code:`net`, :code:`station`,
+        :code:`sta`, :code:`location`, :code:`loc`, :code:`channel:,
+        :code:`cha`, :code:`starttime`, :code:`start`, :code:`endtime` and
+        :code:`end`)related parameters from a dictionary like structure.
 
-        :param req: Request object to be parsed
-        :type req: :py:class:`flask.Request`
+        :param dict arg_dict: Dictionary like structure to be parsed
+
+        :returns: Dictionary with parsed stream epochs
+        :rtype: dict
+
+        Keys automatically are merged. If necessary, parameters are
+        demultiplexed.
         """
         def _get_values(keys, raw=False):
             """
-            Look up keys in :code:`req.args`
+            Look up :code:`keys` in :code:`arg_dict`.
 
             :param keys: an iterable with keys to look up
             :param bool raw: return the raw value if True - else the value is
-            splitted
+                splitted i.e. a list is returned
             """
             for key in keys:
-                val = req.args.get(key)
+                val = arg_dict.get(key)
                 if val:
                     if not raw:
                         return val.split(
@@ -102,9 +110,70 @@ class FDSNWSParser(FlaskParser):
             for stream_epoch_dict in stream_epochs:
                 stream_epoch_dict['end'] = endtime
 
-        args = {'stream_epochs': stream_epochs}
+        return {'stream_epochs': stream_epochs}
 
-        return webargs.core.get_value(args, name, field)
+    # _parse_streamepochs_from_argdict ()
+
+    @staticmethod
+    def _parse_postfile(postfile):
+        """
+        Parse a FDSNWS formatted POST request file.
+
+        :param str postfile: Postfile content
+
+        :returns: Dictionary with parsed parameters.
+        :rtype: dict
+        """
+        retval = {'stream_epochs': []}
+
+        for line in postfile.split('\n'):
+            check_param = line.split(
+                settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
+            if (len(check_param) == 2 and not
+                    all(not v.strip() for v in check_param)):
+
+                # add query params
+                retval[check_param[0].strip()] = check_param[1].strip()
+                # self.logger.debug('Query parameter: %s' % check_param)
+            elif len(check_param) == 1:
+                # parse StreamEpoch
+                stream_epoch = line.split()
+                if len(stream_epoch) == 6:
+                    stream_epoch = {
+                        'net': stream_epoch[0],
+                        'sta': stream_epoch[1],
+                        'loc': stream_epoch[2],
+                        'cha': stream_epoch[3],
+                        'start': stream_epoch[4],
+                        'end': stream_epoch[5]}
+                    retval['stream_epochs'].append(stream_epoch)
+            else:
+                # self.logger.warn("Ignoring illegal POST line: %s" % line)
+                continue
+
+        return retval
+
+    # _parse_postfile ()
+
+# class FDSNWSParserMixin
+
+
+class FDSNWSFlaskParser(FDSNWSParserMixin, FlaskParser):
+    """
+    FDSNWS parser providing enhanced SNCL parsing facilities. The parser was
+    implemented following the instructions from the `webargs documentation
+    <https://webargs.readthedocs.io/en/latest/advanced.html#custom-parsers>`_.
+    """
+
+    def parse_querystring(self, req, name, field):
+        """
+        Parse SNCL arguments from :code:`req.args`.
+
+        :param req: Request object to be parsed
+        :type req: :py:class:`flask.Request`
+        """
+        return webargs.core.get_value(
+            self._parse_streamepochs_from_argdict(req.args), name, field)
 
     # parse_querystring ()
 
@@ -119,35 +188,8 @@ class FDSNWSParser(FlaskParser):
         See also:
         http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf
         """
-        req_buffer = self._get_data(req).split('\n')
-
-        param_dict = {'stream_epochs': []}
-
-        for line in req_buffer:
-            check_param = line.split(
-                settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
-            if len(check_param) == 2:
-
-                # add query params
-                param_dict[check_param[0].strip()] = check_param[1].strip()
-                # self.logger.debug('Query parameter: %s' % check_param)
-            elif len(check_param) == 1:
-                # parse StreamEpoch
-                stream_epoch = line.split()
-                if len(stream_epoch) == 6:
-                    stream_epoch = {
-                        'net': stream_epoch[0],
-                        'sta': stream_epoch[1],
-                        'loc': stream_epoch[2],
-                        'cha': stream_epoch[3],
-                        'start': stream_epoch[4],
-                        'end': stream_epoch[5]}
-                    param_dict['stream_epochs'].append(stream_epoch)
-            else:
-                # self.logger.warn("Ignoring illegal POST line: %s" % line)
-                continue
-
-        return webargs.core.get_value(param_dict, name, field)
+        return webargs.core.get_value(
+            self._parse_postfile(self._get_data(req)), name, field)
 
     # parse_form ()
 
@@ -179,10 +221,10 @@ class FDSNWSParser(FlaskParser):
 
     # _get_data ()
 
-# class FDSNWSParser
+# class FDSNWSFlaskParser
 
 
-fdsnws_parser = FDSNWSParser()
+fdsnws_parser = FDSNWSFlaskParser()
 use_fdsnws_args = fdsnws_parser.use_args
 use_fdsnws_kwargs = fdsnws_parser.use_kwargs
 
