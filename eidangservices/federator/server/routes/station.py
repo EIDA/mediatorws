@@ -40,7 +40,9 @@ from eidangservices.federator import __version__
 from eidangservices.federator.server.schema import StationSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
-from eidangservices.utils.schema import ManyStreamEpochSchema
+from eidangservices.utils.strict import with_strict_args
+from eidangservices.utils.schema import (ManyStreamEpochSchema,
+                                         StreamEpochSchema)
 
 
 class StationResource(Resource):
@@ -54,6 +56,10 @@ class StationResource(Resource):
     @use_args(StationSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('query',)
+    )
+    @with_strict_args(
+        (StreamEpochSchema(), StationSchema()),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -77,6 +83,10 @@ class StationResource(Resource):
     @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('form',)
+    )
+    @with_strict_args(
+        (StreamEpochSchema(), StationSchema()),
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)

@@ -44,7 +44,9 @@ from eidangservices.federator import __version__
 from eidangservices.federator.server.schema import DataselectSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
-from eidangservices.utils.schema import ManyStreamEpochSchema
+from eidangservices.utils.strict import with_strict_args
+from eidangservices.utils.schema import (ManyStreamEpochSchema,
+                                         StreamEpochSchema)
 
 
 class DataselectResource(Resource):
@@ -60,6 +62,10 @@ class DataselectResource(Resource):
     @use_args(DataselectSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('query',)
+    )
+    @with_strict_args(
+        (DataselectSchema(), StreamEpochSchema()),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -83,6 +89,10 @@ class DataselectResource(Resource):
     @fdsnws.use_fdsnws_args(DataselectSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('form',)
+    )
+    @with_strict_args(
+        (DataselectSchema(), StreamEpochSchema()),
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
