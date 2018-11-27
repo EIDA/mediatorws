@@ -45,7 +45,9 @@ from eidangservices.federator.server.schema import WFCatalogSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
 from eidangservices.utils.httperrors import FDSNHTTPError
-from eidangservices.utils.schema import ManyStreamEpochSchema
+from eidangservices.utils.strict import with_strict_args
+from eidangservices.utils.schema import (ManyStreamEpochSchema,
+                                         StreamEpochSchema)
 
 
 class WFCatalogResource(Resource):
@@ -63,6 +65,10 @@ class WFCatalogResource(Resource):
     @use_args(WFCatalogSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('query',)
+    )
+    @with_strict_args(
+        (StreamEpochSchema(), WFCatalogSchema()),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -96,6 +102,10 @@ class WFCatalogResource(Resource):
     @fdsnws.use_fdsnws_args(WFCatalogSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
+        locations=('form',)
+    )
+    @with_strict_args(
+        (StreamEpochSchema(), WFCatalogSchema()),
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)

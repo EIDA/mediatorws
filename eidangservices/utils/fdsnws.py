@@ -43,6 +43,7 @@ from webargs.flaskparser import FlaskParser
 from webargs.flaskparser import parser as flaskparser
 
 from eidangservices import settings
+from eidangservices.utils.strict import flask_keywordparser
 from eidangservices.utils.httperrors import FDSNHTTPError
 
 
@@ -284,5 +285,21 @@ def register_parser_errorhandler(service_version):
 
 # register_parser_errorhandler ()
 
+def register_keywordparser_errorhandler(service_version):
+    """
+    Register webargs parser `errorhandler
+    <https://webargs.readthedocs.io/en/latest/quickstart.html#error-handling>`_.
+    """
+    @flask_keywordparser.error_handler
+    def handle_parser_error(err, req):
+        """
+        configure webargs error handler
+        """
+        raise FDSNHTTPError.create(400, service_version=service_version,
+                                   error_desc_long=str(err))
+
+    return handle_parser_error
+
+# register_keywordparser_errorhandler ()
 
 # ---- END OF <fdsnws.py> ----

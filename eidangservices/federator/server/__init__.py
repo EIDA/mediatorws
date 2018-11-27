@@ -39,7 +39,8 @@ from flask import Flask, make_response, g
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.utils import httperrors
-from eidangservices.utils.fdsnws import register_parser_errorhandler
+from eidangservices.utils.fdsnws import (register_parser_errorhandler,
+                                         register_keywordparser_errorhandler)
 
 def create_app(config_dict={}, service_version=__version__):
     """
@@ -82,6 +83,7 @@ def create_app(config_dict={}, service_version=__version__):
         register_error(err)
 
     register_parser_errorhandler(service_version=service_version)
+    register_keywordparser_errorhandler(service_version=service_version)
 
     return app
 

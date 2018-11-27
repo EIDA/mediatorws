@@ -44,6 +44,7 @@ import eidangservices as eidangws
 from eidangservices import settings, utils
 from eidangservices.utils import fdsnws
 from eidangservices.utils.httperrors import FDSNHTTPError
+from eidangservices.utils.strict import with_strict_args
 from eidangservices.utils.sncl import StreamEpochsHandler, StreamEpoch
 
 from eidangservices.stationlite import __version__
@@ -70,6 +71,10 @@ class StationLiteResource(Resource):
             context={'request': request}),
         locations=('query',)
     )
+    @with_strict_args(
+        (eidangws.utils.schema.StreamEpochSchema(),),
+        locations=('query',)
+    )
     @fdsnws.with_fdsnws_exception_handling(__version__)
     def get(self, args, stream_epochs):
         """
@@ -90,6 +95,10 @@ class StationLiteResource(Resource):
     @fdsnws.use_fdsnws_kwargs(
         eidangws.utils.schema.ManyStreamEpochSchema(
             context={'request': request}),
+        locations=('form',)
+    )
+    @with_strict_args(
+        (eidangws.utils.schema.StreamEpochSchema(),),
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
