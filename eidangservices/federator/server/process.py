@@ -867,7 +867,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
                             # add header
                             yield self.JSON_LIST_START
                         else:
-                            # prepend comma if not last stream epoch data
+                            # prepend comma if not first stream epoch data
                             yield self.JSON_LIST_SEP
 
                         self.logger.debug(
