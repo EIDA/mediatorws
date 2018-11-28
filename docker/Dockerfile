@@ -85,7 +85,7 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-RUN (crontab -l ; echo "0 1 * * * source /var/www/stationlite/venv3/bin/activate && \
+RUN (crontab -l ; echo "0 1 * * * . /var/www/stationlite/venv3/bin/activate && \
      python /var/www/mediatorws/eidangservices/stationlite/harvest/harvest.py \
      sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
 
