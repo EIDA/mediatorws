@@ -34,6 +34,7 @@ from builtins import * # noqa
 
 import functools
 import inspect
+import logging
 
 from webargs.flaskparser import parser as flaskparser
 from marshmallow import Schema, exceptions
@@ -48,7 +49,6 @@ class KeywordParserError(Error):
 
 class ValidationError(KeywordParserError, exceptions.ValidationError):
     """ValidationError: {}."""
-    pass
 
 
 def _callable_or_raise(obj):
@@ -58,16 +58,27 @@ def _callable_or_raise(obj):
     """
     if obj and not callable(obj):
         raise ValueError("{0!r} is not callable.".format(obj))
-    else:
-        return obj
+    return obj
 
 # _callable_or_raise ()
 
 # -----------------------------------------------------------------------------
-class KeywordParserMixin(object):
+class KeywordParser(object):
     """
-    Mixin providing additional Keywordparser specific parsing facilities.
+    Base class for keyword parsers.
     """
+
+    LOGGER = 'strict.keywordparser'
+
+    __location_map__ = {
+        'query': 'parse_querystring',
+        'form': 'parse_form'}
+
+    def __init__(self, error_handler=None):
+        self.error_callback = _callable_or_raise(error_handler)
+        self.logger = logging.getLogger(self.LOGGER)
+
+    # __init__ ()
 
     @staticmethod
     def _parse_arg_keys(arg_dict):
@@ -108,23 +119,6 @@ class KeywordParserMixin(object):
         return tuple(argmap.keys())
 
     # _parse_postfile ()
-
-# class KeywordParserMixin
-
-
-class KeywordParser(KeywordParserMixin):
-    """
-    Base class for keyword parsers.
-    """
-
-    __location_map__ = {
-        'query': 'parse_querystring',
-        'form': 'parse_form'}
-
-    def __init__(self, error_handler=None):
-        self.error_callback = _callable_or_raise(error_handler)
-
-    # __init__ ()
 
     def parse_querystring(self, req):
         """
@@ -174,11 +168,13 @@ class KeywordParser(KeywordParserMixin):
         :param locations:
         :type locations: tuple of str
 
-        :raises: :py:class:`httperrors.BadRequestError`
+        Calls `handle_error` with :py:class:`ValidationError`.
         """
 
         req = self.get_default_request()
 
+        if inspect.isclass(schemas):
+            schemas = [schemas()]
         if isinstance(schemas, Schema):
             schemas = [schemas]
 
@@ -204,6 +200,9 @@ class KeywordParser(KeywordParserMixin):
                 req_args.update(f(req))
 
             for s in schemas:
+                if inspect.isclass(s):
+                    valid_fields.update(s().fields.keys())
+                    continue
                 valid_fields.update(s.fields.keys())
 
             invalid_args = req_args.difference(valid_fields)
@@ -265,9 +264,16 @@ class KeywordParser(KeywordParserMixin):
 
     def handle_error(self, error, req):
         """
-        Called if an error occurs while parsing args. By default, just logs and
-        raises ``error``.
+        Called if an error occurs while parsing strict args.
+        By default, just logs and raises ``error``.
+
+        :param Exception error: an Error to be handled
+        :param Request req: request object
+
+        :raises: error
+        :rtype: Exception
         """
+        self.logger.error(error)
         raise error
 
     # handle_error ()
@@ -275,23 +281,20 @@ class KeywordParser(KeywordParserMixin):
     def error_handler(self, func):
         """
         Decorator that registers a custom error handling function. The
-        function should received the raised error, request object, and the
-        `marshmallow.Schema` instance used to parse the request. Overrides
-        the parser's ``handle_error`` method.
+        function should received the raised error, request object used 
+        to parse the request. Overrides the parser's ``handle_error``
+        method.
 
         Example: ::
 
-            from webargs import flaskparser
-
-            parser = flaskparser.FlaskParser()
-
+            from strict import flask_keywordparser
 
             class CustomError(Exception):
                 pass
 
 
-            @parser.error_handler
-            def handle_error(error, req, schema):
+            @flask_keywordparser.error_handler
+            def handle_error(error, req):
                 raise CustomError(error.messages)
 
         :param callable func: The error callback to register.
@@ -305,7 +308,7 @@ class KeywordParser(KeywordParserMixin):
 # -----------------------------------------------------------------------------
 class FlaskKeywordParser(KeywordParser):
     """
-    Flask implementation of Keywordparser.
+    Flask implementation of :py:class:`KeywordParser`.
     """
 
     def get_default_request(self):

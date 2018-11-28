@@ -49,70 +49,6 @@ except ImportError:
 
 
 # -----------------------------------------------------------------------------
-class KeywordParserMixinTestCase(unittest.TestCase):
-
-    def test_parse_arg_keys(self):
-        arg_dict = MultiDict({'f': 'val',
-                              'b': 'val',
-                              'x': 'val'})
-
-        reference_result = tuple(['f', 'b', 'x'])
-
-        test_result = strict.KeywordParserMixin.\
-            _parse_arg_keys(arg_dict)
-
-        self.assertEqual(test_result, reference_result)
-
-    # test_parse_arg_keys ()
-
-    def test_parse_postfile(self):
-        postfile = "f=val\nb=val\nx=val"
-
-        reference_result = tuple(['f', 'b', 'x'])
-
-        test_result = strict.KeywordParserMixin.\
-            _parse_postfile(postfile)
-
-        self.assertEqual(test_result, reference_result)
-
-    # test_parse_postfile ()
-
-    def test_parse_postfile_equal(self):
-        postfile = "="
-
-        with self.assertRaises(strict.ValidationError):
-            test_result = strict.KeywordParserMixin.\
-                _parse_postfile(postfile)
-
-    # test_parse_postfile_equal ()
-
-    def test_parse_postfile_empty(self):
-        postfile = ""
-
-        reference_result = tuple()
-
-        test_result = strict.KeywordParserMixin.\
-            _parse_postfile(postfile)
-
-        self.assertEqual(test_result, reference_result)
-
-    # test_parse_postfile_empty ()
-
-    def test_parse_postfile_with_sncl(self):
-        postfile = "NL HGN * 2013-10-10 2013-10-11"
-
-        reference_result = tuple()
-
-        test_result = strict.KeywordParserMixin.\
-            _parse_postfile(postfile)
-
-        self.assertEqual(test_result, reference_result)
-
-    # test_parse_postfile_with_sncl ()
-
-# class KeywordParserMixinTestCase
-
-
 class KeywordParserTestCase(unittest.TestCase):
 
     class TestSchema(ma.Schema):
@@ -124,6 +60,65 @@ class KeywordParserTestCase(unittest.TestCase):
         pass
 
     # class TestReq
+
+    def test_parse_arg_keys(self):
+        arg_dict = MultiDict({'f': 'val',
+                              'b': 'val',
+                              'x': 'val'})
+
+        reference_result = tuple(['f', 'b', 'x'])
+
+        test_result = strict.KeywordParser.\
+            _parse_arg_keys(arg_dict)
+
+        self.assertEqual(test_result, reference_result)
+
+    # test_parse_arg_keys ()
+
+    def test_parse_postfile(self):
+        postfile = "f=val\nb=val\nx=val"
+
+        reference_result = tuple(['f', 'b', 'x'])
+
+        test_result = strict.KeywordParser.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_result, reference_result)
+
+    # test_parse_postfile ()
+
+    def test_parse_postfile_equal(self):
+        postfile = "="
+
+        with self.assertRaises(strict.ValidationError):
+            test_result = strict.KeywordParser.\
+                _parse_postfile(postfile)
+
+    # test_parse_postfile_equal ()
+
+    def test_parse_postfile_empty(self):
+        postfile = ""
+
+        reference_result = tuple()
+
+        test_result = strict.KeywordParser.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_result, reference_result)
+
+    # test_parse_postfile_empty ()
+
+    def test_parse_postfile_with_sncl(self):
+        postfile = "NL HGN * 2013-10-10 2013-10-11"
+
+        reference_result = tuple()
+
+        test_result = strict.KeywordParser.\
+            _parse_postfile(postfile)
+
+        self.assertEqual(test_result, reference_result)
+
+    # test_parse_postfile_with_sncl ()
 
     @mock.patch(
         'eidangservices.utils.strict.flask_keywordparser.get_default_request'

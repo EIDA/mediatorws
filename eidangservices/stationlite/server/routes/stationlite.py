@@ -72,7 +72,7 @@ class StationLiteResource(Resource):
         locations=('query',)
     )
     @with_strict_args(
-        (eidangws.utils.schema.StreamEpochSchema(),),
+        (eidangws.utils.schema.StreamEpochSchema, schema.StationLiteSchema),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -98,7 +98,7 @@ class StationLiteResource(Resource):
         locations=('form',)
     )
     @with_strict_args(
-        (eidangws.utils.schema.StreamEpochSchema(),),
+        schema.StationLiteSchema,
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)

@@ -59,7 +59,7 @@ class StationResource(Resource):
         locations=('query',)
     )
     @with_strict_args(
-        (StreamEpochSchema(), StationSchema()),
+        (StreamEpochSchema, StationSchema),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -86,7 +86,7 @@ class StationResource(Resource):
         locations=('form',)
     )
     @with_strict_args(
-        (StreamEpochSchema(), StationSchema()),
+        StationSchema,
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
