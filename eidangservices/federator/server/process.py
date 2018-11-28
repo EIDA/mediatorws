@@ -866,6 +866,9 @@ class WFCatalogRequestProcessor(RequestProcessor):
                         if not sum(self._sizes):
                             # add header
                             yield self.JSON_LIST_START
+                        else:
+                            # prepend comma if not last stream epoch data
+                            yield self.JSON_LIST_SEP
 
                         self.logger.debug(
                             'Streaming from file {!r} (chunk_size={}).'.format(
@@ -883,10 +886,6 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
                         except Exception as err:
                             raise StreamingError(err)
-
-                        if len(self._results) > 1:
-                            # append comma if not last stream epoch data
-                            yield self.JSON_LIST_SEP
 
                         self.logger.debug(
                             'Removing temporary file {!r} ...'.format(
