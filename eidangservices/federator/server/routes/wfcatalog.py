@@ -68,7 +68,7 @@ class WFCatalogResource(Resource):
         locations=('query',)
     )
     @with_strict_args(
-        (StreamEpochSchema(), WFCatalogSchema()),
+        (StreamEpochSchema, WFCatalogSchema),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -105,7 +105,7 @@ class WFCatalogResource(Resource):
         locations=('form',)
     )
     @with_strict_args(
-        (StreamEpochSchema(), WFCatalogSchema()),
+        WFCatalogSchema,
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)

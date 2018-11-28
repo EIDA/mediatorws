@@ -287,13 +287,12 @@ def register_parser_errorhandler(service_version):
 
 def register_keywordparser_errorhandler(service_version):
     """
-    Register webargs parser `errorhandler
-    <https://webargs.readthedocs.io/en/latest/quickstart.html#error-handling>`_.
+    Register :py:class:`KeywordParser` `errorhandler
     """
     @flask_keywordparser.error_handler
     def handle_parser_error(err, req):
         """
-        configure webargs error handler
+        configure keywordparser error handler
         """
         raise FDSNHTTPError.create(400, service_version=service_version,
                                    error_desc_long=str(err))

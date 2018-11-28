@@ -65,7 +65,7 @@ class DataselectResource(Resource):
         locations=('query',)
     )
     @with_strict_args(
-        (DataselectSchema(), StreamEpochSchema()),
+        (DataselectSchema, StreamEpochSchema),
         locations=('query',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
@@ -92,7 +92,7 @@ class DataselectResource(Resource):
         locations=('form',)
     )
     @with_strict_args(
-        (DataselectSchema(), StreamEpochSchema()),
+        DataselectSchema,
         locations=('form',)
     )
     @fdsnws.with_fdsnws_exception_handling(__version__)
