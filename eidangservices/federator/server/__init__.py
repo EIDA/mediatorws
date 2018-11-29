@@ -33,6 +33,7 @@ from builtins import * # noqa
 import datetime
 
 from flask import Flask, make_response, g
+from flask_cors import CORS
 
 # from werkzeug.contrib.profiler import ProfilerMiddleware
 
@@ -51,6 +52,8 @@ def create_app(config_dict={}, service_version=__version__):
     """
     app = Flask(__name__)
     app.config.update(config_dict)
+    # allows CORS for all domains for all routes
+    CORS(app)
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])

@@ -81,6 +81,7 @@ _deps_all = [
     'requests>=2.18.4',
     'webargs==3.0.0', ]
 _deps_federator = _deps_all + [
+    'Flask-Cors>=3.0.7',
     'ijson>=2.3', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
