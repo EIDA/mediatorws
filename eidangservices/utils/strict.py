@@ -278,7 +278,7 @@ class KeywordParser(object):
     def error_handler(self, func):
         """
         Decorator that registers a custom error handling function. The
-        function should received the raised error, request object used 
+        function should received the raised error, request object used
         to parse the request. Overrides the parser's ``handle_error``
         method.
 
