@@ -38,7 +38,7 @@ import unittest
 import flask # noqa
 import marshmallow as ma
 
-from werkzeug.datastructures import MultiDict
+from werkzeug.datastructures import OrderedMultiDict
 
 from eidangservices.utils import strict
 
@@ -62,9 +62,10 @@ class KeywordParserTestCase(unittest.TestCase):
     # class TestReq
 
     def test_parse_arg_keys(self):
-        arg_dict = MultiDict({'f': 'val',
-                              'b': 'val',
-                              'x': 'val'})
+        arg_dict = OrderedMultiDict()
+        arg_dict.add('f', 'val')
+        arg_dict.add('b', 'val')
+        arg_dict.add('x', 'val')
 
         reference_result = tuple(['f', 'b', 'x'])
 
@@ -78,12 +79,13 @@ class KeywordParserTestCase(unittest.TestCase):
     def test_parse_postfile(self):
         postfile = "f=val\nb=val\nx=val"
 
-        reference_result = tuple(['f', 'b', 'x'])
-
         test_result = strict.KeywordParser.\
             _parse_postfile(postfile)
 
-        self.assertEqual(test_result, reference_result)
+        self.assertIn('f', test_result)
+        self.assertIn('b', test_result)
+        self.assertIn('x', test_result)
+        self.assertEqual(3, len(test_result))
 
     # test_parse_postfile ()
 
@@ -126,8 +128,9 @@ class KeywordParserTestCase(unittest.TestCase):
     def test_with_strict_args_get_invalid(self, mock_request_factory):
         request = self.TestReq()
         request.method = 'GET'
-        request.args = MultiDict({'f': 'val',
-                                  'b': 'val'})
+        request.args = OrderedMultiDict()
+        request.args.add('f', 'val')
+        request.args.add('b', 'val')
 
         mock_request_factory.return_value = request
 
@@ -149,7 +152,7 @@ class KeywordParserTestCase(unittest.TestCase):
     def test_with_strict_args_get_valid(self, mock_request_factory):
         request = self.TestReq()
         request.method = 'GET'
-        request.args = MultiDict({'f': 'val'})
+        request.args = OrderedMultiDict({'f': 'val'})
 
         mock_request_factory.return_value = request
 
