@@ -86,7 +86,7 @@ class KeywordParser(object):
         :param dict arg_dict: Dictionary like structure to be parsed
 
         :returns: Tuple with argument keys
-        :rtype: dict
+        :rtype: tuple
         """
 
         return tuple(arg_dict.keys())
@@ -175,8 +175,12 @@ class KeywordParser(object):
 
         if inspect.isclass(schemas):
             schemas = [schemas()]
-        if isinstance(schemas, Schema):
+        elif isinstance(schemas, Schema):
             schemas = [schemas]
+
+        valid_fields = set()
+        for schema in [s() if inspect.isclass(s) else s for s in schemas]:
+            valid_fields.update(schema.fields.keys())
 
         parsers = []
         for l in locations:
@@ -194,16 +198,9 @@ class KeywordParser(object):
         def decorator(*args, **kwargs):
 
             req_args = set()
-            valid_fields = set()
 
             for f in parsers:
                 req_args.update(f(req))
-
-            for s in schemas:
-                if inspect.isclass(s):
-                    valid_fields.update(s().fields.keys())
-                    continue
-                valid_fields.update(s.fields.keys())
 
             invalid_args = req_args.difference(valid_fields)
             if invalid_args:
