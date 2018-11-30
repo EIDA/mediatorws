@@ -133,10 +133,10 @@ class RoutingRequestHandler(RequestHandlerBase):
     """
     QUERY_PARAMS = set(('service',
                         'level',
-                        'minlatitude',
-                        'maxlatitude',
-                        'minlongitude',
-                        'maxlongitude'))
+                        'minlatitude', 'minlat',
+                        'maxlatitude', 'maxlat',
+                        'minlongitude', 'minlon',
+                        'maxlongitude', 'maxlon'))
 
     class GET(object):
         """
@@ -194,7 +194,11 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
     Representation of a FDSN webservice request handler.
     """
     QUERY_PARAMS = set(('service',
-                        'nodata'))
+                        'nodata',
+                        'minlatitude', 'minlat',
+                        'maxlatitude', 'maxlat',
+                        'minlongitude', 'minlon',
+                        'maxlongitude', 'maxlon'))
 
     def __init__(self, url, stream_epoch, query_params={}):
         super().__init__(url, query_params, [stream_epoch])
