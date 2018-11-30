@@ -56,7 +56,10 @@ class RequestHandlerBase(object):
         :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
 
     """
-    HEADERS = {"user-agent": "EIDA-Federator/" + __version__}
+    HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
+               # force no encoding, because eida-federator currently cannot
+               # handle this
+               "Accept-Encoding": ""}
 
     def __init__(self, url, query_params={}, stream_epochs=[]):
         if isinstance(url, bytes):
