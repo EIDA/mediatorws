@@ -242,9 +242,12 @@ class StreamEpochSchema(Schema):
                 if starttime is None or endtime is None:
                     raise ValidationError('missing temporal constraints')
 
-            if starttime and starttime >= endtime:
-                raise ValidationError(
-                    'endtime must be greater than starttime')
+            if starttime:
+                if starttime > now:
+                    raise ValidationError('starttime in future')
+                elif starttime >= endtime:
+                    raise ValidationError(
+                        'endtime must be greater than starttime')
 
     # validate_temporal_constraints ()
 

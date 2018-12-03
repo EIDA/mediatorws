@@ -590,16 +590,12 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         mock_request.method = 'POST'
         s = schema.StreamEpochSchema(context={'request': mock_request})
 
-        # both starttime and endtime in future (not caught)
+        # both starttime and endtime in future
         today = datetime.datetime.now()
         tomorrow = today + datetime.timedelta(1)
         tomorrow_str = tomorrow.isoformat()
         dat = today + datetime.timedelta(2)
         dat_str = dat.isoformat()
-        reference_result = sncl.StreamEpoch(
-            stream=sncl.Stream(network='CH', station='DAVOX'),
-            starttime=tomorrow,
-            endtime=dat)
 
         test_dataset = {'net': 'CH',
                         'sta': 'DAVOX',
@@ -607,8 +603,8 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
                         'cha': '*',
                         'start': tomorrow_str,
                         'end': dat_str}
-        result = self._load(s, test_dataset)
-        self.assertEqual(result, reference_result)
+        with self.assertRaises(ma.ValidationError):
+            self._load(s, test_dataset)
 
 # class StreamEpochSchemaTestCase
 
