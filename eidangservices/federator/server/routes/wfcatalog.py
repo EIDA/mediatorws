@@ -64,7 +64,8 @@ class WFCatalogResource(Resource):
 
     @use_args(WFCatalogSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
-        ManyStreamEpochSchema(context={'request': request}),
+        ManyStreamEpochSchema(context={'request': request,
+                                       'service': 'eidaws-wfcatalog'}),
         locations=('query',)
     )
     @with_strict_args(
