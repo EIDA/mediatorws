@@ -215,6 +215,13 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     :param list routes: Routes to combine. Must belong to exclusively a single
         network code.
 
+    .. note::
+
+        *StationXML* :code:`BaseNodeType` elements by definition
+        (http://www.fdsn.org/xml/station/fdsn-station-1.0.xsd) are ordered
+        using :code:`<xs:sequence></sequence>`. This fact is used when merging
+        StationXML :code`BaseNodeType` elements.
+
     """
     # TODO(damb): The combiner has to write metadata to the log database.
     # Also in case of errors.
@@ -398,9 +405,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             element already is known (:code:`True`) else :code:`False`
         :rtype: tuple
         """
-        # order child elements by tag
-        net_element[:] = sorted(net_element, key=lambda c: c.tag)
-
         for existing_net_element in self._network_elements:
             if elements_equal(
                 net_element,
@@ -469,15 +473,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _merge_sta_element(self, net_element, sta_element,
                            namespaces=settings.STATIONXML_NAMESPACES):
-
-        # order child elements by tag
-        sta_element[:] = sorted(sta_element, key=lambda c: c.tag)
-
         # XXX(damb): Check if <Station></Station> epoch element is already
         # available - if not simply append.
         for _sta_element in net_element.iterfind(sta_element.tag):
-
-            _sta_element[:] = sorted(_sta_element, key=lambda c: c.tag)
             if elements_equal(sta_element,
                               _sta_element,
                               exclude_tags=[
