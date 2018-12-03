@@ -473,6 +473,11 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _merge_sta_element(self, net_element, sta_element,
                            namespaces=settings.STATIONXML_NAMESPACES):
+        """
+        Merges a *StationXML* :code:`<Station></Station>` epoch element into a
+        :code:`<Network></Network>` epoch element. Merging is performed
+        recursively down to :code:`<Channel><Channel>` epochs.
+        """
         # XXX(damb): Check if <Station></Station> epoch element is already
         # available - if not simply append.
         for _sta_element in net_element.iterfind(sta_element.tag):
