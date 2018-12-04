@@ -394,7 +394,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _emerge_net_element(self, net_element, exclude_tags=[]):
         """
-        Emerge a :code:`<Network></Network>` epoch element.
+        Emerge a :code:`<Network></Network>` epoch element. If the
+        :code:`<Network></Network>` element is unknown it is automatically
+        appended to the list of already existing network elements.
 
         :param net_element: Emerge a network epoch element
         :type net_element: :py:class:`lxml.etree.Element`
