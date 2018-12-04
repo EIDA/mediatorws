@@ -68,9 +68,9 @@ EIDA_NODES = {
                     'static_file': ''},
                 'wfcatalog': {
                     'url': 'http://geofon.gfz-potsdam.de/eidaws/wfcatalog/"\
-                        "alpha/query',
+                        "1/query',
                     'server': 'http://geofon.gfz-potsdam.de',
-                    'uri_path_query': "/eidaws/wfcatalog/alpha/query"}
+                    'uri_path_query': "/eidaws/wfcatalog/1/query"}
             }
         },
         'testquerysncls': {
