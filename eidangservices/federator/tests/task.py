@@ -40,8 +40,13 @@ import os
 import tempfile
 import unittest
 
+from lxml import etree
+
+from eidangservices import settings
 from eidangservices.federator.server.task import (
-    SplitAndAlignTask, WFCatalogSplitAndAlignTask, Result)
+    StationXMLNetworkCombinerTask, SplitAndAlignTask,
+    WFCatalogSplitAndAlignTask, Result)
+from eidangservices.utils import Route
 from eidangservices.utils.request import RequestsError
 from eidangservices.utils.sncl import Stream, StreamEpoch
 
@@ -69,6 +74,137 @@ class HTTP500(RequestsError):
     def __init__(self):
         self.response = Response(status_code=500,
                                  data='InternalServerError')
+
+# -----------------------------------------------------------------------------
+# CombinerTask related test cases
+
+class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
+
+    @mock.patch('eidangservices.federator.server.task.'
+                'StationXMLNetworkCombinerTask.MAX_THREADS_DOWNLOADING',
+                new_callable=mock.PropertyMock)
+    def test_extract_net_elements(self, mock_max_threads):
+        mock_max_threads.return_value = 5
+        mock_open = mock.mock_open(read_data=b'<?xml version="1.0" encoding="UTF-8"?><FDSNStationXML xmlns="http://www.fdsn.org/xml/station/1" schemaVersion="1.0"><Source>EIDA</Source><Created>2018-12-04T08:54:16.697388</Created><Network xmlns="http://www.fdsn.org/xml/station/1" code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="BALST" startDate="2000-06-16T00:00:00" restrictedStatus="open"><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Site><Name>Balsthal, SO</Name><Country>Switzerland</Country></Site><CreationDate>2000-06-16T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-04-05T00:00:00" restrictedStatus="open" locationCode=""><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Depth>4.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111040.231924.93"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111040.23247.95"><Type>Nanometrics HRD24</Type><Manufacturer>Nanometrics</Manufacturer><Model>HRD24</Model></DataLogger><Response><InstrumentSensitivity><Value>627615000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.257697.134"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network></FDSNStationXML>')  # noqa
+
+        routes = [Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='BALST', location='',
+                                   channel='HHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))]),
+                  Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='DAVOX', location='',
+                                   channel='HHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))])]
+
+        query_params = {'format': 'xml',
+                        'level': 'channel'}
+
+        t = StationXMLNetworkCombinerTask(routes, query_params)
+        # XXX(damb): Using *open* from future requires mocking the function
+        # within the module it is actually used.
+        with mock.patch(
+                'eidangservices.federator.server.task.open', mock_open) as m:
+            net_element = t._extract_net_elements(
+                path_xml='/path/to/station.xml')[0]
+
+            # check the order of the sta elements
+            self.assertEqual(
+                net_element[0].tag,
+                settings.STATIONXML_NAMESPACES[0] + 'Description')
+            self.assertEqual(net_element[1].get('code'), 'BALST')
+            self.assertEqual(net_element[2].get('code'), 'DAVOX')
+
+        mock_max_threads.has_calls()
+
+    # test_extract_net_elements ()
+
+    @mock.patch('eidangservices.federator.server.task.elements_equal')
+    @mock.patch('eidangservices.federator.server.task.'
+                'StationXMLNetworkCombinerTask.MAX_THREADS_DOWNLOADING',
+                new_callable=mock.PropertyMock)
+    def test_merge_sta_element_sta_append(self, mock_max_threads,
+                                          mock_elements_equal):
+        mock_max_threads.return_value = 5
+        mock_elements_equal.return_value = False
+
+        routes = [Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='DAVOX', location='',
+                                   channel='HHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))]),
+                  Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='BALST', location='',
+                                   channel='HHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))])]
+
+        query_params = {'format': 'xml',
+                        'level': 'channel'}
+
+        davox_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.257697.134"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+        balst_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="BALST" startDate="2000-06-16T00:00:00" restrictedStatus="open"><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Site><Name>Balsthal, SO</Name><Country>Switzerland</Country></Site><CreationDate>2000-06-16T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-04-05T00:00:00" restrictedStatus="open" locationCode=""><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Depth>4.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111040.231924.93"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111040.23247.95"><Type>Nanometrics HRD24</Type><Manufacturer>Nanometrics</Manufacturer><Model>HRD24</Model></DataLogger><Response><InstrumentSensitivity><Value>627615000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+        net_element = etree.fromstring(davox_xml)
+        sta_element = etree.fromstring(balst_xml)[1]
+
+        t = StationXMLNetworkCombinerTask(routes, query_params)
+        t._merge_sta_element(net_element, sta_element, namespaces=('',))
+
+        reference_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.257697.134"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station><Station code="BALST" startDate="2000-06-16T00:00:00" restrictedStatus="open"><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Site><Name>Balsthal, SO</Name><Country>Switzerland</Country></Site><CreationDate>2000-06-16T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-04-05T00:00:00" restrictedStatus="open" locationCode=""><Latitude>47.33578</Latitude><Longitude>7.69498</Longitude><Elevation>863</Elevation><Depth>4.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111040.231924.93"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111040.23247.95"><Type>Nanometrics HRD24</Type><Manufacturer>Nanometrics</Manufacturer><Model>HRD24</Model></DataLogger><Response><InstrumentSensitivity><Value>627615000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+
+        self.assertEqual(etree.tostring(net_element), reference_xml)
+        mock_max_threads.has_calls()
+
+    # test_merge_sta_element_sta_append ()
+
+    @mock.patch('eidangservices.federator.server.task.elements_equal')
+    @mock.patch('eidangservices.federator.server.task.'
+                'StationXMLNetworkCombinerTask.MAX_THREADS_DOWNLOADING',
+                new_callable=mock.PropertyMock)
+    def test_merge_sta_element_sta_extend(self, mock_max_threads,
+                                          mock_elements_equal):
+        mock_max_threads.return_value = 5
+        mock_elements_equal.return_value = True
+
+        routes = [Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='DAVOX', location='',
+                                   channel='HHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))]),
+                  Route(url='http://eida.ethz.ch/fdsnws/station/1/query',
+                        streams=[StreamEpoch(
+                            Stream(network='CH', station='DAVOX', location='',
+                                   channel='BHZ'),
+                            starttime=datetime.datetime(2018, 1, 1),
+                            endtime=datetime.datetime(2018, 1, 2))])]
+
+        query_params = {'format': 'xml',
+                        'level': 'channel'}
+
+        davox_bhz_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="BHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>40</SampleRate><SampleRateRatio><NumberSamples>40</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.248921.110"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+        davox_hhz_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="HHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.257697.134"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+
+        net_element = etree.fromstring(davox_bhz_xml)
+        sta_element = etree.fromstring(davox_hhz_xml)[1]
+
+        t = StationXMLNetworkCombinerTask(routes, query_params)
+        t._merge_sta_element(net_element, sta_element, namespaces=('',))
+
+        reference_xml = b'<Network code="CH" startDate="1980-01-01T00:00:00" restrictedStatus="open"><Description>National Seismic Networks of Switzerland</Description><Station code="DAVOX" startDate="2002-07-24T00:00:00" restrictedStatus="open"><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Site><Name>Davos, Dischmatal, GR</Name><Country>Switzerland</Country></Site><CreationDate>2002-07-24T00:00:00</CreationDate><Channel code="BHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>40</SampleRate><SampleRateRatio><NumberSamples>40</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.248921.110"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel><Channel code="HHZ" startDate="2004-02-20T00:00:00" restrictedStatus="open" locationCode=""><Latitude>46.7805</Latitude><Longitude>9.87952</Longitude><Elevation>1830</Elevation><Depth>1.5</Depth><Azimuth>0</Azimuth><Dip>-90</Dip><SampleRate>120</SampleRate><SampleRateRatio><NumberSamples>120</NumberSamples><NumberSeconds>1</NumberSeconds></SampleRateRatio><StorageFormat>Steim2</StorageFormat><ClockDrift>0</ClockDrift><Sensor resourceId="smi:ch.ethz.sed/Sensor/20150105111043.257077.132"><Type>Streckeisen STS2_gen3</Type><Manufacturer>Streckeisen</Manufacturer><Model>STS2_gen3</Model></Sensor><DataLogger resourceId="smi:ch.ethz.sed/Datalogger/20150105111043.257697.134"><Type>Nanometrics Trident</Type><Manufacturer>Nanometrics</Manufacturer><Model>Trident</Model></DataLogger><Response><InstrumentSensitivity><Value>600000000</Value><Frequency>1</Frequency><InputUnits><Name>M/S</Name></InputUnits><OutputUnits><Name/></OutputUnits></InstrumentSensitivity></Response></Channel></Station></Network>'  # noqa
+
+        self.assertEqual(etree.tostring(net_element), reference_xml)
+        mock_max_threads.has_calls()
+
+    # test_merge_sta_element_sta_extend ()
+
+# class StationXMLNetworkCombinerTaskTestCase
+
 
 # -----------------------------------------------------------------------------
 # SplitAndAlign task related test cases
