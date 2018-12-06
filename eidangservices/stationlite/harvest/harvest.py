@@ -284,8 +284,7 @@ class RoutingHarvester(Harvester):
                             if (('dataselect' == service_tag and not
                                  self._force_restricted) and
                                 (('open' == cha_epoch.restrictedstatus and
-                                  settings.
-                                  FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN ==
+                                  settings.FDSN_QUERYAUTH_METHOD_TOKEN ==
                                   get_method_token(endpoint.url)) or
                                  ('closed' == cha_epoch.restrictedstatus and
                                   settings.FDSN_QUERY_METHOD_TOKEN ==
@@ -318,12 +317,10 @@ class RoutingHarvester(Harvester):
 
                                 fdsn_dataselect_url = urljoin(
                                     _endpoint.url,
-                                    settings.
-                                    FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN)
+                                    settings.FDSN_QUERYAUTH_METHOD_TOKEN)
 
                             elif ('open' == cha_epoch.restrictedstatus and
-                                  settings.
-                                  FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN ==
+                                  settings.FDSN_QUERYAUTH_METHOD_TOKEN ==
                                     get_method_token(_endpoint.url)):
 
                                 fdsn_dataselect_url = urljoin(
@@ -788,7 +785,7 @@ class RoutingHarvester(Harvester):
                                   settings.FDSN_QUERY_METHOD_TOKEN),
                     '{}{}'.format(
                         settings.FDSN_DATASELECT_PATH,
-                        settings.FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN))):
+                        settings.FDSN_QUERYAUTH_METHOD_TOKEN))):
             return
         elif ('wfcatalog' == service and
               p == '{}{}'.format(settings.EIDA_WFCATALOG_PATH,
