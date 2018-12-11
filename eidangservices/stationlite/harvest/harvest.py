@@ -300,7 +300,9 @@ class RoutingHarvester(Harvester):
                         except self.IntegrityError as err:
                             warnings.warn(str(err))
                             self.logger.warning(err)
-                            if session.delete(cha_epoch):
+                            if session.query(orm.ChannelEpoch).\
+                                filter(orm.ChannelEpoch.oid == cha_epoch.oid).\
+                                    delete():
                                 self.logger.warning(
                                     'Removed {!r} due to integrity '
                                     'error.'.format(cha_epoch))
@@ -647,7 +649,9 @@ class RoutingHarvester(Harvester):
             _ = session.query(orm.Routing).\
                 filter(orm.Routing.channel_epoch == cha_epoch).delete()
 
-            if session.delete(cha_epoch):
+            if session.query(orm.ChannelEpoch).\
+                filter(orm.ChannelEpoch.oid == cha_epoch.oid).\
+                    delete():
                 self.logger.info(
                     'Removed referenced {0!r}.'.format(cha_epoch))
 
