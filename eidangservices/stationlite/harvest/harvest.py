@@ -126,16 +126,16 @@ class RoutingHarvester(Harvester):
 
     elements.
 
-    This harvester relies on the :code:`eida-routing` :code:`localconfig`
+    This harvester relies on the ``eida-routing`` ``localconfig``
     configuration files.
 
     :param str node_id: EIDA node identifier
-    :param str url_routing_config: URL to :code:`eida-routing`
-        :code:`localconfig: configuration files
+    :param str url_routing_config: URL to ``eida-routing``
+        ``localconfig`` configuration files
     :param list services: List of EIDA services to be harvested
     :param bool force_restricted: Automatically correct the *dataselect* method
         token for restricted :py:class:`orm.ChannelEpoch` objects
-        (default: :code:`True`)
+        (default: ``True``)
     """
 
     STATION_TAG = 'station'
@@ -356,7 +356,7 @@ class RoutingHarvester(Harvester):
         STATIONXML file.
 
         :param session: SQLAlchemy session
-        :type session: :py:class:`sqlalchemy.orm.sessionSession`
+        :type session: :py:class:`sqlalchemy.orm.session.Session`
         :param station_xml: Station XML file stream
         :type station_xml: :py:class:`io.BinaryIO`
         """
@@ -437,6 +437,15 @@ class RoutingHarvester(Harvester):
         """
         Factory method for a :py:class:`orm.Network` object.
 
+        :param session: SQLAlchemy session object
+        :type session: :py:class:`sqlalchemy.orm.session.Session`
+        :param station: StationXML network object
+        :type station: :py:class:`obspy.core.inventory.network.Network`
+
+        :returns: Tuple of :py:class:`orm.Network``object and
+            :py:class:`self.BaseNode`
+        :rtype: tuple
+
         .. note::
 
             Currently for network epochs there is no validation performed if an
@@ -508,6 +517,18 @@ class RoutingHarvester(Harvester):
     def _emerge_station(self, session, station, base_node):
         """
         Factory method for a :py:class:`orm.Station` object.
+
+        :param session: SQLAlchemy session object
+        :type session: :py:class:`sqlalchemy.orm.session.Session`
+        :param station: StationXML station object
+        :type station: :py:class:`obspy.core.inventory.station.Station`
+        :param base_node: Parent base node element shipping properties to be
+            inherited
+        :type base_node: :py:class:`self.BaseNode`
+
+        :returns: Tuple of :py:class:`orm.Station``object and
+            :py:class:`self.BaseNode`
+        :rtype: tuple
 
         .. note::
 
@@ -586,6 +607,23 @@ class RoutingHarvester(Harvester):
                              base_node):
         """
         Factory method for a :py:class:`orm.ChannelEpoch` object.
+
+        :param session: SQLAlchemy session object
+        :type session: :py:class:`sqlalchemy.orm.session.Session`
+        :param channel: StationXML channel object
+        :type channel: :py:class:`obspy.core.inventory.channel.Channel`
+        :param network: Network referenced by the channel epoch
+        :type network:
+        :py:class:`eidangservices.stationlite.engine.orm.Network`
+        :param station: Station referenced by the channel epoch
+        :type station:
+        :py:class:`eidangservices.stationlite.engine.orm.Station`
+        :param base_node: Parent base node element shipping properties to be
+            inherited
+        :type base_node: :py:class:`self.BaseNode`
+
+        :returns: :py:class:`orm.Channel` object
+        :rtype: :py:class:`orm.Channel`
         """
         end_date = channel.end_date
         if end_date is not None:
@@ -597,7 +635,7 @@ class RoutingHarvester(Harvester):
             channel.restricted_status)
 
         # check for available, overlapping channel_epoch (not identical)
-        # XXX(damb) Overlapping orm.ChannelEpochs regarding time constraints
+        # XXX(damb): Overlapping orm.ChannelEpochs regarding time constraints
         # are updated (i.e. implemented as: delete - insert).
         query = session.query(orm.ChannelEpoch).\
             filter(orm.ChannelEpoch.network == network).\
@@ -760,7 +798,7 @@ class RoutingHarvester(Harvester):
         :param kwargs: Keyword value parameters to be updated.
 
         Allowed parameters are:
-        * :code:`restricted_status`
+        * ``restricted_status``
         """
         restricted_status = kwargs.get('restricted_status')
 
@@ -896,7 +934,7 @@ class VNetHarvester(Harvester):
 
     def _emerge_streamepoch_group(self, session, element):
         """
-        Factory method for a :code:`orm.StreamEpochGroup`
+        Factory method for a :py:class:`orm.StreamEpochGroup`
         """
         net_code = element.get('networkCode')
         if not net_code:
@@ -924,7 +962,7 @@ class VNetHarvester(Harvester):
 
     def _emerge_streamepoch(self, session, channel_epoch, stream_epoch, vnet):
         """
-        Factory method for a :code:`orm.StreamEpoch` object.
+        Factory method for a :py:class:`orm.StreamEpoch` object.
         """
         # check if overlapping with a StreamEpoch already existing
         # XXX(damb): Overlapping orm.StreamEpoch objects regarding time
@@ -1165,7 +1203,7 @@ class StationLiteHarvestApp(App):
 
     def _harvest_routes(self, Session):
         """
-        Harvest the EIDA node's :code:`<route></route>` information.
+        Harvest the EIDA node's ``<route></route>`` information.
 
         :param Session: A configured Session class reference
         :type Session: :py:class:`sqlalchemy.orm.session.Session`
@@ -1198,7 +1236,7 @@ class StationLiteHarvestApp(App):
 
     def _harvest_vnetworks(self, Session):
         """
-        Harvest the EIDA node's :code:`<vnetwork></vnetwork>` information.
+        Harvest the EIDA node's ``<vnetwork></vnetwork>`` information.
 
         :param Session: A configured Session class reference
         :type Session: :py:class:`sqlalchemy.orm.session.Session`
