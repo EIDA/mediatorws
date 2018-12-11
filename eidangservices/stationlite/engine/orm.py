@@ -184,8 +184,7 @@ class StreamEpochGroup(CodeMixin, ORMBase):
         return '<StreamEpochGroup(code=%s)>' % self.code
 
 
-# TODO(damb): Find a way to map sncl.StreamEpoch to orm.StreamEpoch more
-# elegantly
+
 class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
     network_ref = Column(Integer, ForeignKey('network.oid'),
