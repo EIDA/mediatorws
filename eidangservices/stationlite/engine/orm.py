@@ -70,10 +70,15 @@ ORMBase = declarative_base(cls=Base)
 
 class Network(CodeMixin, ORMBase):
 
-    network_epochs = relationship('NetworkEpoch', back_populates='network')
+    network_epochs = relationship('NetworkEpoch',
+                                  back_populates='network',
+                                  cascade='all, delete-orphan')
     channel_epochs = relationship('ChannelEpoch',
-                                  back_populates='network')
-    stream_epochs = relationship('StreamEpoch', back_populates='network')
+                                  back_populates='network',
+                                  cascade='all, delete-orphan')
+    stream_epochs = relationship('StreamEpoch',
+                                 back_populates='network',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<Network(code=%s)>' % self.code
@@ -115,10 +120,16 @@ class ChannelEpoch(CodeMixin, EpochMixin, LastSeenMixin, RestrictedStatusMixin,
 
 class Station(CodeMixin, ORMBase):
 
-    station_epochs = relationship('StationEpoch', back_populates='station')
+    station_epochs = relationship('StationEpoch',
+                                  back_populates='station',
+                                  cascade='all, delete-orphan')
 
-    channel_epochs = relationship('ChannelEpoch', back_populates='station')
-    stream_epochs = relationship('StreamEpoch', back_populates='station')
+    channel_epochs = relationship('ChannelEpoch',
+                                  back_populates='station',
+                                  cascade='all, delete-orphan')
+    stream_epochs = relationship('StreamEpoch',
+                                 back_populates='station',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<Station(code=%s)>' % self.code
@@ -142,8 +153,10 @@ class Routing(EpochMixin, LastSeenMixin, ORMBase):
     endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'),
                           index=True)
 
-    channel_epoch = relationship('ChannelEpoch', back_populates='endpoints')
-    endpoint = relationship('Endpoint', back_populates='channel_epochs')
+    channel_epoch = relationship('ChannelEpoch',
+                                 back_populates='endpoints')
+    endpoint = relationship('Endpoint',
+                            back_populates='channel_epochs')
 
     def __repr__(self):
         return ('<Routing(url=%s, starttime=%r, endtime=%r)>' %
@@ -157,9 +170,12 @@ class Endpoint(ORMBase):
     url = Column(String(LENGTH_URL), nullable=False)
 
     # many to many ChannelEpoch<->Endpoint
-    channel_epochs = relationship('Routing', back_populates='endpoint')
+    channel_epochs = relationship('Routing',
+                                  back_populates='endpoint',
+                                  cascade='all, delete-orphan')
 
-    service = relationship('Service', back_populates='endpoints')
+    service = relationship('Service',
+                           back_populates='endpoints')
 
     def __repr__(self):
         return '<Endpoint(url=%s)>' % self.url
@@ -169,16 +185,23 @@ class Service(ORMBase):
 
     name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
 
-    endpoints = relationship('Endpoint', back_populates='service')
+    endpoints = relationship('Endpoint',
+                             back_populates='service',
+                             cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<Service(name=%s)>' % self.name
 
 
 class StreamEpochGroup(CodeMixin, ORMBase):
+    """
+    ORM entity representing a *Virtual Network* in the context of
+    :code:`eidaws-routing`.
+    """
 
     stream_epochs = relationship('StreamEpoch',
-                                 back_populates='stream_epoch_group')
+                                 back_populates='stream_epoch_group',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<StreamEpochGroup(code=%s)>' % self.code
@@ -186,6 +209,10 @@ class StreamEpochGroup(CodeMixin, ORMBase):
 
 
 class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
+    """
+    ORM entity representing a *Virtual Stream Epoch* in the context of
+    :code:`eidaws-routing` virtual networks.
+    """
 
     network_ref = Column(Integer, ForeignKey('network.oid'),
                          index=True)
