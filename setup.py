@@ -45,7 +45,7 @@ def get_version(filename):
 
 
 _name = 'eidangservices'
-_version = '0.9.1'
+_version = '0.9.4'
 _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
