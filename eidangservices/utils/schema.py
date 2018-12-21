@@ -263,7 +263,7 @@ class ManyStreamEpochSchema(Schema):
     treat :py:class:`eidangservices.utils.sncl.StreamEpoch` objects like JSON
     bulk type arguments.
     """
-    stream_epochs = fields.Nested('StreamEpochSchema', many=True)
+    stream_epochs = fields.List(fields.Nested('StreamEpochSchema'))
 
     @validates_schema
     def validate_schema(self, data):
