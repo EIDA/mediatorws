@@ -174,6 +174,8 @@ class StreamEpochSchema(Schema):
                 data[key] = data[alt_key]
                 data.pop(alt_key)
 
+        return data
+
     # merge_keys ()
 
     @post_load
