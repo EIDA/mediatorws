@@ -65,7 +65,7 @@ SPHINX_EXCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
 SPHINX_INCLUDE=$(addsuffix /,$(addprefix $(PATH_EIDANGSERVICES)/,\
 							 utils))
 
-TOXENVS=py27 py34 py35 py36
+TOXENVS=py27 py35 py36
 
 # -----------------------------------------------------------------------------
 #

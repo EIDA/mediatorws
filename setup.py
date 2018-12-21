@@ -33,8 +33,8 @@ import sys
 from copy import deepcopy
 from setuptools import setup, find_packages
 
-if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 4):
-    raise RuntimeError("Python version 2.7 or >= 3.4 required.")
+if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 5):
+    raise RuntimeError("Python version 2.7 or >= 3.5 required.")
 
 
 def get_version(filename):
@@ -228,7 +228,6 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
