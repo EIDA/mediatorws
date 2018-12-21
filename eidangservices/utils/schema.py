@@ -111,14 +111,12 @@ class FDSNWSDateTime(fields.DateTime):
     <http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf>`_.
     """
 
-    DATEFORMAT_SERIALIZATION_FUNCS = \
-        fields.DateTime.DATEFORMAT_SERIALIZATION_FUNCS.copy()
+    SERIALIZATION_FUNCS = fields.DateTime.SERIALIZATION_FUNCS.copy()
 
-    DATEFORMAT_DESERIALIZATION_FUNCS = \
-        fields.DateTime.DATEFORMAT_DESERIALIZATION_FUNCS.copy()
+    DESERIALIZATION_FUNCS = fields.DateTime.DESERIALIZATION_FUNCS.copy()
 
-    DATEFORMAT_SERIALIZATION_FUNCS['fdsnws'] = utils.fdsnws_isoformat
-    DATEFORMAT_DESERIALIZATION_FUNCS['fdsnws'] = utils.from_fdsnws_datetime
+    SERIALIZATION_FUNCS['fdsnws'] = utils.fdsnws_isoformat
+    DESERIALIZATION_FUNCS['fdsnws'] = utils.from_fdsnws_datetime
 
 # class FDSNWSDateTime
 
