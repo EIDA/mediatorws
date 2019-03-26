@@ -48,7 +48,7 @@ from flask_restful import Api
 
 from eidangservices import settings
 from eidangservices.stationlite import __version__
-from eidangservices.stationlite.engine.db import configure_db
+from eidangservices.stationlite.engine.db import configure_sqlite
 from eidangservices.stationlite.server import create_app
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
@@ -129,7 +129,7 @@ class StationLiteWebservice(App):
             app = self.setup_app()
 
             if self.args.db_url.startswith('sqlite'):
-                configure_db(self.DB_PRAGMAS)
+                configure_sqlite(self.DB_PRAGMAS)
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)

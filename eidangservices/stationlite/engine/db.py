@@ -121,9 +121,9 @@ def session_guard(session):
 
 # session_guard ()
 
-def configure_db(pragmas):
+def configure_sqlite(pragmas):
     """
-    Wraps up DB specific configuration.
+    Wraps up SQLite DB specific configuration.
 
     :param list pragmas: List of pragmas (:py:class:`str` objects) to be
         executed.
