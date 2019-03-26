@@ -149,10 +149,8 @@ def db_init():
     app = StationLiteDBInitApp(log_id='STL')
 
     try:
-        app.configure(
-            settings.PATH_EIDANGWS_CONF,
-            positional_required_args=['path_db'],
-            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
+        app.configure(None,
+                      positional_required_args=['path_db'])
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
