@@ -157,8 +157,7 @@ class FederatorWebservice(App):
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
                 app.run(threaded=True, port=self.args.port,
-                        debug=(True if os.environ.get('DEBUG') == 'True' else
-                               False),
+                        debug=(os.environ.get('DEBUG') == 'True'),
                         use_reloader=True, passthrough_errors=True)
 
             else:
