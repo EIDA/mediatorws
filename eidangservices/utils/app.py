@@ -112,7 +112,7 @@ class App(object):
         args, remaining_argv = c_parser.parse_known_args()
 
         defaults = {}
-        if config_section:
+        if path_default_config and config_section:
             config_parser = configparser.ConfigParser(**kwargs)
             config_parser.read(args.config_file)
         try:
@@ -146,7 +146,10 @@ class App(object):
         # set the config_file default explicitly since adding the c_parser as a
         # parent would change the args.config_file to
         # default=PATH_EIDANGWS_CONF within the child parser
-        self.parser.set_defaults(config_file=args.config_file)
+        try:
+            self.parser.set_defaults(config_file=args.config_file)
+        except AttributeError:
+            pass
 
         try:
             def _error(msg):
@@ -185,13 +188,14 @@ class App(object):
             formatter_class=argparse.RawDescriptionHelpFormatter,
             add_help=False)
 
-        c_parser.add_argument(
-            "-c", "--config", dest="config_file",
-            default=path_default_config,
-            metavar="PATH",
-            type=utils.realpath,
-            help="path to EIDA Webservice configuration file " +
-                 "(default: '%(default)s')")
+        if path_default_config:
+            c_parser.add_argument(
+                "-c", "--config", dest="config_file",
+                default=path_default_config,
+                metavar="PATH",
+                type=utils.realpath,
+                help="path to EIDA Webservice configuration file " +
+                     "(default: '%(default)s')")
 
         return c_parser
 
