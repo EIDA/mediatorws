@@ -92,7 +92,8 @@ class App(object):
     # __init__ ()
 
     def configure(self, path_default_config, config_section=None,
-                  positional_required_args=[], capture_warnings=True):
+                  positional_required_args=[], capture_warnings=True,
+                  **kwargs):
         """
         Configure the application.
 
@@ -104,13 +105,15 @@ class App(object):
             If such a parameter was found in the configuration file it is
             **always** appended to the parameters parsed
         :param bool capture_warnings: Capture warnings
+        :param kwargs: Additional keyword value parameters passed to the
+            unterlying configuration file parser
         """
         c_parser = self._build_configfile_parser(path_default_config)
         args, remaining_argv = c_parser.parse_known_args()
 
         defaults = {}
         if config_section:
-            config_parser = configparser.ConfigParser()
+            config_parser = configparser.ConfigParser(**kwargs)
             config_parser.read(args.config_file)
         try:
             defaults = dict(config_parser.items(config_section))

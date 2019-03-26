@@ -212,7 +212,8 @@ def main():
         app.configure(
             settings.PATH_EIDANGWS_CONF,
             positional_required_args=['db_url'],
-            config_section=settings.EIDA_STATIONLITE_CONFIG_SECTION)
+            config_section=settings.EIDA_STATIONLITE_CONFIG_SECTION,
+            interpolation=None)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
