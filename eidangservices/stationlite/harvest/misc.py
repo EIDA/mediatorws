@@ -102,10 +102,6 @@ class StationLiteDBInitApp(App):
         """
         Run application.
         """
-        # XXX(damb): About logging configuration. Logging for EIDA StationLite
-        # is enabled by fetching the logger 'eidangservices.stationlite'.
-
-        # output work with
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
