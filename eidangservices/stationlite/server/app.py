@@ -40,6 +40,7 @@ from builtins import * # noqa
 
 #import logging
 import argparse
+import os
 import sys
 import traceback
 
@@ -132,7 +133,8 @@ class StationLiteWebservice(App):
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
                 app.run(
-                    threaded=True, debug=True, port=self.args.port)
+                    threaded=True, port=self.args.port,
+                    debug=(os.environ.get('DEBUG') == 'True'))
             else:
                 try:
                     from mod_wsgi import version  # noqa
