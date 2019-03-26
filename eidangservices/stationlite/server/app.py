@@ -127,7 +127,9 @@ class StationLiteWebservice(App):
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
-            configure_db(self.DB_PRAGMAS)
+
+            if self.args.db_url.startswith('sqlite'):
+                configure_db(self.DB_PRAGMAS)
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)

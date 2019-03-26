@@ -949,7 +949,8 @@ class StationLiteHarvestApp(App):
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
 
-            db.configure_db(self.DB_PRAGMAS)
+            if self.args.db_engine.name == 'sqlite':
+                db.configure_db(self.DB_PRAGMAS)
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
