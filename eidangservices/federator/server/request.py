@@ -41,6 +41,8 @@ from urllib.parse import urlparse, urlunparse
 
 import requests
 
+from flask import request
+
 from eidangservices import settings, utils
 from eidangservices.utils.schema import StreamEpochSchema
 from eidangservices.federator import __version__
@@ -57,6 +59,7 @@ class RequestHandlerBase(object):
 
     """
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
+               "X-Forwarded-For": request.remote_addr,
                # force no encoding, because eida-federator currently cannot
                # handle this
                "Accept-Encoding": ""}
