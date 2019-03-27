@@ -40,6 +40,7 @@ from builtins import * # noqa
 
 #import logging
 import argparse
+import os
 import sys
 import traceback
 
@@ -47,7 +48,7 @@ from flask_restful import Api
 
 from eidangservices import settings
 from eidangservices.stationlite import __version__
-from eidangservices.stationlite.engine.db import configure_db
+from eidangservices.stationlite.engine.db import configure_sqlite
 from eidangservices.stationlite.server import create_app
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
@@ -126,13 +127,16 @@ class StationLiteWebservice(App):
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
             app = self.setup_app()
-            configure_db(self.DB_PRAGMAS)
+
+            if self.args.db_url.startswith('sqlite'):
+                configure_sqlite(self.DB_PRAGMAS)
 
             if self.args.start_local:
                 # run local Flask WSGI server (not for production)
                 self.logger.info('Serving with local WSGI server.')
                 app.run(
-                    threaded=True, debug=True, port=self.args.port)
+                    threaded=True, port=self.args.port,
+                    debug=(os.environ.get('DEBUG') == 'True'))
             else:
                 try:
                     from mod_wsgi import version  # noqa
@@ -208,7 +212,8 @@ def main():
         app.configure(
             settings.PATH_EIDANGWS_CONF,
             positional_required_args=['db_url'],
-            config_section=settings.EIDA_STATIONLITE_CONFIG_SECTION)
+            config_section=settings.EIDA_STATIONLITE_CONFIG_SECTION,
+            interpolation=None)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
