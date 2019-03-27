@@ -59,7 +59,7 @@ class RequestHandlerBase(object):
 
     """
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
-               "X-Forwarded-For": request.remote_addr,
+               "X-Forwarded-For": request.access_route[-1],
                # force no encoding, because eida-federator currently cannot
                # handle this
                "Accept-Encoding": ""}
