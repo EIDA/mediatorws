@@ -333,6 +333,7 @@ class RequestProcessor(object):
         <https://groups.google.com/forum/#!topic/modwsgi/jr2ayp0xesk>`_ very
         detailed.
         """
+        self.logger.debug("Closing response ...")
         self._pool.terminate()
         self._pool = None
 
@@ -557,6 +558,18 @@ class StationXMLRequestProcessor(StationRequestProcessor):
               '<Created>{}</Created>')
     FOOTER = '</FDSNStationXML>'
 
+    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
+                 **kwargs):
+        super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
+
+        self._level = query_params.get('level')
+        if self._level is None:
+            raise RequestProcessorError("Missing parameter: 'level'.")
+
+        self._on_close_event = mp.Event()
+
+    # __init__ ()
+
     def _request(self):
         """
         Process a federated fdsnws-station XML request.
@@ -567,7 +580,10 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.Pool(processes=pool_size)
+        self._pool = mp.pool.Pool(
+            processes=pool_size,
+            initializer=StationXMLNetworkCombinerTask._initializer,
+            initargs=(self._on_close_event,))
         # NOTE(damb): With pleasure I'd like to define the parameter
         # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
         # However, using this parameter seems to lead to processes unexpectedly
@@ -578,6 +594,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                 'Creating CombinerTask for {!r} ...'.format(net))
             t = StationXMLNetworkCombinerTask(
                 routes, self.query_params, name=net)
+
             result = self._pool.apply_async(t)
             self._results.append(result)
 
@@ -596,64 +613,70 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                     break
                 yield data
 
-        while True:
-            ready = []
-            for result in self._results:
-                if result.ready():
+        try:
+            while True:
+                ready = []
+                for result in self._results:
+                    if result.ready():
 
-                    _result = result.get()
-                    if _result.status_code == 200:
-                        if not sum(self._sizes):
-                            yield self.HEADER.format(
-                                self.SOURCE,
-                                datetime.datetime.utcnow().isoformat())
+                        _result = result.get()
+                        if _result.status_code == 200:
+                            if not sum(self._sizes):
+                                yield self.HEADER.format(
+                                    self.SOURCE,
+                                    datetime.datetime.utcnow().isoformat())
 
-                        self._sizes.append(_result.length)
-                        self.logger.debug(
-                            'Streaming from file {!r} (chunk_size={}).'.format(
-                                _result.data, self.CHUNK_SIZE))
-                        try:
-                            with open(_result.data, 'r', encoding='utf-8') \
-                                    as fd:
-                                for chunk in generate_chunks(fd):
-                                    yield chunk
-                        except Exception as err:
-                            raise StreamingError(err)
+                            self._sizes.append(_result.length)
+                            self.logger.debug(
+                                'Streaming from file {!r} (chunk_size={}).'.\
+                                format(_result.data, self.CHUNK_SIZE))
+                            try:
+                                with open(_result.data, 'r',
+                                          encoding='utf-8') as fd:
+                                    for chunk in generate_chunks(fd):
+                                        yield chunk
+                            except Exception as err:
+                                raise StreamingError(err)
 
-                        self.logger.debug(
-                            'Removing temporary file {!r} ...'.format(
-                                _result.data))
-                        try:
-                            os.remove(_result.data)
-                        except OSError as err:
-                            RequestProcessorError(err)
+                            self.logger.debug(
+                                'Removing temporary file {!r} ...'.format(
+                                    _result.data))
+                            try:
+                                os.remove(_result.data)
+                            except OSError as err:
+                                RequestProcessorError(err)
 
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
+                        elif _result.status_code == 413:
+                            self._handle_413(_result)
 
-                    else:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
+                        else:
+                            self._handle_error(_result)
+                            self._sizes.append(0)
 
-                    ready.append(result)
+                        ready.append(result)
 
-            # TODO(damb): Implement a timeout solution in case results are
-            # never ready.
-            for result in ready:
-                self._results.remove(result)
+                # TODO(damb): Implement a timeout solution in case results are
+                # never ready.
+                for result in ready:
+                    self._results.remove(result)
 
-            if not self._results:
-                break
+                if not self._results:
+                    break
 
-        yield self.FOOTER
+            yield self.FOOTER
 
-        self._pool.join()
-        self.logger.debug('Result sizes: {}.'.format(self._sizes))
-        self.logger.info(
-            'Results successfully processed (Total bytes: {}).'.format(
-                sum(self._sizes) + len(self.HEADER) - 4 + len(self.SOURCE) +
-                len(datetime.datetime.utcnow().isoformat()) +
-                len(self.FOOTER)))
+            self._pool.join()
+            self.logger.debug('Result sizes: {}.'.format(self._sizes))
+            self.logger.info(
+                'Results successfully processed (Total bytes: {}).'.format(
+                    sum(self._sizes) + len(self.HEADER) - 4 +
+                    len(self.SOURCE) +
+                    len(datetime.datetime.utcnow().isoformat()) +
+                    len(self.FOOTER)))
+
+        except GeneratorExit:
+            self.logger.debug('GeneratorExit: Propagating close event ...')
+            self._on_close_event.set()
 
     # __iter__ ()
 

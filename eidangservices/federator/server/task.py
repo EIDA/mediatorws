@@ -115,6 +115,12 @@ class Result(collections.namedtuple('Result', ['status',
         return cls.error(status=status, status_code=status_code, data=data,
                          warning=warning)
 
+    @classmethod
+    def teardown(cls, status="I'm a teapot", status_code=418, data=None,
+                 warning=None):
+        return cls.error(status=status, status_code=status_code, data=data,
+                         warning=warning)
+
 # class Result
 
 
@@ -245,6 +251,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
         self._network_elements = []
+
         self.path_tempfile = None
 
     # __init__ ()
@@ -366,6 +373,12 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
             if not self._results:
                 break
+
+            if on_close_event.is_set():  # noqa
+                self.logger.debug('{}: Closing ...'.format(self.name))
+                self._pool.terminate()
+                self._pool = None
+                return Result.teardown()
 
         self._pool.join()
 
@@ -500,6 +513,11 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             net_element.append(sta_element)
 
     # _merge_sta_element ()
+
+    @staticmethod
+    def _initializer(e):
+        global on_close_event
+        on_close_event = e
 
 # class StationXMLNetworkCombinerTask
 
