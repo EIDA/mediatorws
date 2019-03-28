@@ -706,7 +706,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         for obj in ijson.items(ifd, 'item'):
                             # NOTE(damb): A python object has to be created
                             # since else we cannot compare objects. (JSON is
-                            # unorederd.)
+                            # unordered.)
 
                             if (self._last_obj is not None and
                                     self._last_obj == obj):
