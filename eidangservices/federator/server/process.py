@@ -136,6 +136,7 @@ class RequestProcessor(object):
         self.stream_epochs = stream_epochs
         self.post = post
 
+        # TODO(damb): Pass as ctor arg.
         self._routing_service = current_app.config['ROUTING_SERVICE']
 
         self.logger = logging.getLogger(
