@@ -332,8 +332,8 @@ class RequestProcessor(object):
         When using `mod_wsgi <http://modwsgi.readthedocs.io/en/latest/>`_ the
         method is called either in case the request successfully was responded
         or an exception occurred while sending the response. `Graham Dumpleton
-        <https://github.com/GrahamDumpleton>`_ descibes the situation in this
-        `thread post
+        <https://github.com/GrahamDumpleton>`_ describes the situation in this
+        `thread post:
         <https://groups.google.com/forum/#!topic/modwsgi/jr2ayp0xesk>`_ very
         detailed.
         """
