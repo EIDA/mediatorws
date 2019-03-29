@@ -36,12 +36,192 @@ import os
 import random
 import tempfile
 
+from eidangservices.utils.error import Error, ErrorWithTraceback
+
+
 class KeepTempfiles(enum.Enum):
-    ALL = enum.auto()
-    ON_ERRORS = enum.auto()
-    NONE = enum.auto()
+    ALL = 0
+    ON_ERRORS = 1
+    NONE = 2
 
 # class KeepTempfiles
+
+
+class Context(object):
+    """
+    Utility implementation of a simple hierarchical context.
+    """
+    SEP = '::'
+
+    class ContextError(ErrorWithTraceback):
+        """Base context error ({})."""
+
+    # TODO(damb): Make it threadsafe!
+
+    def __init__(self, uuid, parent_ctx=None, root_only=True):
+        try:
+            hash(uuid)
+        except TypeError as err:
+            raise self.ContextError('Object must be hashable.')
+        self._ctx = uuid
+        self._parent_ctx = parent_ctx
+        self._root_only = root_only
+
+        self._path_ctx = None
+        self._child_ctxs = set()
+
+    @property
+    def locked(self):
+        if not self._root_only or self._is_root:
+            return bool(self._path_ctx) and os.path.isfile(self._path_ctx)
+        # check if the root context is still locked
+        return self._get_root_ctx().locked
+
+    # locked ()
+
+    @property
+    def _is_root(self):
+        return not self._parent_ctx
+
+    def acquire(self, path_tempdir=tempfile.gettempdir()):
+        """
+        Acquire a temporary file for the context.
+        """
+        if not self._root_only or self._is_root:
+            self._path_ctx = os.path.join(path_tempdir, str(self._ctx))
+
+            if os.path.isfile(self._path_ctx):
+                raise FileExistsError
+            try:
+                open(self._path_ctx, 'a').close()
+            except OSError as err:
+                raise self.ContextError('Cannot create lock ({}).'.format(err))
+        else:
+            # acquire a lock for the root context
+            root = self._get_root_ctx()
+            root.acquire(path_tempdir)
+            # broadcast
+            for c in root:
+                c._path_ctx = root._path_ctx
+
+    # acquire ()
+
+    def release(self):
+        """
+        Remove a previously acquired temporary file.
+        """
+        if not self._root_only or self._is_root:
+            if not self._path_ctx:
+                raise self.ContextError('Not acquired.')
+            try:
+                os.remove(self._path_ctx)
+            except OSError as err:
+                raise self.ContextError(
+                    'While removing context ({}).'.format(err))
+            self._path_ctx = None
+        else:
+            root = self._get_root_ctx()
+            root.release()
+            # broadcast
+            for c in root:
+                c._path_ctx = None
+
+    # release ()
+
+    def teardown(self):
+        """
+        Securely remove the context.
+        """
+        if self._is_root:
+            for c in self._child_ctxs:
+                self.__sub__(c)
+            try:
+                self.release()
+            except Error:
+                pass
+        else:
+            self._get_root_ctx().teardown()
+
+    # teardown ()
+
+    def __add__(self, ctx):
+        for c in ctx:
+            if c.locked and ctx._root_only:
+                raise self.ContextError(
+                    'Cannot add locked contexts. Please, release first.')
+
+        uuids = set([c._ctx for c in self])
+        other_uuids = set([c._ctx for c in ctx])
+        if uuids & other_uuids:
+            raise self.ContextError('Only unique UUIDs allowed.')
+
+        for c in ctx:
+            c._root_only = self._root_only
+
+        ctx._parent_ctx = self
+        self._child_ctxs.add(ctx)
+
+    # __add__ ()
+
+    def __sub__(self, ctx):
+        if ctx in self:
+            if ctx._child_ctxs:
+                ctx.__sub__(ctx._child_ctxs.pop())
+
+            if ctx.locked:
+                ctx.release()
+            self._child_ctxs.discard(ctx)
+
+    # __sub__ ()
+
+    def __contains__(self, other):
+        return other in self._child_ctxs
+
+    def __eq__(self, other):
+        # TODO(damb): To be implemented.
+        return self == other
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __iter__(self):
+        yield self
+
+        for c in self._child_ctxs:
+            # XXX(damb): Python3 only: yield from iter(c)
+            for _c in iter(c):
+                yield _c
+
+    # __iter__ ()
+
+    def __str__(self):
+        stack = [self._ctx]
+
+        parent_ctx = self._parent_ctx
+        while parent_ctx:
+            parent_ctx = parent_ctx._parent_ctx
+            if not parent_ctx:
+                break
+            stack.append(parent_ctx._ctx)
+
+        return self.SEP.join(e for e in reversed(stack))
+
+    # __str__ ()
+
+    def _get_root_ctx(self):
+        parent_ctx = self._parent_ctx
+        ctx = self
+        while parent_ctx:
+            parent_ctx = parent_ctx._parent_ctx
+            if not parent_ctx:
+                break
+            ctx = parent_ctx
+
+        return ctx
+
+    # _get_root_ctx ()
+
+# class Context
 
 
 def get_temp_filepath():

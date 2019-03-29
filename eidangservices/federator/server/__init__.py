@@ -31,6 +31,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import datetime
+import uuid
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
@@ -39,7 +40,9 @@ from flask_cors import CORS
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.misc import Context
 from eidangservices.utils import httperrors
+from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
                                          register_keywordparser_errorhandler)
 
@@ -63,6 +66,19 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
+        g.request_id = uuid.uuid4()
+
+        g.ctx = Context(g.request_id)
+        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'])
+
+    # before_request ()
+
+    @app.teardown_request
+    def teardown_request(exception):
+        try:
+            g.ctx.release()
+        except Error:
+            pass
 
     def register_error(err):
         @app.errorhandler(err)

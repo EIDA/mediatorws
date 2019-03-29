@@ -46,7 +46,8 @@ from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
-from eidangservices.federator.server.misc import (get_temp_filepath,
+from eidangservices.federator.server.misc import (KeepTempfiles,
+                                                  get_temp_filepath,
                                                   elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
@@ -80,6 +81,27 @@ def catch_default_task_exception(func):
     return decorator
 
 # catch_default_task_exception ()
+
+
+def with_ctx_guard(func):
+    """
+    Method decorator acting as a context guard performing garbage collection.
+    """
+    def decorator(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except TaskBase.MissingContextLock as err:
+            self.logger.debug(
+                '{}: Teardown (stream_epochs={}) ...'.format(
+                    type(self).__name__,
+                    self._request_handler.stream_epochs))
+            self._teardown(self.path_tempfile)
+            return Result.teardown(warning=str(err))
+
+    return decorator
+
+# with_ctx_guard ()
+
 
 # -----------------------------------------------------------------------------
 class Result(collections.namedtuple('Result', ['status',
@@ -128,13 +150,27 @@ class Result(collections.namedtuple('Result', ['status',
 class TaskBase(object):
     """
     Base class for tasks.
+
+    :param str logger: Name of the logger to be aqucired
+    :param keep_tempfiles: Flag how temporary files should be treated
+    :type keep_tempfiles: :py:class:`KeepTempfiles`
     """
 
     class TaskError(Error):
         """Base task error ({})."""
 
-    def __init__(self, logger):
+    class MissingContextLock(TaskError):
+        """Context is not locked."""
+
+    def __init__(self, logger, **kwargs):
+
         self.logger = logging.getLogger(logger)
+
+        self._ctx = kwargs.get('context')
+        self._keep_tempfiles = kwargs.get(
+            'keep_tempfiles', KeepTempfiles.NONE)
+
+    # __init__ ()
 
     def __getstate__(self):
         # prevent pickling errors for loggers
@@ -155,6 +191,27 @@ class TaskBase(object):
     def __call__(self):
         raise NotImplementedError
 
+    def _teardown(self, paths_tempfiles=None):
+        """
+        Securely tear a task down and perform garbage collection.
+
+        :param paths_tempfiles: Temporary files to be removed
+        :type path_tempfiles: None or str or list
+        """
+        if isinstance(paths_tempfiles, str):
+            paths_tempfiles = [paths_tempfiles]
+
+        if (paths_tempfiles and
+            self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            for p in paths_tempfiles:
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+    # _teardown ()
+
 # class TaskBase
 
 
@@ -169,8 +226,8 @@ class CombinerTask(TaskBase):
     MAX_THREADS_DOWNLOADING = 5
 
     def __init__(self, routes, query_params, **kwargs):
-        super().__init__((kwargs['logger'] if kwargs.get('logger') else
-                          self.LOGGER))
+        super().__init__((kwargs.pop('logger') if kwargs.get('logger') else
+                          self.LOGGER), **kwargs)
 
         self._routes = routes
         self.query_params = query_params
@@ -528,7 +585,7 @@ class SplitAndAlignTask(TaskBase):
     DEFAULT_SPLITTING_CONST = 2
 
     def __init__(self, url, stream_epoch, query_params, **kwargs):
-        super().__init__(self.LOGGER)
+        super().__init__(self.LOGGER, **kwargs)
         self.query_params = query_params
         self.path_tempfile = get_temp_filepath()
         self._url = url
@@ -570,11 +627,17 @@ class SplitAndAlignTask(TaskBase):
     # split ()
 
     def _handle_error(self, err):
-        os.remove(self.path_tempfile)
+        if self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                        KeepTempfiles.ON_ERRORS):
+            try:
+                os.remove(self.path_tempfile)
+            except OSError:
+                pass
 
         return Result.error(status='EndpointError',
                             status_code=err.response.status_code,
                             warning=str(err), data=err.response.data)
+
     # _handle_error ()
 
     def _run(self, stream_epoch):
@@ -584,6 +647,7 @@ class SplitAndAlignTask(TaskBase):
         raise NotImplementedError
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
         return self._run(self._stream_epoch_orig)
 
@@ -609,6 +673,7 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
 
         # make a request for the first stream epoch
         for stream_epoch in stream_epochs:
+
             request_handler = GranularFdsnRequestHandler(
                 self._url, stream_epoch, query_params=self.query_params)
 
@@ -650,6 +715,9 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                     'Download (url={}, stream_epoch={}) finished.'.format(
                         request_handler.url,
                         request_handler.stream_epochs))
+
+            if self._ctx and not self._ctx.locked:
+                raise self.MissingContextLock
 
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
                 return Result.ok(data=self.path_tempfile, length=self._size)
@@ -765,10 +833,8 @@ class RawDownloadTask(TaskBase):
     DECODE_UNICODE = False
 
     def __init__(self, request_handler, **kwargs):
-        super().__init__(self.LOGGER)
+        super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
-        self.path_tempfile = get_temp_filepath()
-
         self.chunk_size = (self.CHUNK_SIZE
                            if kwargs.get('chunk_size') is None
                            else kwargs.get('chunk_size'))
@@ -776,13 +842,14 @@ class RawDownloadTask(TaskBase):
                                if kwargs.get('decode_unicode') is None
                                else kwargs.get('decode_unicode'))
 
+        self.path_tempfile = get_temp_filepath()
         self._size = 0
 
     # __init__ ()
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
-
         self.logger.debug(
             'Downloading (url={}, stream_epochs={}) ...'.format(
                 self._request_handler.url,
@@ -806,15 +873,20 @@ class RawDownloadTask(TaskBase):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
+        if self._ctx and not self._ctx.locked:
+            raise self.MissingContextLock
+
         return Result.ok(data=self.path_tempfile, length=self._size)
 
     # __call__ ()
 
     def _handle_error(self, err):
-        try:
-            os.remove(self.path_tempfile)
-        except OSError:
-            pass
+        if self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                        KeepTempfiles.ON_ERRORS):
+            try:
+                os.remove(self.path_tempfile)
+            except OSError:
+                pass
 
         try:
             resp = err.response

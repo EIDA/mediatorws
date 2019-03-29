@@ -35,7 +35,7 @@ from builtins import * # noqa
 
 import logging
 
-from flask import current_app, request
+from flask import current_app, g, request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
@@ -85,6 +85,7 @@ class DataselectResource(Resource):
             query_params=args,
             stream_epochs=stream_epochs,
             post=False,
+            context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
         ).streamed_response
 
@@ -117,6 +118,7 @@ class DataselectResource(Resource):
             query_params=args,
             stream_epochs=stream_epochs,
             post=True,
+            context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
         ).streamed_response
 

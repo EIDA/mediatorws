@@ -38,11 +38,13 @@ import logging
 import multiprocessing as mp
 import os
 import time
+import uuid
 
 from flask import current_app, stream_with_context, Response
 
 from eidangservices import utils, settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.misc import Context, KeepTempfiles
 from eidangservices.federator.server.request import (
     RoutingRequestHandler, GranularFdsnRequestHandler,
     BulkFdsnRequestHandler)
@@ -142,6 +144,11 @@ class RequestProcessor(object):
         self.logger = logging.getLogger(
             self.LOGGER if kwargs.get('logger') is None
             else kwargs.get('logger'))
+
+        self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
+        self._ctx = kwargs.get('context', Context(uuid.uuid4()))
+        if not self._ctx.locked:
+            self._ctx.acquire()
 
         self._pool = None
         self._results = []
@@ -258,6 +265,15 @@ class RequestProcessor(object):
     def _handle_error(self, err):
         self.logger.warning(str(err))
 
+        if self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                        KeepTempfiles.ON_ERRORS):
+            try:
+                os.remove(err.data)
+            except OSError as err:
+                pass
+
+    # _handle_error ()
+
     def _handle_413(self, result):
         self.logger.warning(
             'Handle endpoint HTTP status code 413 (url={}, '
@@ -318,6 +334,33 @@ class RequestProcessor(object):
 
     # _wait ()
 
+    def _terminate(self):
+        """
+        Terminate the processor.
+
+        Implies both shutting down the processor's pool and removing temporary
+        files of already successfully returned tasks.
+        """
+        try:
+            self._ctx.release()
+        except (AttributeError, ErrorWithTraceback):
+            pass
+        self._pool.terminate()
+
+        for result in self._results:
+            if (result.ready() and
+                self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                             KeepTempfiles.ON_ERRORS)):
+                _result = result.get()
+                try:
+                    os.remove(_result.data)
+                except OSError as err:
+                    pass
+
+        self._pool = None
+
+    # _terminate ()
+
     def _request(self):
         """
         Template method.
@@ -338,7 +381,12 @@ class RequestProcessor(object):
         detailed.
         """
         self.logger.debug("Closing response ...")
-        self._pool.terminate()
+
+        try:
+            self._pool.terminate()
+        except AttributeError:
+            pass
+
         self._pool = None
 
     # _call_on_close ()
@@ -387,7 +435,9 @@ class RawRequestProcessor(RequestProcessor):
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
-                    query_params=self.query_params))
+                    query_params=self.query_params),
+                context=self._ctx,
+                keep_tempfiles=self._keep_tempfiles,)
             result = self._pool.apply_async(t)
             self._results.append(result)
 
@@ -405,7 +455,9 @@ class RawRequestProcessor(RequestProcessor):
         t = RawSplitAndAlignTask(
             result.data.url, result.data.stream_epochs[0],
             query_params=self.query_params,
-            endtime=self.DEFAULT_ENDTIME)
+            endtime=self.DEFAULT_ENDTIME,
+            context=self._ctx,
+            keep_tempfiles=self._keep_tempfiles)
 
         result = self._pool.apply_async(t)
         self._results.append(result)
@@ -426,62 +478,69 @@ class RawRequestProcessor(RequestProcessor):
                     break
                 yield data
 
-        while True:
+        try:
+            while True:
 
-            ready = []
-            for result in self._results:
+                ready = []
+                for result in self._results:
 
-                if result.ready():
-                    _result = result.get()
+                    if result.ready():
+                        _result = result.get()
 
-                    if _result.status_code == 200:
-                        self._sizes.append(_result.length)
-                        self.logger.debug(
-                            'Streaming from file {!r} (chunk_size={}).'.format(
-                                _result.data, self.CHUNK_SIZE))
-                        try:
-                            with open(_result.data, 'rb') as fd:
-                                for chunk in generate_chunks(fd):
-                                    yield chunk
-                        except Exception as err:
-                            raise StreamingError(err)
+                        if _result.status_code == 200:
+                            self._sizes.append(_result.length)
+                            self.logger.debug(
+                                'Streaming from file {!r} (chunk_size={}).'.\
+                                format(_result.data, self.CHUNK_SIZE))
+                            try:
+                                with open(_result.data, 'rb') as fd:
+                                    for chunk in generate_chunks(fd):
+                                        yield chunk
+                            except Exception as err:
+                                raise StreamingError(err)
 
-                        self.logger.debug(
-                            'Removing temporary file {!r} ...'.format(
-                                _result.data))
-                        try:
-                            os.remove(_result.data)
-                        except OSError as err:
-                            RequestProcessorError(err)
+                            if self._keep_tempfiles != KeepTempfiles.ALL:
+                                self.logger.debug(
+                                    'Removing temporary file {!r} ...'.format(
+                                        _result.data))
+                                try:
+                                    os.remove(_result.data)
+                                except OSError as err:
+                                    RequestProcessorError(err)
 
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
+                        elif _result.status_code == 413:
+                            # TODO TODO TODO
+                            # Check if file has to be removed
+                            self._handle_413(_result)
 
-                    else:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
+                        else:
+                            self._handle_error(_result)
+                            self._sizes.append(0)
 
-                    ready.append(result)
+                        ready.append(result)
 
-                # NOTE(damb): We have to handle responses > 5MB. Blocking the
-                # processor by means of time.sleep makes executing
-                # *DownloadTasks IO bound.
-                time.sleep(0.01)
+                    # NOTE(damb): We have to handle responses > 5MB. Blocking
+                    # the processor by means of time.sleep makes executing
+                    # *DownloadTasks* IO bound.
+                    time.sleep(0.01)
 
-            # TODO(damb): Implement a timeout solution in case results are
-            # never ready.
-            for result in ready:
-                self._results.remove(result)
+                # TODO(damb): Implement a timeout solution in case results are
+                # never ready.
+                for result in ready:
+                    self._results.remove(result)
 
-            if not self._results:
-                break
+                if not self._results:
+                    break
 
-        self._pool.close()
-        self._pool.join()
-        self.logger.debug('Result sizes: {}.'.format(self._sizes))
-        self.logger.info(
-            'Results successfully processed (Total bytes: {}).'.format(
-                sum(self._sizes)))
+            self._pool.close()
+            self._pool.join()
+            self.logger.debug('Result sizes: {}.'.format(self._sizes))
+            self.logger.info(
+                'Results successfully processed (Total bytes: {}).'.format(
+                    sum(self._sizes)))
+        except GeneratorExit as err:
+            self.logger.debug('GeneratorExit: Terminate ...')
+            self._terminate()
 
     # __iter__ ()
 
