@@ -31,9 +31,17 @@ from __future__ import (absolute_import, division, print_function,
 
 from builtins import * # noqa
 
+import enum
 import os
 import random
 import tempfile
+
+class KeepTempfiles(enum.Enum):
+    ALL = enum.auto()
+    ON_ERRORS = enum.auto()
+    NONE = enum.auto()
+
+# class KeepTempfiles
 
 
 def get_temp_filepath():
