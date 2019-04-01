@@ -227,7 +227,7 @@ class Context(object):
                 break
             stack.append(parent_ctx._ctx)
 
-        return self.SEP.join(e for e in reversed(stack))
+        return self.SEP.join(str(e) for e in reversed(stack))
 
     # __str__ ()
 
