@@ -956,7 +956,9 @@ class WFCatalogRequestProcessor(RequestProcessor):
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
-                    query_params=self.query_params))
+                    query_params=self.query_params),
+                context=self._ctx,
+                keep_tempfiles=self._keep_tempfiles,)
             result = self._pool.apply_async(t)
             self._results.append(result)
 
@@ -974,7 +976,9 @@ class WFCatalogRequestProcessor(RequestProcessor):
         t = WFCatalogSplitAndAlignTask(
             result.data.url, result.data.stream_epochs[0],
             query_params=self.query_params,
-            endtime=self.DEFAULT_ENDTIME)
+            endtime=self.DEFAULT_ENDTIME,
+            context=self._ctx,
+            keep_tempfiles=self._keep_tempfiles,)
 
         result = self._pool.apply_async(t)
         self._results.append(result)
@@ -1000,74 +1004,78 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
                 yield buf
 
-        while True:
-            ready = []
-            for result in self._results:
-                if result.ready():
-                    _result = result.get()
-                    if _result.status_code == 200:
-                        if not sum(self._sizes):
-                            # add header
-                            yield self.JSON_LIST_START
+        try:
+            while True:
+                ready = []
+                for result in self._results:
+                    if result.ready():
+                        _result = result.get()
+                        if _result.status_code == 200:
+                            if not sum(self._sizes):
+                                # add header
+                                yield self.JSON_LIST_START
+                            else:
+                                # prepend comma if not first stream epoch data
+                                yield self.JSON_LIST_SEP
+
+                            self.logger.debug(
+                                'Streaming from file {!r} (chunk_size={}).'.\
+                                format(_result.data, self.CHUNK_SIZE))
+                            try:
+                                with open(_result.data, 'rb') as fd:
+                                    # skip leading bracket (from JSON list)
+                                    size = 0
+                                    for chunk in generate_chunks(
+                                            fd, self.CHUNK_SIZE):
+                                        size += len(chunk)
+                                        yield chunk
+
+                                self._sizes.append(size)
+
+                            except Exception as err:
+                                raise StreamingError(err)
+
+                            self.logger.debug(
+                                'Removing temporary file {!r} ...'.format(
+                                    _result.data))
+                            try:
+                                os.remove(_result.data)
+                            except OSError as err:
+                                RequestProcessorError(err)
+
+                        elif _result.status_code == 413:
+                            self._handle_413(_result)
+
                         else:
-                            # prepend comma if not first stream epoch data
-                            yield self.JSON_LIST_SEP
+                            self._handle_error(_result)
+                            self._sizes.append(0)
 
-                        self.logger.debug(
-                            'Streaming from file {!r} (chunk_size={}).'.format(
-                                _result.data, self.CHUNK_SIZE))
-                        try:
-                            with open(_result.data, 'rb') as fd:
-                                # skip leading bracket (from JSON list)
-                                size = 0
-                                for chunk in generate_chunks(fd,
-                                                             self.CHUNK_SIZE):
-                                    size += len(chunk)
-                                    yield chunk
+                        ready.append(result)
 
-                            self._sizes.append(size)
+                    # NOTE(damb): We have to handle responses > 5MB. Blocking
+                    # the processor by means of time.sleep makes executing
+                    # DownloadTasks IO bound.
+                    time.sleep(0.01)
 
-                        except Exception as err:
-                            raise StreamingError(err)
+                # TODO(damb): Implement a timeout solution in case results are
+                # never ready.
+                for result in ready:
+                    self._results.remove(result)
 
-                        self.logger.debug(
-                            'Removing temporary file {!r} ...'.format(
-                                _result.data))
-                        try:
-                            os.remove(_result.data)
-                        except OSError as err:
-                            RequestProcessorError(err)
+                if not self._results:
+                    break
 
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
+            yield self.JSON_LIST_END
 
-                    else:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
-
-                    ready.append(result)
-
-                # NOTE(damb): We have to handle responses > 5MB. Blocking the
-                # processor by means of time.sleep makes executing
-                # *DownloadTasks IO bound.
-                time.sleep(0.01)
-
-            # TODO(damb): Implement a timeout solution in case results are
-            # never ready.
-            for result in ready:
-                self._results.remove(result)
-
-            if not self._results:
-                break
-
-        yield self.JSON_LIST_END
-
-        self._pool.close()
-        self._pool.join()
-        self.logger.debug('Result sizes: {}.'.format(self._sizes))
-        self.logger.info(
-            'Results successfully processed (Total bytes: {}).'.format(
-                sum(self._sizes) + 2 + len(self._sizes)-1))
+            self._pool.close()
+            self._pool.join()
+            self.logger.debug('Result sizes: {}.'.format(self._sizes))
+            self.logger.info(
+                'Results successfully processed (Total bytes: {}).'.format(
+                    sum(self._sizes) + 2 + len(self._sizes)-1))
+        except GeneratorExit as err:
+            self.logger.debug('GeneratorExit: Terminate ...')
+            self._terminate()
 
     # __iter__ ()
 

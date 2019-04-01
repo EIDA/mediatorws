@@ -807,6 +807,9 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
+            if self._ctx and not self._ctx.locked:
+                raise self.MissingContextLock
+
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
 
                 with open(self.path_tempfile, 'ab') as ofd:
