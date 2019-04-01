@@ -31,7 +31,6 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import * # noqa
 
 import datetime
-import uuid
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
@@ -66,10 +65,10 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-        g.request_id = uuid.uuid4()
-
-        g.ctx = Context(g.request_id)
-        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'])
+        g.ctx = Context()
+        g.request_id = g.ctx._get_current_object()
+        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'],
+                      hidden=settings.EIDA_FEDERATOR_HIDDEN_CTX_LOCKS)
 
     # before_request ()
 

@@ -35,6 +35,7 @@ import enum
 import os
 import random
 import tempfile
+import uuid
 
 from eidangservices.utils.error import Error, ErrorWithTraceback
 
@@ -58,13 +59,13 @@ class Context(object):
 
     # TODO(damb): Make it threadsafe!
 
-    def __init__(self, uuid, parent_ctx=None, root_only=True):
+    def __init__(self, ctx=None, root_only=True):
+        self._ctx = ctx if ctx else uuid.uuid4()
         try:
-            hash(uuid)
+            hash(self._ctx)
         except TypeError as err:
-            raise self.ContextError('Object must be hashable.')
-        self._ctx = uuid
-        self._parent_ctx = parent_ctx
+            raise self.ContextError('Context unhashable ({}).'.format(err))
+        self._parent_ctx = None
         self._root_only = root_only
 
         self._path_ctx = None
@@ -83,12 +84,18 @@ class Context(object):
     def _is_root(self):
         return not self._parent_ctx
 
-    def acquire(self, path_tempdir=tempfile.gettempdir()):
+    def acquire(self, path_tempdir=tempfile.gettempdir(), hidden=True):
         """
         Acquire a temporary file for the context.
+
+        :param str path_tempdir: Path for temporary files the lock will be
+            located
+        :param bool hidden: Use hidden files when creating the lock.
         """
         if not self._root_only or self._is_root:
-            self._path_ctx = os.path.join(path_tempdir, str(self._ctx))
+            self._path_ctx = os.path.join(
+                path_tempdir,
+                '{}{}'.format(('.' if hidden else ''), str(self._ctx)))
 
             if os.path.isfile(self._path_ctx):
                 raise FileExistsError
@@ -220,6 +227,9 @@ class Context(object):
         return ctx
 
     # _get_root_ctx ()
+
+    def _get_current_object(self):
+        return self._ctx
 
 # class Context
 
