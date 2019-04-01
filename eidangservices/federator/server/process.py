@@ -841,7 +841,9 @@ class StationTextRequestProcessor(StationRequestProcessor):
                     BulkFdsnRequestHandler(
                         bulk_route.url,
                         stream_epochs=bulk_route.streams,
-                        query_params=self.query_params))
+                        query_params=self.query_params),
+                    context=self._ctx,
+                    keep_tempfiles=self._keep_tempfiles)
                 result = self._pool.apply_async(t)
                 self._results.append(result)
 
@@ -853,63 +855,69 @@ class StationTextRequestProcessor(StationRequestProcessor):
         """
         Make the processor *streamable*.
         """
-        while True:
-            ready = []
-            for result in self._results:
-                if result.ready():
+        try:
+            while True:
+                ready = []
+                for result in self._results:
+                    if result.ready():
 
-                    _result = result.get()
-                    if _result.status_code == 200:
-                        if not sum(self._sizes):
-                            # add header
-                            if self._level == 'network':
-                                yield '{}\n'.format(self.HEADER_NETWORK)
-                            elif self._level == 'station':
-                                yield '{}\n'.format(self.HEADER_STATION)
-                            elif self._level == 'channel':
-                                yield '{}\n'.format(self.HEADER_CHANNEL)
+                        _result = result.get()
+                        if _result.status_code == 200:
+                            if not sum(self._sizes):
+                                # add header
+                                if self._level == 'network':
+                                    yield '{}\n'.format(self.HEADER_NETWORK)
+                                elif self._level == 'station':
+                                    yield '{}\n'.format(self.HEADER_STATION)
+                                elif self._level == 'channel':
+                                    yield '{}\n'.format(self.HEADER_CHANNEL)
 
-                        self._sizes.append(_result.length)
-                        self.logger.debug(
-                            'Streaming from file {!r}.'.format(_result.data))
-                        try:
-                            with open(_result.data, 'r', encoding='utf-8') \
-                                    as fd:
-                                for line in fd:
-                                    yield line
-                        except Exception as err:
-                            raise StreamingError(err)
+                            self._sizes.append(_result.length)
+                            self.logger.debug(
+                                'Streaming from file {!r}.'.format(
+                                    _result.data))
+                            try:
+                                with open(_result.data, 'r',
+                                          encoding='utf-8') as fd:
+                                    for line in fd:
+                                        yield line
+                            except Exception as err:
+                                raise StreamingError(err)
 
-                        self.logger.debug(
-                            'Removing temporary file {!r} ...'.format(
-                                _result.data))
-                        try:
-                            os.remove(_result.data)
-                        except OSError as err:
-                            RequestProcessorError(err)
+                            self.logger.debug(
+                                'Removing temporary file {!r} ...'.format(
+                                    _result.data))
+                            try:
+                                os.remove(_result.data)
+                            except OSError as err:
+                                RequestProcessorError(err)
 
-                    elif _result.status_code == 413:
-                        self._handle_413(_result)
+                        elif _result.status_code == 413:
+                            self._handle_413(_result)
 
-                    else:
-                        self._handle_error(_result)
-                        self._sizes.append(0)
+                        else:
+                            self._handle_error(_result)
+                            self._sizes.append(0)
 
-                    ready.append(result)
+                        ready.append(result)
 
-            # TODO(damb): Implement a timeout solution in case results are
-            # never ready.
-            for result in ready:
-                self._results.remove(result)
+                # TODO(damb): Implement a timeout solution in case results are
+                # never ready.
+                for result in ready:
+                    self._results.remove(result)
 
-            if not self._results:
-                break
+                if not self._results:
+                    break
 
-        self._pool.join()
-        self.logger.debug('Result sizes: {}.'.format(self._sizes))
-        self.logger.info(
-            'Results successfully processed (Total bytes: {}).'.format(
-                sum(self._sizes)))
+            self._pool.join()
+            self.logger.debug('Result sizes: {}.'.format(self._sizes))
+            self.logger.info(
+                'Results successfully processed (Total bytes: {}).'.format(
+                    sum(self._sizes)))
+
+        except GeneratorExit as err:
+            self.logger.debug('GeneratorExit: Terminate ...')
+            self._terminate()
 
     # __iter__ ()
 

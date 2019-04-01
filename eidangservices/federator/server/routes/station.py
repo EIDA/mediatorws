@@ -31,7 +31,7 @@ from builtins import * # noqa
 
 import logging
 
-from flask import request
+from flask import current_app, g, request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
@@ -72,11 +72,15 @@ class StationResource(Resource):
         self.logger.debug('StationSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(args['service'],
-                                       self._get_result_mimetype(args),
-                                       query_params=args,
-                                       stream_epochs=stream_epochs,
-                                       post=False).streamed_response
+        return RequestProcessor.create(
+            args['service'],
+            self._get_result_mimetype(args),
+            query_params=args,
+            stream_epochs=stream_epochs,
+            post=False,
+            context=g.ctx,
+            keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+        ).streamed_response
 
     # get ()
 
@@ -100,11 +104,15 @@ class StationResource(Resource):
         self.logger.debug('StationSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(args['service'],
-                                       self._get_result_mimetype(args),
-                                       query_params=args,
-                                       stream_epochs=stream_epochs,
-                                       post=True).streamed_response
+        return RequestProcessor.create(
+            args['service'],
+            self._get_result_mimetype(args),
+            query_params=args,
+            stream_epochs=stream_epochs,
+            post=True,
+            context=g.ctx,
+            keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+        ).streamed_response
 
     # post ()
 

@@ -924,6 +924,7 @@ class StationTextDownloadTask(RawDownloadTask):
     """
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
 
         self.logger.debug(
@@ -949,6 +950,9 @@ class StationTextDownloadTask(RawDownloadTask):
                 'Download (url={}, stream_epochs={}) finished.'.format(
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
+
+        if self._ctx and not self._ctx.locked:
+            raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size)
 
