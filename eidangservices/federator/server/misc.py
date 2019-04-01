@@ -51,6 +51,10 @@ class KeepTempfiles(enum.Enum):
 class Context(object):
     """
     Utility implementation of a simple hierarchical context.
+
+    :param ctx: Hashable to be used for context initialization.
+    :param bool root_only: The context relies on its root context when
+        handling with locks.
     """
     SEP = '::'
 
@@ -152,6 +156,12 @@ class Context(object):
     # teardown ()
 
     def __add__(self, ctx):
+        """
+        Add a sub-context to the current context.
+
+        :param ctx: Context to be added.
+        :type ctx: :py:class:`Context`
+        """
         for c in ctx:
             if c.locked and ctx._root_only:
                 raise self.ContextError(
@@ -171,6 +181,12 @@ class Context(object):
     # __add__ ()
 
     def __sub__(self, ctx):
+        """
+        Remove a sub-context from the current context.
+
+        :param ctx: Context to be removed.
+        :type ctx: :py:class:`Context`
+        """
         if ctx in self:
             if ctx._child_ctxs:
                 ctx.__sub__(ctx._child_ctxs.pop())
