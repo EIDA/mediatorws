@@ -593,8 +593,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         if self._level is None:
             raise RequestProcessorError("Missing parameter: 'level'.")
 
-        self._on_close_event = mp.Event()
-
     # __init__ ()
 
     def _route(self):
@@ -624,10 +622,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                      len(routes) < self.POOL_SIZE else self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
-        self._pool = mp.pool.Pool(
-            processes=pool_size,
-            initializer=StationXMLNetworkCombinerTask._initializer,
-            initargs=(self._on_close_event,))
+        self._pool = mp.pool.Pool(processes=pool_size)
         # NOTE(damb): With pleasure I'd like to define the parameter
         # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
         # However, using this parameter seems to lead to processes unexpectedly
@@ -736,7 +731,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         except GeneratorExit:
             self.logger.debug('GeneratorExit: Propagating close event ...')
-            self._on_close_event.set()
+            # TODO(damb): Use a thread-safe event propagation mechanism,
+            # instead.
 
     # __iter__ ()
 

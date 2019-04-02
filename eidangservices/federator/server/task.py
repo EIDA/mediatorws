@@ -375,12 +375,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             if not self._results:
                 break
 
-            if on_close_event.is_set():  # noqa
-                self.logger.debug('{}: Closing ...'.format(self.name))
-                self._pool.terminate()
-                self._pool = None
-                return Result.teardown()
-
         self._pool.join()
 
         if not sum(self._sizes):
@@ -514,11 +508,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             net_element.append(sta_element)
 
     # _merge_sta_element ()
-
-    @staticmethod
-    def _initializer(e):
-        global on_close_event
-        on_close_event = e
 
 # class StationXMLNetworkCombinerTask
 
