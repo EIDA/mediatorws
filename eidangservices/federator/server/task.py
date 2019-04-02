@@ -245,7 +245,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         nets = set([se.network for route in routes for se in route.streams])
         if len(nets) != 1:
             raise ValueError(
-                'Routes must belong exclusively to only a single '
+                'Routes must belong exclusively to a single '
                 'network code.')
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
@@ -273,7 +273,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _run(self):
         """
-        Combine StationXML `<Network></Network>` information.
+        Combine `StationXML <http://www.fdsn.org/xml/station/>`_
+        :code:`<Network></Network>` information.
         """
         self.logger.info('Executing task {!r}.'.format(self))
         self._pool = ThreadPool(processes=self._num_workers)
@@ -890,6 +891,62 @@ class StationTextDownloadTask(RawDownloadTask):
     # __call__ ()
 
 # class StationTextDownloadTask
+
+
+class StationXMLDownloadTask(RawDownloadTask):
+    """
+    Download `StationXML <https://www.fdsn.org/xml/station/>`_ from an
+    endpoint. Emerge :code:`<Network></Network>` epoch specific data from
+    `StationXML <https://www.fdsn.org/xml/station/>`_.
+
+    .. note::
+
+        Network epoch extraction is performed stream based using a `SAX parser
+        <https://lxml.de/api/lxml.etree.iterparse-class.html>`_.
+    """
+    NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
+
+    def __init__(self, request_handler, **kwargs):
+        super().__init__(request_handler, **kwargs)
+        self.network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
+        self.name = ('{}-{}'.format(type(self).__name__, kwargs.get('name')) if
+                     kwargs.get('name') else type(self).__name__)
+
+    @catch_default_task_exception
+    def __call__(self):
+
+        self.logger.debug(
+            'Downloading (url={}, stream_epochs={}) ...'.format(
+                self._request_handler.url,
+                self._request_handler.stream_epochs))
+
+        network_tags = ['{}{}'.format(ns, self.network_tag)
+                        for ns in settings.STATIONXML_NAMESPACES]
+
+        try:
+            with open(self.path_tempfile, 'wb') as ofd:
+                # XXX(damb): Load the entire result into memory.
+                with binary_request(self._request_handler.post()) as ifd:
+                    for event, net_element in etree.iterparse(
+                            ifd, tag=network_tags):
+                        if event == 'end':
+                            s = etree.tostring(net_element)
+                            self._size += len(s)
+                            ofd.write(s)
+
+        except RequestsError as err:
+            return self._handle_error(err)
+        else:
+            self.logger.debug(
+                'Download (url={}, stream_epochs={}) finished.'.format(
+                    self._request_handler.url,
+                    self._request_handler.stream_epochs))
+
+        return Result.ok(data=self.path_tempfile, length=self._size)
+
+    # __call__ ()
+
+# class StationXMLDownloadTask
 
 
 # ---- END OF <task.py> ----

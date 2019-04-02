@@ -48,7 +48,8 @@ from eidangservices.federator import __version__
 
 class RequestHandlerBase(object):
     """
-    RequestHandler base class implementation.
+    RequestHandler base class implementation. Provides bulk request handling
+    facilities.
 
     :param str url: URL
     :param dict query_params: Dictionary of query parameters
@@ -97,8 +98,9 @@ class RequestHandlerBase(object):
     def payload_post(self):
         data = '\n'.join('{}={}'.format(p, v)
                          for p, v in self._query_params.items())
-        return ['{}\n{}'.format(data, stream_epoch)
-                for stream_epoch in self._stream_epochs]
+
+        return '{}\n{}'.format(
+            data, '\n'.join(str(se) for se in self._stream_epochs))
 
     # payload_post ()
 
@@ -106,8 +108,8 @@ class RequestHandlerBase(object):
         raise NotImplementedError
 
     def post(self):
-        return [functools.partial(requests.post, self.url, data=p)
-                for p in self.payload_post]
+        return functools.partial(requests.post, self.url,
+                                 data=self.payload_post, headers=self.HEADERS)
 
     def __str__(self):
         return ', '.join(["scheme={}".format(self._scheme),
@@ -168,28 +170,14 @@ class RoutingRequestHandler(RequestHandlerBase):
 
     # payload_get ()
 
-    @property
-    def payload_post(self):
-        data = '\n'.join('{}={}'.format(p, v)
-                         for p, v in self._query_params.items())
-
-        return '{}\n{}'.format(
-            data, '\n'.join(str(se) for se in self._stream_epochs))
-
-    # payload_post ()
-
     def get(self):
         return functools.partial(requests.get, self.url,
                                  params=self.payload_get, headers=self.HEADERS)
 
-    def post(self):
-        return functools.partial(requests.post, self.url,
-                                 data=self.payload_post, headers=self.HEADERS)
-
 # class RoutingURL
 
 
-class GranularFdsnRequestHandler(RequestHandlerBase):
+class FdsnRequestHandler(RequestHandlerBase):
     """
     Representation of a FDSN webservice request handler.
     """
@@ -200,11 +188,24 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    def __init__(self, url, stream_epoch, query_params={}):
-        super().__init__(url, query_params, [stream_epoch])
+    def __init__(self, url, query_params={}, stream_epochs=[]):
+        super().__init__(url, query_params=query_params,
+                         stream_epochs=stream_epochs)
         self._query_params = dict((p, v)
                                   for p, v in self._query_params.items()
                                   if p not in self.QUERY_PARAMS)
+    # __init__ ()
+
+# class FdsnRequestHandler
+
+class GranularFdsnRequestHandler(FdsnRequestHandler):
+    """
+    Representation of a FDSN webservice request handler for granular
+    single stream requests.
+    """
+    def __init__(self, url, stream_epoch, query_params={}):
+        super().__init__(url, query_params, [stream_epoch])
+
     # __init__ ()
 
     @property
@@ -213,11 +214,10 @@ class GranularFdsnRequestHandler(RequestHandlerBase):
                          for p, v in self._query_params.items())
         return '{}\n{}'.format(data, self.stream_epochs[0])
 
-    def post(self):
-        return functools.partial(requests.post, self.url,
-                                 data=self.payload_post, headers=self.HEADERS)
-
 # class GranularFdsnRequestHandler
+
+
+BulkFdsnRequestHandler = FdsnRequestHandler
 
 
 # ---- END OF <request.py> ----
