@@ -949,7 +949,8 @@ class StationLiteHarvestApp(App):
             Session = db.ScopedSession()
             Session.configure(bind=self.args.db_engine)
 
-            db.configure_db(self.DB_PRAGMAS)
+            if self.args.db_engine.name == 'sqlite':
+                db.configure_sqlite(self.DB_PRAGMAS)
 
             # TODO(damb): Implement multithreaded harvesting using a thread
             # pool.
@@ -1084,7 +1085,8 @@ def main():
             settings.PATH_EIDANGWS_CONF,
             config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION,
             positional_required_args=['db_engine'],
-            capture_warnings=False)
+            capture_warnings=False,
+            interpolation=None)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,

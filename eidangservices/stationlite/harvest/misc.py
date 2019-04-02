@@ -43,7 +43,6 @@ import traceback
 
 from sqlalchemy import create_engine
 
-from eidangservices import settings
 from eidangservices.stationlite import __version__
 from eidangservices.stationlite.engine import orm
 from eidangservices.utils.app import CustomParser, App, AppError
@@ -102,10 +101,6 @@ class StationLiteDBInitApp(App):
         """
         Run application.
         """
-        # XXX(damb): About logging configuration. Logging for EIDA StationLite
-        # is enabled by fetching the logger 'eidangservices.stationlite'.
-
-        # output work with
         # configure SQLAlchemy logging
         # log_level = self.logger.getEffectiveLevel()
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
@@ -153,10 +148,8 @@ def db_init():
     app = StationLiteDBInitApp(log_id='STL')
 
     try:
-        app.configure(
-            settings.PATH_EIDANGWS_CONF,
-            positional_required_args=['path_db'],
-            config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION)
+        app.configure(None,
+                      positional_required_args=['path_db'])
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,

@@ -581,7 +581,7 @@ class StreamEpochs(object):
         self.epochs.slice(_start)
         self.epochs.slice(_end)
         # search and assign the overlap
-        self.epochs = Epochs(sorted(self.epochs.search(_start, _end)))
+        self.epochs = Epochs(sorted(self.epochs.overlap(_start, _end)))
 
     # modify_with_temporal_constraints ()
 

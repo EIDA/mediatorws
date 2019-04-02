@@ -33,8 +33,8 @@ import sys
 from copy import deepcopy
 from setuptools import setup, find_packages
 
-if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 4):
-    raise RuntimeError("Python version 2.7 or >= 3.4 required.")
+if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 5):
+    raise RuntimeError("Python version 2.7 or >= 3.5 required.")
 
 
 def get_version(filename):
@@ -45,7 +45,7 @@ def get_version(filename):
 
 
 _name = 'eidangservices'
-_version = '0.9.1'
+_version = '0.9.4'
 _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
@@ -74,19 +74,23 @@ _deps_all = [
     # TODO(damb): Seems not to work for Python 2.7
     # 'mock:python_version<"3.3"',
     'future>=0.16.0',
-    'intervaltree>=2.1',
+    'intervaltree>=3.0.2',
     'lxml>=4.2.0',
-    'marshmallow==3.0.0b11',
+    'marshmallow==3.0.0rc1',
     'python-dateutil>=2.6.1',
     'requests>=2.18.4',
-    'webargs==3.0.0', ]
+    'webargs==4.1.3', ]
 _deps_federator = _deps_all + [
     'Flask-Cors>=3.0.7',
     'ijson>=2.3', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
-    'obspy>=1.1.0',
+    'obspy==1.1.0',
+    # matplotlib v3.x dropped python2.7 support; stick to the LTS version which
+    # will support python2.7 until 01/01/2020; see https://matplotlib.org/
+    # Note, that matplotlib is required by obspy.
+    'matplotlib<3,>=2.2.3',
     'SQLAlchemy>=1.2.0', ]
 _deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
@@ -228,7 +232,6 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",

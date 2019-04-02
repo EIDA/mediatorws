@@ -104,6 +104,8 @@ class StationLiteSchema(Schema):
             else:
                 data[key] = missing
 
+        return data
+
     # merge_keys ()
 
     @validates_schema

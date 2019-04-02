@@ -71,8 +71,9 @@ class ServiceSchema(Schema):
     service = fields.Str(dump_only=True)
 
     @post_load
-    def set_service(self, item):
-        item['service'] = self.opts.service
+    def set_service(self, data):
+        data['service'] = self.opts.service
+        return data
 
     class Meta:
         strict = True
@@ -175,6 +176,8 @@ class StationSchema(ServiceSchema):
             if alt_key in data and key not in data:
                 data[key] = data[alt_key]
                 data.pop(alt_key)
+
+        return data
 
     # merge_keys ()
 
