@@ -28,7 +28,7 @@
 EIDA NG stationlite utils.
 
 Functions which might be used as *executables*:
-    - :code:`db_init()` -- create and initialize a SQLite DB
+    - :code:`db_init()` -- create and initialize a stationlite DB 
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -48,16 +48,17 @@ from eidangservices.stationlite.engine import orm
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 
-# ----------------------------------------------------------------------------
-def path_relative(path):
-    """
-    check if path is relative
-    """
-    if os.path.isabs(path):
-        raise argparse.ArgumentTypeError
-    return path
 
-# path_relative ()
+def url(url):
+    """
+    check if SQLite URL is absolute.
+    """
+    if (url.startswith('sqlite:') and not
+            (url.startswith('////', 7) or url.startswith('///C:', 7))):
+        raise argparse.ArgumentTypeError('SQLite URL must be absolute.')
+    return url
+
+# url ()
 
 # ----------------------------------------------------------------------------
 class StationLiteDBInitApp(App):
@@ -86,12 +87,14 @@ class StationLiteDBInitApp(App):
                             version='%(prog)s version ' + __version__)
         parser.add_argument('-o', '--overwrite', action='store_true',
                             default=False,
-                            help=('overwrite the SQLite DB file if already '
-                                  'existent'))
+                            help=('overwrite if already existent '
+                                  '(SQLite only)'))
 
         # positional arguments
-        parser.add_argument('path_db', type=path_relative, metavar='PATH',
-                            help='relative path to database (SQLite) file')
+        parser.add_argument('db_url', type=url, metavar='URL',
+                            help=('DB URL indicating the database dialect and '
+                                  'connection arguments. For SQlite only a '
+                                  'absolute file path is supported.'))
 
         return parser
 
@@ -108,19 +111,22 @@ class StationLiteDBInitApp(App):
         try:
             self.logger.info('{}: Version {}'.format(type(self).__name__,
                                                      __version__))
-            if not self.args.overwrite and os.path.isfile(self.args.path_db):
-                raise self.DBAlreadyAvailable(self.args.path_db)
+            if self.args.db_url.startswith('sqlite'):
+                p = self.args.db_url[10:]
 
-            if os.path.isfile(self.args.path_db):
-                os.remove(self.args.path_db)
+                if not self.args.overwrite and os.path.isfile(p):
+                    raise self.DBAlreadyAvailable(p)
 
-            engine = create_engine('sqlite:///{}'.format(self.args.path_db))
+                if os.path.isfile(p):
+                    os.remove(p)
+
+            engine = create_engine(self.args.db_url)
             # create db tables
             self.logger.debug('Creating database tables ...')
             orm.ORMBase.metadata.create_all(engine)
 
             self.logger.info(
-                "DB '{}' successfully initialized.".format(self.args.path_db))
+                "DB '{}' successfully initialized.".format(self.args.db_url))
 
         except Error as err:
             self.logger.error(err)
@@ -149,7 +155,7 @@ def db_init():
 
     try:
         app.configure(None,
-                      positional_required_args=['path_db'])
+                      positional_required_args=['db_url'])
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
