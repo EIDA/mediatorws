@@ -629,11 +629,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         # terminated. Hence some tasks never return a *ready* result.
 
         for net, routes in routes.items():
-            self.logger.debug(
-                'Creating CombinerTask for {!r} ...'.format(net))
-            t = StationXMLNetworkCombinerTask(
-                routes, self.query_params, name=net)
-
             if len(routes) == 1:
                 self.logger.debug(
                     'Creating StationXMLDownloadTask for {!r} ...'.format(net))
