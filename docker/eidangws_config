@@ -92,7 +92,7 @@ path_logging_conf=/var/www/mediatorws/config/fed-logging.conf
 # See also:
 # http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
 #
-db_url = sqlite:////var/www/mediatorws/db/stationlite.db
+db_url = postgresql://user:pass@localhost:5432/stationlite
 #
 # ----
 # Set the path to a logging configuration file. For information on howto setup
@@ -156,6 +156,6 @@ path_logging_conf=/var/www/mediatorws/config/harvest-logging.conf
 # See also:
 # http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
 #
-# db_engine = sqlite:////abs/path/to/stationlite.db
+db_engine = postgresql://user:pass@localhost:5432/stationlite
 #
 # ---- END OF <eidangws_config> ----
