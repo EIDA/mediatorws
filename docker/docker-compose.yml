@@ -1,5 +1,7 @@
 version: '3.3'
 services:
+
+  # The federator service
   federator:
     image: eida-federator:1.0 
     restart: always
@@ -21,6 +23,15 @@ services:
           nocopy: false
     ports:
       - "8080:80"
+
+  # For the stationlite psql database
+  psql:
+    image: postgres:11
+    restart: always
+    volumes:
+      - /var/db/psql:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 volumes:
   mediatorws_log:
