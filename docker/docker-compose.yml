@@ -3,16 +3,14 @@ services:
 
   # The federator service
   federator:
+    container_name: federator
     image: eida-federator:1.0 
     restart: always
 
     # psql connection details
     # TODO modify db_engine and db_url in configuration
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_HOST=localhost
-      - POSTGRES_DB=stationlite
+    env_file:
+      - .env
     volumes:
       - type: volume
         source: mediatorws_log
@@ -34,7 +32,10 @@ services:
 
   # For the stationlite psql database
   psql:
+    container_name: stationlite-psql
     image: postgres:11
+    env_file:
+      - .env
     restart: always
     volumes:
       - /var/db/psql:/var/lib/postgresql/data
