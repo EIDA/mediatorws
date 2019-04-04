@@ -53,12 +53,14 @@ def get_response(output, mimetype):
 
 def db_engine(url):
     """
-    check if url is a valid url
+    Check if `url` is a valid URL by means of creating a `SQLAlchemy
+    <https://www.sqlalchemy.org/>`_.
     """
     try:
         return create_engine(url)
-    except Exception:
-        raise argparse.ArgumentTypeError('Invalid database URL.')
+    except Exception as err:
+        raise argparse.ArgumentTypeError(
+            'Error while creating engine ({}).'.format(err))
 
 # db_engine ()
 
