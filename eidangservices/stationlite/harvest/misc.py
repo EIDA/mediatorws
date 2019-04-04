@@ -28,7 +28,7 @@
 EIDA NG stationlite utils.
 
 Functions which might be used as *executables*:
-    - :code:`db_init()` -- create and initialize a stationlite DB 
+    - :code:`db_init()` -- create and initialize a stationlite DB
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -85,6 +85,9 @@ class StationLiteDBInitApp(App):
         # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
+        parser.add_argument('--sql', action='store_true', default=False,
+                            help=('render the SQL; dump the metadata creation '
+                                  'sequence to stdout'))
         parser.add_argument('-o', '--overwrite', action='store_true',
                             default=False,
                             help=('overwrite if already existent '
@@ -120,13 +123,26 @@ class StationLiteDBInitApp(App):
                 if os.path.isfile(p):
                     os.remove(p)
 
-            engine = create_engine(self.args.db_url)
-            # create db tables
-            self.logger.debug('Creating database tables ...')
-            orm.ORMBase.metadata.create_all(engine)
+            if self.args.sql:
+                # dump sql only
+                def dump(sql, *multiparams, **params):
+                    print(sql.compile(dialect=engine.dialect))
 
-            self.logger.info(
-                "DB '{}' successfully initialized.".format(self.args.db_url))
+                idx = self.args.db_url.find(':')
+
+                engine = create_engine(self.args.db_url[0:idx] + '://',
+                                       strategy='mock', executor=dump)
+                orm.ORMBase.metadata.create_all(engine, checkfirst=False)
+            else:
+                # create db tables
+                engine = create_engine(self.args.db_url)
+
+                self.logger.debug('Creating database tables ...')
+                orm.ORMBase.metadata.create_all(engine)
+
+                self.logger.info(
+                    "DB '{}' successfully initialized.".format(
+                        self.args.db_url))
 
         except Error as err:
             self.logger.error(err)
