@@ -3,7 +3,7 @@ Deploying the EIDA NG Federator as a Docker container
 
 .. note::
 
-  Currently only *federator* and *stationlite*.
+  Currently includes *federator* and *stationlite*.
 
 A basic knowledge about `Docker <https://docs.docker.com/engine/>`__ and how
 this kind of application containers work is required. For more information
@@ -19,25 +19,27 @@ versions of Windows) and on how to install Docker, please refer to the official
 * *federator* and *stationlite* are set up separately i.e. each
   service is installed into its own virtual environment
 * services use Python3
-* *stationlite* harvesting via :code:`cron`
+* *stationlite* harvesting via :code:`cron` powered by postgres
 * logging (file based)
 
-**Building**:
+**Introduction**:
 
 To construct a Docker image with the appropriate configuration it is
 recommended to build your image from a Dockerfile. After cloning the repository
-change into the :code:`docker/` directory and change the configuration.
+change into the :code:`docker/` directory and modify the configuration.
 
 **Postgres**:
 
-The docker distribution uses stationlite with postgres. You are required to set
-up and initial empty postgres database that can be used by stationlite. Make
-sure to pick a proper username and password and write these down. A volume
-must be mounted where the postgres data will be stored with the -v flag. The
-volume must match what is configured in the *docker-compose.yml* file.
+The docker distribution of the Federator uses stationlite with postgres.
+You are required to set up and initial empty postgres database that can be
+used by stationlite. Make sure to pick a proper username and password and write
+these down for later. A volume must be mounted where the postgres data will be
+stored with the -v flag. The postgres volume must match what is later configured 
+inside the *docker-compose.yml* file.
 
 .. code::
 
+  # Set variables and a place to mount the data
   $ docker run --rm -e POSTGRES_USER=user \
                     -e POSTGRES_PASSWORD=pass \
                     -e POSTGRES_DB=stationlite \
@@ -47,10 +49,11 @@ volume must match what is configured in the *docker-compose.yml* file.
 
 Follow up by configuring the following parameters in docker/eidangws_config
 with your postgres parameters. The host localhost must be replaced with the name
-of the postgres container (e.g. docker_psql_1).
+of the postgres container (e.g. docker_psql_1) and the same credentials.
 
 .. code::
 
+  # TODO load these dynamically from environment variables
   $ cd docker
   db_url = postgresql://user:pass@localhost:5432/stationlite
   db_engine = postgresql://user:pass@localhost:5432/stationlite
@@ -61,6 +64,12 @@ is complete continue by building the image:
 .. code::
 
   $ cd docker && docker build -t eida-federator:1.0 .
+
+**Compose Configuration**:
+
+Modify docker-compose.yml to fill in the environment variables that you chose for
+your postgres installation. In case you want to manage your own volumes now is
+the time.
 
 **Deployment**:
 
