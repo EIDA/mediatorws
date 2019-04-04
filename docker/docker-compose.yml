@@ -5,6 +5,14 @@ services:
   federator:
     image: eida-federator:1.0 
     restart: always
+
+    # psql connection details
+    # TODO modify db_engine and db_url in configuration
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_HOST=localhost
+      - POSTGRES_DB=stationlite
     volumes:
       - type: volume
         source: mediatorws_log
