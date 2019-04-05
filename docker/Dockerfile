@@ -86,9 +86,8 @@ RUN mkdir /etc/service/apache2 && \
 	echo "#!/bin/sh\nexec apachectl -D FOREGROUND" > /etc/service/apache2/run && \
 	chmod +x /etc/service/apache2/run
 
-# Add the harvesting cronjob (once per day) at runtime using env variables
-RUN echo "#!/bin/bash\n(crontab -l ; echo \"0 1 * * * /var/www/stationlite/venv3/bin/eida-stationlite-harvest postgresql://\$POSTGRES_USER:\$POSTGRES_PASSWORD@\$POSTGRES_HOST:5432/\$POSTGRES_DB\") | crontab" > /etc/my_init.d/harvest-cron.sh && \
-    chmod a+x /etc/my_init.d/harvest-cron.sh
+# Add the harvesting cronjob (once per day)
+RUN (crontab -l ; echo "0 1 * * * /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
