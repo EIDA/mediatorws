@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          zlib* \
                                          python-pip \
                                          pkg-config \
-                                         libpg-dev \
+                                         libpq-dev \
                                          libpng-dev \
                                          libfreetype6-dev \
                                          libblas-dev \
