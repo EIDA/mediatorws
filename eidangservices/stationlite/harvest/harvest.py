@@ -1085,8 +1085,7 @@ def main():
             settings.PATH_EIDANGWS_CONF,
             config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION,
             positional_required_args=['db_engine'],
-            capture_warnings=False,
-            interpolation=None)
+            capture_warnings=False)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,
