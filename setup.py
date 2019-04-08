@@ -102,6 +102,7 @@ if sys.version_info[:2] < (3, 3):
 
 _extras = {
     'test': _test_deps,
+    'postgres': ['psycopg2']
 }
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]

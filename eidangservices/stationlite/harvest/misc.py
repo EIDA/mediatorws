@@ -28,7 +28,7 @@
 EIDA NG stationlite utils.
 
 Functions which might be used as *executables*:
-    - :code:`db_init()` -- create and initialize a SQLite DB
+    - :code:`db_init()` -- create and initialize a stationlite DB
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -48,16 +48,17 @@ from eidangservices.stationlite.engine import orm
 from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 
-# ----------------------------------------------------------------------------
-def path_relative(path):
-    """
-    check if path is relative
-    """
-    if os.path.isabs(path):
-        raise argparse.ArgumentTypeError
-    return path
 
-# path_relative ()
+def url(url):
+    """
+    check if SQLite URL is absolute.
+    """
+    if (url.startswith('sqlite:') and not
+            (url.startswith('////', 7) or url.startswith('///C:', 7))):
+        raise argparse.ArgumentTypeError('SQLite URL must be absolute.')
+    return url
+
+# url ()
 
 # ----------------------------------------------------------------------------
 class StationLiteDBInitApp(App):
@@ -65,6 +66,8 @@ class StationLiteDBInitApp(App):
     Implementation of an utility application to create and initialize an SQLite
     database for EIDA StationLite.
     """
+    PROG = 'eida-stationlite-db-init'
+
     class DBAlreadyAvailable(Error):
         """The SQLite database file '{}' is already available."""
 
@@ -77,21 +80,26 @@ class StationLiteDBInitApp(App):
         :rtype: :py:class:`argparse.ArgumentParser`
         """
         parser = CustomParser(
-            prog="eida-stationlite-db-init",
+            prog=self.PROG,
             description='Create and initialize a DB for EIDA StationLite.',
             parents=parents)
 
         # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
+        parser.add_argument('--sql', action='store_true', default=False,
+                            help=('render the SQL; dump the metadata creation '
+                                  'sequence to stdout'))
         parser.add_argument('-o', '--overwrite', action='store_true',
                             default=False,
-                            help=('overwrite the SQLite DB file if already '
-                                  'existent'))
+                            help=('overwrite if already existent '
+                                  '(SQLite only)'))
 
         # positional arguments
-        parser.add_argument('path_db', type=path_relative, metavar='PATH',
-                            help='relative path to database (SQLite) file')
+        parser.add_argument('db_url', type=url, metavar='URL',
+                            help=('DB URL indicating the database dialect and '
+                                  'connection arguments. For SQlite only a '
+                                  'absolute file path is supported.'))
 
         return parser
 
@@ -106,21 +114,38 @@ class StationLiteDBInitApp(App):
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
-            self.logger.info('{}: Version {}'.format(type(self).__name__,
-                                                     __version__))
-            if not self.args.overwrite and os.path.isfile(self.args.path_db):
-                raise self.DBAlreadyAvailable(self.args.path_db)
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
 
-            if os.path.isfile(self.args.path_db):
-                os.remove(self.args.path_db)
+            if self.args.db_url.startswith('sqlite'):
+                p = self.args.db_url[10:]
 
-            engine = create_engine('sqlite:///{}'.format(self.args.path_db))
-            # create db tables
-            self.logger.debug('Creating database tables ...')
-            orm.ORMBase.metadata.create_all(engine)
+                if not self.args.overwrite and os.path.isfile(p):
+                    raise self.DBAlreadyAvailable(p)
 
-            self.logger.info(
-                "DB '{}' successfully initialized.".format(self.args.path_db))
+                if os.path.isfile(p):
+                    os.remove(p)
+
+            if self.args.sql:
+                # dump sql only
+                def dump(sql, *multiparams, **params):
+                    print(sql.compile(dialect=engine.dialect))
+
+                idx = self.args.db_url.find(':')
+
+                engine = create_engine(self.args.db_url[0:idx] + '://',
+                                       strategy='mock', executor=dump)
+                orm.ORMBase.metadata.create_all(engine, checkfirst=False)
+            else:
+                # create db tables
+                engine = create_engine(self.args.db_url)
+
+                self.logger.debug('Creating database tables ...')
+                orm.ORMBase.metadata.create_all(engine)
+
+                self.logger.info(
+                    "DB '{}' successfully initialized.".format(
+                        self.args.db_url))
 
         except Error as err:
             self.logger.error(err)
@@ -149,7 +174,7 @@ def db_init():
 
     try:
         app.configure(None,
-                      positional_required_args=['path_db'])
+                      positional_required_args=['db_url'])
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,

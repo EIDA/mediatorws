@@ -37,6 +37,7 @@ import argparse
 import logging
 import logging.config
 import logging.handlers  # needed for handlers defined in logging.conf
+import os
 import sys
 
 from collections import OrderedDict
@@ -105,6 +106,10 @@ class App(object):
             If such a parameter was found in the configuration file it is
             **always** appended to the parameters parsed
         :param bool capture_warnings: Capture warnings
+        :param interpolation: Interpolation behaviour. :code:`None` can be used
+            to turn off interpolation completely. If enabled values are
+            interpolated using environment variables, too.
+        :type interpolation: None or :py:class:`configparser.Interpolation`
         :param kwargs: Additional keyword value parameters passed to the
             unterlying configuration file parser
         """
@@ -115,10 +120,24 @@ class App(object):
         if path_default_config and config_section:
             config_parser = configparser.ConfigParser(**kwargs)
             config_parser.read(args.config_file)
-        try:
-            defaults = dict(config_parser.items(config_section))
-        except Exception:
-            pass
+            env_dict=None
+            interpolation = kwargs.get('interpolation',
+                                       configparser.BasicInterpolation())
+            if (interpolation and
+                    isinstance(interpolation,
+                               configparser.BasicInterpolation)):
+                # filter out variables containing a '%'; else interpolation
+                # fails
+                env_dict = {k: v for k, v in os.environ.items()
+                            if v.find('%') == -1}
+            try:
+                defaults = dict(config_parser.items(
+                    config_section, vars=env_dict))
+            except Exception as err:
+                import warnings
+                warnings.warn(
+                    "Exception while parsing config file: {}.".format(err))
+
         self.parser = self.build_parser(parents=[c_parser])
         # XXX(damb): Make sure that the default logger has an argument
         # path_logging_conf

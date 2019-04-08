@@ -1,8 +1,16 @@
 version: '3.3'
 services:
+
+  # The federator service
   federator:
+    container_name: federator
     image: eida-federator:1.0 
     restart: always
+
+    # psql connection details
+    # TODO modify db_engine and db_url in configuration
+    env_file:
+      - .env
     volumes:
       - type: volume
         source: mediatorws_log
@@ -14,15 +22,26 @@ services:
         target: /var/tmp
         volume:
           nocopy: false
+    ports:
+      - "8080:80"
+
+  # For the stationlite psql database
+  psql:
+    container_name: stationlite-psql
+    image: postgres:11
+    env_file:
+      - .env
+    restart: always
+    volumes:
       - type: volume
-        source: stationlite_data
-        target: /var/www/mediatorws/db
+        source: stationlite_pgdata
+        target: /var/lib/postgresql/data
         volume:
           nocopy: false
     ports:
-      - "8080:80"
+      - "5432:5432"
 
 volumes:
   mediatorws_log:
   mediatorws_tmp:
-  stationlite_data:
+  stationlite_pgdata:
