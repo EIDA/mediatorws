@@ -22,11 +22,6 @@ services:
         target: /var/tmp
         volume:
           nocopy: false
-      - type: volume
-        source: stationlite_data
-        target: /var/www/mediatorws/db
-        volume:
-          nocopy: false
     ports:
       - "8080:80"
 
@@ -38,11 +33,15 @@ services:
       - .env
     restart: always
     volumes:
-      - /var/db/psql:/var/lib/postgresql/data
+      - type: volume
+        source: stationlite_pgdata
+        target: /var/lib/postgresql/data
+        volume:
+          nocopy: false
     ports:
       - "5432:5432"
 
 volumes:
   mediatorws_log:
   mediatorws_tmp:
-  stationlite_data:
+  stationlite_pgdata:
