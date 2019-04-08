@@ -66,6 +66,8 @@ class StationLiteDBInitApp(App):
     Implementation of an utility application to create and initialize an SQLite
     database for EIDA StationLite.
     """
+    PROG = 'eida-stationlite-db-init'
+
     class DBAlreadyAvailable(Error):
         """The SQLite database file '{}' is already available."""
 
@@ -78,7 +80,7 @@ class StationLiteDBInitApp(App):
         :rtype: :py:class:`argparse.ArgumentParser`
         """
         parser = CustomParser(
-            prog="eida-stationlite-db-init",
+            prog=self.PROG,
             description='Create and initialize a DB for EIDA StationLite.',
             parents=parents)
 
@@ -112,8 +114,9 @@ class StationLiteDBInitApp(App):
         # logging.getLogger('sqlalchemy.engine').setLevel(log_level)
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
-            self.logger.info('{}: Version {}'.format(type(self).__name__,
-                                                     __version__))
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
             if self.args.db_url.startswith('sqlite'):
                 p = self.args.db_url[10:]
 

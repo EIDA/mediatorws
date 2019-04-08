@@ -87,6 +87,7 @@ class FederatorWebservice(App):
     """
     Implementation of the EIDA Federator webservice.
     """
+    PROG = 'eida-federator'
 
     def build_parser(self, parents=[]):
         """
@@ -98,7 +99,7 @@ class FederatorWebservice(App):
         """
 
         parser = CustomParser(
-            prog="eida-federator",
+            prog=self.PROG,
             description='Launch EIDA federator web service.',
             parents=parents)
 
@@ -151,6 +152,9 @@ class FederatorWebservice(App):
 
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
             app = self.setup_app()
 
             if self.args.start_local:

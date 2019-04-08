@@ -80,6 +80,7 @@ class StationLiteWebservice(App):
     Implementation of the EIDA StationLite webservice.
     """
     DB_PRAGMAS = ['PRAGMA case_sensitive_like=on']
+    PROG = 'eida-stationlite'
 
     def build_parser(self, parents=[]):
         """
@@ -90,7 +91,7 @@ class StationLiteWebservice(App):
         :rtype: :py:class:`argparse.ArgumentParser`
         """
         parser = CustomParser(
-            prog="eida-stationlite",
+            prog=self.PROG,
             description='Launch EIDA stationlite web service.',
             parents=parents)
         # optional arguments
@@ -126,6 +127,8 @@ class StationLiteWebservice(App):
 
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
             app = self.setup_app()
 
             if self.args.db_url.startswith('sqlite'):
