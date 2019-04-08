@@ -120,7 +120,6 @@ class App(object):
         if path_default_config and config_section:
             config_parser = configparser.ConfigParser(**kwargs)
             config_parser.read(args.config_file)
-        try:
             env_dict=None
             interpolation = kwargs.get('interpolation',
                                        configparser.BasicInterpolation())
@@ -131,12 +130,13 @@ class App(object):
                 # fails
                 env_dict = {k: v for k, v in os.environ.items()
                             if v.find('%') == -1}
-            defaults = dict(config_parser.items(
-                config_section, vars=env_dict))
-        except Exception as err:
-            import warnings
-            warnings.warn(
-                "Exception while parsing config file: {}.".format(err))
+            try:
+                defaults = dict(config_parser.items(
+                    config_section, vars=env_dict))
+            except Exception as err:
+                import warnings
+                warnings.warn(
+                    "Exception while parsing config file: {}.".format(err))
 
         self.parser = self.build_parser(parents=[c_parser])
         # XXX(damb): Make sure that the default logger has an argument
