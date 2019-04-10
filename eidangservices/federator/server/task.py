@@ -98,10 +98,15 @@ def with_ctx_guard(func):
         try:
             return func(self, *args, **kwargs)
         except TaskBase.MissingContextLock as err:
-            self.logger.debug(
-                '{}: Teardown (stream_epochs={}) ...'.format(
-                    type(self).__name__,
-                    self._request_handler.stream_epochs))
+            try:
+                self.logger.debug(
+                    '{}: Teardown (stream_epochs={}) ...'.format(
+                        type(self).__name__,
+                        self._request_handler.stream_epochs))
+            except AttributeError:
+                self.logger.debug(
+                    '{}: Teardown (type={}) ...'.format(
+                        type(self).__name__, self._TYPE))
             self._teardown(self.path_tempfile)
 
             return Result.teardown(data=self._ctx,
