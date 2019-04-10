@@ -351,16 +351,17 @@ class RequestProcessor(object):
         except (AttributeError, ErrorWithTraceback):
             pass
         self._pool.terminate()
+        self._pool.join()
 
-        for result in self._results:
-            if (result.ready() and
-                self._keep_tempfiles not in (KeepTempfiles.ALL,
-                                             KeepTempfiles.ON_ERRORS)):
-                _result = result.get()
-                try:
-                    os.remove(_result.data)
-                except OSError as err:
-                    pass
+        if (self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            for result in self._results:
+                if result.ready():
+                    _result = result.get()
+                    try:
+                        os.remove(_result.data)
+                    except (TypeError, OSError) as err:
+                        pass
 
         self._pool = None
 
@@ -890,13 +891,14 @@ class StationTextRequestProcessor(StationRequestProcessor):
                             except Exception as err:
                                 raise StreamingError(err)
 
-                            self.logger.debug(
-                                'Removing temporary file {!r} ...'.format(
-                                    _result.data))
-                            try:
-                                os.remove(_result.data)
-                            except OSError as err:
-                                RequestProcessorError(err)
+                            if self._keep_tempfiles != KeepTempfiles.ALL:
+                                self.logger.debug(
+                                    'Removing temporary file {!r} ...'.format(
+                                        _result.data))
+                                try:
+                                    os.remove(_result.data)
+                                except OSError as err:
+                                    RequestProcessorError(err)
 
                         elif _result.status_code == 413:
                             self._handle_413(_result)
@@ -1049,13 +1051,14 @@ class WFCatalogRequestProcessor(RequestProcessor):
                             except Exception as err:
                                 raise StreamingError(err)
 
-                            self.logger.debug(
-                                'Removing temporary file {!r} ...'.format(
-                                    _result.data))
-                            try:
-                                os.remove(_result.data)
-                            except OSError as err:
-                                RequestProcessorError(err)
+                            if self._keep_tempfiles != KeepTempfiles.ALL:
+                                self.logger.debug(
+                                    'Removing temporary file {!r} ...'.format(
+                                        _result.data))
+                                try:
+                                    os.remove(_result.data)
+                                except OSError as err:
+                                    RequestProcessorError(err)
 
                         elif _result.status_code == 413:
                             self._handle_413(_result)
