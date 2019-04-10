@@ -33,6 +33,7 @@ from builtins import * # noqa
 
 import enum
 import os
+import importlib
 import random
 import tempfile
 import uuid
@@ -162,6 +163,39 @@ class Context(object):
 
     # teardown ()
 
+    def append(self, ctx):
+        self.__add__(ctx)
+
+    def remove(self, ctx):
+        self.__sub__(ctx)
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        if '_ctx' in d.keys():
+            d['_ctx_type'] = qualname(d['_ctx'])
+            d['_ctx'] = str(d['_ctx'])
+
+        return d
+
+    # __getstate__ ()
+
+    def __setstate__(self, state):
+        if '_ctx' in state.keys() and '_ctx_type' in state.keys():
+            m = importlib.import_module(
+                '.'.join(p for p in state['_ctx_type'].split('.')[:-1]))
+            c = state['_ctx_type'].split('.')[-1]
+
+            state['_ctx'] = getattr(m, c)(state['_ctx'])
+            del state['_ctx_type']
+
+        if '_child_ctxs' in state.keys():
+            for c in state['_child_ctxs']:
+                c._parent_ctx = self
+
+        self.__dict__.update(state)
+
+    # __setstate__ ()
+
     def __add__(self, ctx):
         """
         Add a sub-context to the current context.
@@ -257,6 +291,17 @@ class Context(object):
 # class Context
 
 
+# -----------------------------------------------------------------------------
+def qualname(obj):
+    m = type(obj).__module__
+    # avoid reporting __builtin__
+    return (type(obj).__name
+            if m is None or m == type(str).__module__ else
+            m + '.' + type(obj).__name__)
+
+# qualname ()
+
+
 def get_temp_filepath():
     """Return path of temporary file."""
 
@@ -265,10 +310,12 @@ def get_temp_filepath():
 
 # get_temp_filepath ()
 
+
 def choices(seq, k=1):
     return ''.join(random.choice(seq) for i in range(k))
 
 # choices ()
+
 
 def elements_equal(e, e_other, exclude_tags=[], recursive=True):
     """
@@ -319,5 +366,6 @@ def elements_equal(e, e_other, exclude_tags=[], recursive=True):
                for c, c_other in zip(local_e, local_e_other))
 
 # elements_equal ()
+
 
 # ---- END OF <misc.py> ----
