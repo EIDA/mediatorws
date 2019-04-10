@@ -206,7 +206,11 @@ class TaskBase(object):
                 d['logger'] = ContextLoggerAdapter(
                     d['_logger'], {'ctx': self._ctx})
             except AttributeError:
-                d['logger'] = d['_logger']
+                if '_ctx' in d.keys():
+                    d['logger'] = ContextLoggerAdapter(
+                        d['_logger'], {'ctx': d['_ctx']})
+                else:
+                    d['logger'] = d['_logger']
 
         self.__dict__.update(d)
 
