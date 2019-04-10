@@ -37,6 +37,7 @@ from webargs.flaskparser import use_args
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.misc import ContextLoggerAdapter
 from eidangservices.federator.server.schema import StationSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
@@ -54,7 +55,8 @@ class StationResource(Resource):
 
     def __init__(self):
         super(StationResource, self).__init__()
-        self.logger = logging.getLogger(self.LOGGER)
+        self._logger = logging.getLogger(self.LOGGER)
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': g.ctx})
 
     @use_args(StationSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(

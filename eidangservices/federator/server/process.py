@@ -931,12 +931,14 @@ class StationTextRequestProcessor(StationRequestProcessor):
 
                 self.logger.debug(
                     'Creating DownloadTask for {!r} ...'.format(bulk_route))
+                ctx = Context(root_only=True)
+                self._ctx.append(ctx)
                 t = StationTextDownloadTask(
                     BulkFdsnRequestHandler(
                         bulk_route.url,
                         stream_epochs=bulk_route.streams,
                         query_params=self.query_params),
-                    context=self._ctx,
+                    context=ctx,
                     keep_tempfiles=self._keep_tempfiles)
                 result = self._pool.apply_async(t)
                 self._results.append(result)

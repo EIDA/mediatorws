@@ -1015,9 +1015,10 @@ class StationTextDownloadTask(RawDownloadTask):
     def __call__(self):
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
