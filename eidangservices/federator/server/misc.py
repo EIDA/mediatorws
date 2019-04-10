@@ -50,7 +50,8 @@ class KeepTempfiles(enum.Enum):
 
 class Context(object):
     """
-    Utility implementation of a simple hierarchical context.
+    Utility implementation of a simple hierarchical context. Contexts are
+    pickable.
 
     :param ctx: Hashable to be used for context initialization.
     :param bool root_only: The context relies on its root context when
