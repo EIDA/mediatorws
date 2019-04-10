@@ -34,11 +34,23 @@ from builtins import * # noqa
 import enum
 import os
 import importlib
+import logging
 import random
 import tempfile
 import uuid
 
 from eidangservices.utils.error import Error, ErrorWithTraceback
+
+
+class ContextLoggerAdapter(logging.LoggerAdapter):
+    """
+    Adapter expecting the passed in dict-like object to have a 'ctx' key, whose
+    value in brackets is prepended to the log message.
+    """
+    def process(self, msg, kwargs):
+        return '[%s] %s' % (self.extra['ctx'], msg), kwargs
+
+# class ContextLoggerAdapter
 
 
 class KeepTempfiles(enum.Enum):

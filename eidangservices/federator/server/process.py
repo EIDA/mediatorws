@@ -44,7 +44,8 @@ from flask import current_app, stream_with_context, Response
 
 from eidangservices import utils, settings
 from eidangservices.federator import __version__
-from eidangservices.federator.server.misc import Context, KeepTempfiles
+from eidangservices.federator.server.misc import (
+    Context, ContextLoggerAdapter, KeepTempfiles)
 from eidangservices.federator.server.request import (
     RoutingRequestHandler, GranularFdsnRequestHandler,
     BulkFdsnRequestHandler)
@@ -141,14 +142,17 @@ class RequestProcessor(object):
         # TODO(damb): Pass as ctor arg.
         self._routing_service = current_app.config['ROUTING_SERVICE']
 
-        self.logger = logging.getLogger(
+        self._logger = logging.getLogger(
             self.LOGGER if kwargs.get('logger') is None
             else kwargs.get('logger'))
 
-        self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
         self._ctx = kwargs.get('context', Context(uuid.uuid4()))
         if not self._ctx.locked:
             self._ctx.acquire()
+
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
+
+        self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
 
         self._pool = None
         self._results = []
@@ -438,12 +442,14 @@ class RawRequestProcessor(RequestProcessor):
             self.logger.debug(
                 'Creating DownloadTask for {!r} ...'.format(
                     route))
+            ctx = Context(root_only=True)
+            self._ctx.append(ctx)
             t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
-                context=self._ctx,
+                context=ctx,
                 keep_tempfiles=self._keep_tempfiles,)
             result = self._pool.apply_async(t)
             self._results.append(result)
@@ -459,11 +465,14 @@ class RawRequestProcessor(RequestProcessor):
             'Creating SAATask for (url={}, '
             'stream_epochs={}) ...'.format(result.data.url,
                                            result.data.stream_epochs))
+        ctx = Context(root_only=True)
+        self._ctx.append(ctx)
+
         t = RawSplitAndAlignTask(
             result.data.url, result.data.stream_epochs[0],
             query_params=self.query_params,
             endtime=self.DEFAULT_ENDTIME,
-            context=self._ctx,
+            context=ctx,
             keep_tempfiles=self._keep_tempfiles)
 
         result = self._pool.apply_async(t)

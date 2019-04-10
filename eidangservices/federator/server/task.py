@@ -47,9 +47,8 @@ from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
-from eidangservices.federator.server.misc import (KeepTempfiles,
-                                                  get_temp_filepath,
-                                                  elements_equal)
+from eidangservices.federator.server.misc import (
+    ContextLoggerAdapter, KeepTempfiles, get_temp_filepath, elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -180,9 +179,10 @@ class TaskBase(object):
 
     def __init__(self, logger, **kwargs):
 
-        self.logger = logging.getLogger(logger)
-
+        self._logger = logging.getLogger(logger)
         self._ctx = kwargs.get('context')
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
+
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
@@ -191,16 +191,24 @@ class TaskBase(object):
     def __getstate__(self):
         # prevent pickling errors for loggers
         d = dict(self.__dict__)
+        if '_logger' in d.keys():
+            d['_logger'] = d['_logger'].name
         if 'logger' in d.keys():
-            d['logger'] = d['logger'].name
+            del d['logger']
         return d
 
     # __getstate__ ()
 
     def __setstate__(self, d):
-        if 'logger' in d.keys():
-            d['logger'] = logging.getLogger(d['logger'])
-            self.__dict__.update(d)
+        if '_logger' in d.keys():
+            d['_logger'] = logging.getLogger(d['_logger'])
+            try:
+                d['logger'] = ContextLoggerAdapter(
+                    d['_logger'], {'ctx': self._ctx})
+            except AttributeError:
+                d['logger'] = d['_logger']
+
+        self.__dict__.update(d)
 
     # __setstate__ ()
 
@@ -748,9 +756,12 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 pass
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     for chunk in stream_request(
@@ -918,9 +929,10 @@ class RawDownloadTask(TaskBase):
     @with_ctx_guard
     def __call__(self):
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
