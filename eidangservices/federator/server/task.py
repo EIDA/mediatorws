@@ -834,9 +834,12 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                 self._url, stream_epoch, query_params=self.query_params)
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     with raw_request(request_handler.post()) as ifd:

@@ -41,6 +41,7 @@ from webargs.flaskparser import use_args
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.misc import ContextLoggerAdapter
 from eidangservices.federator.server.schema import WFCatalogSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
@@ -60,7 +61,8 @@ class WFCatalogResource(Resource):
 
     def __init__(self):
         super(WFCatalogResource, self).__init__()
-        self.logger = logging.getLogger(self.LOGGER)
+        self._logger = logging.getLogger(self.LOGGER)
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': g.ctx})
 
     @use_args(WFCatalogSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(

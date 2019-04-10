@@ -1055,12 +1055,15 @@ class WFCatalogRequestProcessor(RequestProcessor):
             self.logger.debug(
                 'Creating DownloadTask for {!r} ...'.format(
                     route))
+            ctx = Context(root_only=True)
+            self._ctx.append(ctx)
+
             t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
-                context=self._ctx,
+                context=ctx,
                 keep_tempfiles=self._keep_tempfiles,)
             result = self._pool.apply_async(t)
             self._results.append(result)
@@ -1076,11 +1079,14 @@ class WFCatalogRequestProcessor(RequestProcessor):
             'Creating SAATask for (url={}, '
             'stream_epochs={}) ...'.format(result.data.url,
                                            result.data.stream_epochs))
+        ctx = Context(root_only=True)
+        self._ctx.append(ctx)
+
         t = WFCatalogSplitAndAlignTask(
             result.data.url, result.data.stream_epochs[0],
             query_params=self.query_params,
             endtime=self.DEFAULT_ENDTIME,
-            context=self._ctx,
+            context=ctx,
             keep_tempfiles=self._keep_tempfiles,)
 
         result = self._pool.apply_async(t)
