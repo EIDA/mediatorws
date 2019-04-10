@@ -47,9 +47,9 @@ from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
-from eidangservices.federator.server.misc import (KeepTempfiles,
-                                                  get_temp_filepath,
-                                                  elements_equal)
+from eidangservices.federator.server.misc import (
+    Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
+    elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -180,9 +180,10 @@ class TaskBase(object):
 
     def __init__(self, logger, **kwargs):
 
-        self.logger = logging.getLogger(logger)
-
+        self._logger = logging.getLogger(logger)
         self._ctx = kwargs.get('context')
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
+
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
@@ -191,16 +192,28 @@ class TaskBase(object):
     def __getstate__(self):
         # prevent pickling errors for loggers
         d = dict(self.__dict__)
+        if '_logger' in d.keys():
+            d['_logger'] = d['_logger'].name
         if 'logger' in d.keys():
-            d['logger'] = d['logger'].name
+            del d['logger']
         return d
 
     # __getstate__ ()
 
     def __setstate__(self, d):
-        if 'logger' in d.keys():
-            d['logger'] = logging.getLogger(d['logger'])
-            self.__dict__.update(d)
+        if '_logger' in d.keys():
+            d['_logger'] = logging.getLogger(d['_logger'])
+            try:
+                d['logger'] = ContextLoggerAdapter(
+                    d['_logger'], {'ctx': self._ctx})
+            except AttributeError:
+                if '_ctx' in d.keys():
+                    d['logger'] = ContextLoggerAdapter(
+                        d['_logger'], {'ctx': d['_ctx']})
+                else:
+                    d['logger'] = d['_logger']
+
+        self.__dict__.update(d)
 
     # __setstate__ ()
 
@@ -302,7 +315,6 @@ class CombinerTask(TaskBase):
         """
         return Result.nocontent(extras={'type_task': self._TYPE})
 
-
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
@@ -382,20 +394,22 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         Combine `StationXML <http://www.fdsn.org/xml/station/>`_
         :code:`<Network></Network>` information.
         """
-        self.logger.info(
-            'Executing task {!r} (context={}).'.format(self, self._ctx))
+        self.logger.info('Executing task {!r} ...'.format(self))
         self._pool = ThreadPool(processes=self._num_workers)
 
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
+            ctx = Context(root_only=True)
+            self._ctx.append(ctx)
+
             t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
                 decode_unicode=True,
-                context=self._ctx,
+                context=ctx,
                 keep_tempfiles=self._keep_tempfiles)
 
             # apply DownloadTask asynchronoulsy to the worker pool
@@ -749,9 +763,12 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 pass
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     for chunk in stream_request(
@@ -824,9 +841,12 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                 self._url, stream_epoch, query_params=self.query_params)
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     with raw_request(request_handler.post()) as ifd:
@@ -919,9 +939,10 @@ class RawDownloadTask(TaskBase):
     @with_ctx_guard
     def __call__(self):
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
@@ -966,13 +987,17 @@ class RawDownloadTask(TaskBase):
                                     status_code=503,
                                     warning=type(err),
                                     data=str(err),
-                                    extras={'type_task': self._TYPE})
+                                    extras={'type_task': self._TYPE,
+                                            'req_handler': \
+                                            self._request_handler})
+
         except Exception as err:
             return Result.error('InternalServerError',
                                 status_code=500,
                                 warning='Unhandled exception.',
                                 data=str(err),
-                                extras={'type_task': self._TYPE})
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
         else:
             if resp.status_code == 413:
                 data = self._request_handler
@@ -980,7 +1005,8 @@ class RawDownloadTask(TaskBase):
             return Result.error(status='EndpointError',
                                 status_code=resp.status_code,
                                 warning=str(err), data=data,
-                                extras={'type_task': self._TYPE})
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
     # _handle_error ()
 
 # class RawDownloadTask
@@ -997,9 +1023,10 @@ class StationTextDownloadTask(RawDownloadTask):
     def __call__(self):
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
@@ -1058,9 +1085,10 @@ class StationXMLDownloadTask(RawDownloadTask):
             raise self.MissingContextLock
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         network_tags = ['{}{}'.format(ns, self.network_tag)
                         for ns in settings.STATIONXML_NAMESPACES]
