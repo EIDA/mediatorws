@@ -149,7 +149,7 @@ class FederatorWebservice(App):
                                   '(default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
-        parser.add_argument('--keep-tempfiles',
+        parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
                                 [str(c).replace('KeepTempfiles.', '').lower().\
                                     replace('_', '-') for c in KeepTempfiles]),
