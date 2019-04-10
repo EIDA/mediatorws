@@ -302,7 +302,6 @@ class CombinerTask(TaskBase):
         """
         return Result.nocontent(extras={'type_task': self._TYPE})
 
-
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
