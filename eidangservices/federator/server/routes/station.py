@@ -46,6 +46,9 @@ from eidangservices.utils.schema import (ManyStreamEpochSchema,
 
 
 class StationResource(Resource):
+    """
+    Implementation of the :code:`fdsnws-station` resource.
+    """
 
     LOGGER = 'flask.app.federator.station_resource'
 
