@@ -263,6 +263,34 @@ class CombinerTask(TaskBase):
     def _handle_error(self, err):
         self.logger.warning(str(err))
 
+    def _terminate(self):
+        """
+        Terminate the combiner.
+
+        Implies both shutting down the combiner's pool and removing temporary
+        files of already successfully returned tasks.
+        """
+        try:
+            self._ctx.release()
+        except (AttributeError, ErrorWithTraceback):
+            pass
+        self._pool.terminate()
+        self._pool.join()
+
+        if (self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            for result in self._results:
+                if result.ready():
+                    _result = result.get()
+                    try:
+                        os.remove(_result.data)
+                    except OSError as err:
+                        pass
+
+        self._pool = None
+
+    # _terminate ()
+
     def _run(self):
         """
         Template method for CombinerTask declarations. Must be reimplemented.
