@@ -947,7 +947,7 @@ class RawDownloadTask(TaskBase):
                                         KeepTempfiles.ON_ERRORS):
             try:
                 os.remove(self.path_tempfile)
-            except OSError:
+            except (TypeError, OSError):
                 pass
 
         try:
