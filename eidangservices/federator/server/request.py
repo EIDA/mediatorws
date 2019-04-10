@@ -198,6 +198,7 @@ class FdsnRequestHandler(RequestHandlerBase):
 
 # class FdsnRequestHandler
 
+
 class GranularFdsnRequestHandler(FdsnRequestHandler):
     """
     Representation of a FDSN webservice request handler for granular
