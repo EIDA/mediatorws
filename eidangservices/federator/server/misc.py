@@ -94,7 +94,7 @@ class Context(object):
 
     @property
     def _is_root(self):
-        return not self._parent_ctx
+        return self._parent_ctx is None
 
     def acquire(self, path_tempdir=tempfile.gettempdir(), hidden=True):
         """
@@ -263,23 +263,26 @@ class Context(object):
 
         parent_ctx = self._parent_ctx
         while parent_ctx:
-            parent_ctx = parent_ctx._parent_ctx
+            stack.append(parent_ctx._ctx)
             if not parent_ctx:
                 break
-            stack.append(parent_ctx._ctx)
+            parent_ctx = parent_ctx._parent_ctx
 
         return self.SEP.join(str(e) for e in reversed(stack))
 
     # __str__ ()
 
     def _get_root_ctx(self):
+        if self._parent_ctx is None:
+            return self
+
         parent_ctx = self._parent_ctx
         ctx = self
         while parent_ctx:
-            parent_ctx = parent_ctx._parent_ctx
+            ctx = parent_ctx
             if not parent_ctx:
                 break
-            ctx = parent_ctx
+            parent_ctx = parent_ctx._parent_ctx
 
         return ctx
 
