@@ -53,7 +53,7 @@ from eidangservices.federator.server.misc import (KeepTempfiles,
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
-from eidangservices.utils.error import Error
+from eidangservices.utils.error import Error, ErrorWithTraceback
 
 
 class ETask(enum.Enum):
@@ -304,6 +304,7 @@ class CombinerTask(TaskBase):
 
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
         return self._run()
 
@@ -366,10 +367,13 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         self.logger.debug(
             'Removing temporary file {!r} ...'.format(
                 result.data))
-        try:
-            os.remove(result.data)
-        except OSError as err:
-            pass
+        if (result.data and
+            self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            try:
+                os.remove(result.data)
+            except OSError as err:
+                pass
 
     # _clean ()
 
@@ -378,7 +382,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         Combine `StationXML <http://www.fdsn.org/xml/station/>`_
         :code:`<Network></Network>` information.
         """
-        self.logger.info('Executing task {!r}.'.format(self))
+        self.logger.info(
+            'Executing task {!r} (context={}).'.format(self, self._ctx))
         self._pool = ThreadPool(processes=self._num_workers)
 
         for route in self._routes:
@@ -389,7 +394,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
-                decode_unicode=True)
+                decode_unicode=True,
+                context=self._ctx,
+                keep_tempfiles=self._keep_tempfiles)
 
             # apply DownloadTask asynchronoulsy to the worker pool
             result = self._pool.apply_async(t)
@@ -1044,7 +1051,11 @@ class StationXMLDownloadTask(RawDownloadTask):
                      kwargs.get('name') else type(self).__name__)
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
+
+        if self._ctx and not self._ctx.locked:
+            raise self.MissingContextLock
 
         self.logger.debug(
             'Downloading (url={}, stream_epochs={}) ...'.format(
