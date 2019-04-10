@@ -156,6 +156,8 @@ if 'federator' == subsys:
 
     if sys.version_info[:2] < (3, 3):
         _deps.append('mock')
+    if sys.version_info[:2] < (3, 4):
+        _deps.append('enum34>=1.1.6')
 
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
 

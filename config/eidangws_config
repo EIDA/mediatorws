@@ -54,6 +54,11 @@
 # 
 # tmpdir=/path/to/tmpdir
 # ----
+# Keep temporary files the service is generating. Choices are: {all, none,
+# on-errors}; The default configuration is: none
+#
+# keep_tempfiles = none
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
