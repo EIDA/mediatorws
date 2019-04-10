@@ -380,10 +380,11 @@ class RequestProcessor(object):
         <https://groups.google.com/forum/#!topic/modwsgi/jr2ayp0xesk>`_ very
         detailed.
         """
-        self.logger.debug("Closing response ...")
+        self.logger.debug("Closing (finally) response ...")
 
         try:
             self._pool.terminate()
+            self._pool.join()
         except AttributeError:
             pass
 
