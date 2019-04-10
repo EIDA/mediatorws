@@ -108,40 +108,41 @@ class Result(collections.namedtuple('Result', ['status',
                                                'status_code',
                                                'data',
                                                'length',
-                                               'warning'])):
+                                               'warning',
+                                               'extras'])):
     """
     General purpose task result. Properties correspond to a tiny subset of
     HTTP.
     """
     @classmethod
-    def ok(cls, data, length=None):
+    def ok(cls, data, length=None, extras=None):
         if length is None:
             length = len(data)
         return cls(data=data, length=length, status='Ok', status_code=200,
-                   warning=None)
+                   warning=None, extras=extras)
 
     @classmethod
     def error(cls, status, status_code, data=None, length=None,
-              warning=None):
+              warning=None, extras=None):
         if length is None:
             try:
                 length = len(data)
             except Exception:
                 length = None
         return cls(status=status, status_code=status_code, warning=warning,
-                   data=data, length=length)
+                   data=data, length=length, extras=extras)
 
     @classmethod
     def nocontent(cls, status='NoContent', status_code=204, data=None,
-                  warning=None):
+                  warning=None, extras=None):
         return cls.error(status=status, status_code=status_code, data=data,
-                         warning=warning)
+                         warning=warning, extras=extras)
 
     @classmethod
     def teardown(cls, status="I'm a teapot", status_code=418, data=None,
-                 warning=None):
+                 warning=None, extras=None):
         return cls.error(status=status, status_code=status_code, data=data,
-                         warning=warning)
+                         warning=warning, extras=extras)
 
 # class Result
 
