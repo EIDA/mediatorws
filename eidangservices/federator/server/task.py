@@ -77,12 +77,13 @@ def catch_default_task_exception(func):
             except AttributeError:
                 pass
 
-            msg = 'TaskError ({}): {}:{}.'.format(type(self).__name__,
-                                                  type(err), err)
+            msg = 'TaskError ({}): {}:{}'.format(type(self).__name__,
+                                                 type(err), err)
             return Result.error(
                 status='TaskError-{}'.format(type(self).__name__),
                 status_code=500, data=msg,
-                warning='Caught in default task exception handler.')
+                warning='Caught in default task exception handler.',
+                extras={'type_task': self._TYPE})
 
     return decorator
 
@@ -102,7 +103,9 @@ def with_ctx_guard(func):
                     type(self).__name__,
                     self._request_handler.stream_epochs))
             self._teardown(self.path_tempfile)
-            return Result.teardown(warning=str(err))
+
+            return Result.teardown(data=self._ctx,
+                                   extras={'type_task': self._TYPE})
 
     return decorator
 
@@ -264,7 +267,8 @@ class CombinerTask(TaskBase):
         """
         Template method for CombinerTask declarations. Must be reimplemented.
         """
-        return Result.nocontent()
+        return Result.nocontent(extras={'type_task': self._TYPE})
+
 
     @catch_default_task_exception
     def __call__(self):
@@ -440,12 +444,17 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             if not self._results:
                 break
 
+            if self._ctx and not self._ctx.locked:
+                self.logger.debug('{}: Closing ...'.format(self.name))
+                self._terminate()
+                raise self.MissingContextLock
+
         self._pool.join()
 
         if not sum(self._sizes):
             self.logger.warning(
                 'Task {!r} terminates with no valid result.'.format(self))
-            return Result.nocontent()
+            return Result.nocontent(extras={'type_task': self._TYPE})
 
         _length = 0
         # dump xml tree for <Network></Network> epochs to temporary file
@@ -456,12 +465,16 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 _length += len(s)
                 ofd.write(s)
 
+        if self._ctx and not self._ctx.locked:
+            raise self.MissingContextLock
+
         self.logger.info(
             ('Task {!r} sucessfully finished '
              '(total bytes processed: {}, after processing: {}).').format(
                  self, sum(self._sizes), _length))
 
-        return Result.ok(data=self.path_tempfile, length=_length)
+        return Result.ok(data=self.path_tempfile, length=_length,
+                         extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -645,7 +658,8 @@ class SplitAndAlignTask(TaskBase):
 
         return Result.error(status='EndpointError',
                             status_code=err.response.status_code,
-                            warning=str(err), data=err.response.data)
+                            warning=str(err), data=err.response.data,
+                            extras={'type_task': self._TYPE})
 
     # _handle_error ()
 
@@ -729,7 +743,8 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 raise self.MissingContextLock
 
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
-                return Result.ok(data=self.path_tempfile, length=self._size)
+                return Result.ok(data=self.path_tempfile, length=self._size,
+                                 extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -825,7 +840,8 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                     ofd.write(self.JSON_LIST_END)
                     self._size += 1
 
-                return Result.ok(data=self.path_tempfile, length=self._size)
+                return Result.ok(data=self.path_tempfile, length=self._size,
+                                 extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -888,7 +904,8 @@ class RawDownloadTask(TaskBase):
         if self._ctx and not self._ctx.locked:
             raise self.MissingContextLock
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 
@@ -908,19 +925,22 @@ class RawDownloadTask(TaskBase):
                 return Result.error('RequestsError',
                                     status_code=503,
                                     warning=type(err),
-                                    data=str(err))
+                                    data=str(err),
+                                    extras={'type_task': self._TYPE})
         except Exception as err:
             return Result.error('InternalServerError',
                                 status_code=500,
                                 warning='Unhandled exception.',
-                                data=str(err))
+                                data=str(err),
+                                extras={'type_task': self._TYPE})
         else:
             if resp.status_code == 413:
                 data = self._request_handler
 
             return Result.error(status='EndpointError',
                                 status_code=resp.status_code,
-                                warning=str(err), data=data)
+                                warning=str(err), data=data,
+                                extras={'type_task': self._TYPE})
     # _handle_error ()
 
 # class RawDownloadTask
@@ -963,7 +983,8 @@ class StationTextDownloadTask(RawDownloadTask):
         if self._ctx and not self._ctx.locked:
             raise self.MissingContextLock
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 
@@ -1019,7 +1040,11 @@ class StationXMLDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        if self._ctx and not self._ctx.locked:
+            raise self.MissingContextLock
+
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 
