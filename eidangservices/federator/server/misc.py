@@ -55,6 +55,7 @@ class Context(object):
     :param ctx: Hashable to be used for context initialization.
     :param bool root_only: The context relies on its root context when
         handling with locks.
+    :param payload: Payload to be associated with the context.
     """
     SEP = '::'
 
@@ -63,7 +64,7 @@ class Context(object):
 
     # TODO(damb): Make it threadsafe!
 
-    def __init__(self, ctx=None, root_only=True):
+    def __init__(self, ctx=None, root_only=True, payload=None):
         self._ctx = ctx if ctx else uuid.uuid4()
         try:
             hash(self._ctx)
@@ -71,6 +72,7 @@ class Context(object):
             raise self.ContextError('Context unhashable ({}).'.format(err))
         self._parent_ctx = None
         self._root_only = root_only
+        self._payload = payload
 
         self._path_ctx = None
         self._child_ctxs = set()
@@ -83,6 +85,10 @@ class Context(object):
         return self._get_root_ctx().locked
 
     # locked ()
+
+    @property
+    def payload(self):
+        return self._payload
 
     @property
     def _is_root(self):
