@@ -65,7 +65,7 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-        g.ctx = Context()
+        g.ctx = Context(root_only=True)
         g.request_id = g.ctx._get_current_object()
         g.ctx.acquire(path_tempdir=config_dict['TMPDIR'],
                       hidden=settings.EIDA_FEDERATOR_HIDDEN_CTX_LOCKS)
