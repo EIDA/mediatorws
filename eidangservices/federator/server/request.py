@@ -115,7 +115,10 @@ class RequestHandlerBase(object):
         return ', '.join(["scheme={}".format(self._scheme),
                           "netloc={}".format(self._netloc),
                           "path={}.".format(self._path),
-                          "qp={}".format(self._query_params)])
+                          "qp={}".format(self._query_params),
+                          "streams={}".format(
+                              ', '.join(str(se)
+                                        for se in self._stream_epochs))])
 
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self)

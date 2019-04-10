@@ -987,13 +987,17 @@ class RawDownloadTask(TaskBase):
                                     status_code=503,
                                     warning=type(err),
                                     data=str(err),
-                                    extras={'type_task': self._TYPE})
+                                    extras={'type_task': self._TYPE,
+                                            'req_handler': \
+                                            self._request_handler})
+
         except Exception as err:
             return Result.error('InternalServerError',
                                 status_code=500,
                                 warning='Unhandled exception.',
                                 data=str(err),
-                                extras={'type_task': self._TYPE})
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
         else:
             if resp.status_code == 413:
                 data = self._request_handler
@@ -1001,7 +1005,8 @@ class RawDownloadTask(TaskBase):
             return Result.error(status='EndpointError',
                                 status_code=resp.status_code,
                                 warning=str(err), data=data,
-                                extras={'type_task': self._TYPE})
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
     # _handle_error ()
 
 # class RawDownloadTask
