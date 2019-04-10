@@ -48,7 +48,8 @@ from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import (
-    ContextLoggerAdapter, KeepTempfiles, get_temp_filepath, elements_equal)
+    Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
+    elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -393,20 +394,22 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         Combine `StationXML <http://www.fdsn.org/xml/station/>`_
         :code:`<Network></Network>` information.
         """
-        self.logger.info(
-            'Executing task {!r} (context={}).'.format(self, self._ctx))
+        self.logger.info('Executing task {!r} ...'.format(self))
         self._pool = ThreadPool(processes=self._num_workers)
 
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
+            ctx = Context(root_only=True)
+            self._ctx.append(ctx)
+
             t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
                 decode_unicode=True,
-                context=self._ctx,
+                context=ctx,
                 keep_tempfiles=self._keep_tempfiles)
 
             # apply DownloadTask asynchronoulsy to the worker pool
@@ -1077,9 +1080,10 @@ class StationXMLDownloadTask(RawDownloadTask):
             raise self.MissingContextLock
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         network_tags = ['{}{}'.format(ns, self.network_tag)
                         for ns in settings.STATIONXML_NAMESPACES]
