@@ -34,6 +34,7 @@ from builtins import * # noqa
 
 import collections
 import datetime
+import enum
 import json
 import logging
 import os
@@ -54,6 +55,11 @@ from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
 from eidangservices.utils.error import Error
 
+
+class ETask(enum.Enum):
+    DOWNLOAD = 0
+    COMBINER = 1
+    SPLITALIGN = 2
 
 # -----------------------------------------------------------------------------
 def catch_default_task_exception(func):
@@ -156,6 +162,7 @@ class TaskBase(object):
     :param keep_tempfiles: Flag how temporary files should be treated
     :type keep_tempfiles: :py:class:`KeepTempfiles`
     """
+    _TYPE = ETask.DOWNLOAD
 
     class TaskError(Error):
         """Base task error ({})."""
@@ -221,7 +228,7 @@ class CombinerTask(TaskBase):
     Task downloading and combining the information for a network. Downloading
     is performed concurrently.
     """
-
+    _TYPE = ETask.COMBINER
     LOGGER = 'flask.app.federator.task_combiner_raw'
 
     MAX_THREADS_DOWNLOADING = 5
@@ -581,6 +588,7 @@ class SplitAndAlignTask(TaskBase):
     (i.e. Request too large) within `TIMEOUT_REQUEST_TOO_LARGE` there is no
     need to implement this task recursively.
     """
+    _TYPE = ETask.SPLITALIGN
     LOGGER = 'flask.app.task_saa'
 
     DEFAULT_SPLITTING_CONST = 2
