@@ -283,6 +283,11 @@ class RequestProcessor(object):
 
     # _handle_413 ()
 
+    def _handle_teapot(self, result):
+        self.logger.debug('Teapot: {}'.format(result))
+
+    # _handle_teapot ()
+
     def _wait(self, timeout=None):
         """
         Wait for a valid endpoint response.
