@@ -76,7 +76,7 @@ class Context(object):
         self._payload = payload
 
         self._path_ctx = None
-        self._child_ctxs = set()
+        self._child_ctxs = []
 
     @property
     def locked(self):
@@ -183,7 +183,7 @@ class Context(object):
             c._root_only = self._root_only
 
         ctx._parent_ctx = self
-        self._child_ctxs.add(ctx)
+        self._child_ctxs.append(ctx)
 
     # __add__ ()
 
@@ -196,11 +196,11 @@ class Context(object):
         """
         if ctx in self:
             if ctx._child_ctxs:
-                ctx.__sub__(ctx._child_ctxs.pop())
+                ctx.__sub__(ctx._child_ctxs.pop(0))
 
             if ctx.locked:
                 ctx.release()
-            self._child_ctxs.discard(ctx)
+            self._child_ctxs.remove(ctx)
 
     # __sub__ ()
 
