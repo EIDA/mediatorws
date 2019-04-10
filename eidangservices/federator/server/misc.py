@@ -242,11 +242,12 @@ class Context(object):
         return other in self._child_ctxs
 
     def __eq__(self, other):
-        # TODO(damb): To be implemented.
-        return self == other
+        # TODO(damb): To be implemented. Currently, comparison is based on
+        # __hash__(), exclusively.
+        return self._ctx == other._ctx
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self._ctx)
 
     def __iter__(self):
         yield self
