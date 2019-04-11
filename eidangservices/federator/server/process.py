@@ -50,7 +50,7 @@ from eidangservices.federator.server.request import (
     RoutingRequestHandler, GranularFdsnRequestHandler,
     BulkFdsnRequestHandler)
 from eidangservices.federator.server.task import (
-    ETask, RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
+    RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLDownloadTask, StationXMLNetworkCombinerTask,
     WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
@@ -661,18 +661,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
               '<Created>{}</Created>')
     FOOTER = '</FDSNStationXML>'
 
-    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
-                 **kwargs):
-        super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
-
-        self._level = query_params.get('level')
-        if self._level is None:
-            raise RequestProcessorError("Missing parameter: 'level'.")
-
-        self._num_combiners = 0
-
-    # __init__ ()
-
     def _terminate(self):
         """
         Terminate the processor.
@@ -689,25 +677,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         except (AttributeError, ErrorWithTraceback):
             pass
 
-        # wait until combiners return in order to allow them shutting down
-        # gracefully
-        self.logger.debug('Waiting for combiners to return ...')
-
-        while self._num_combiners > 0:
-            for result in self._results:
-                if result.ready():
-                    _result = result.get()
-
-                    if _result.extras['type_task'] == ETask.COMBINER:
-                        self._num_combiners -= 1
-
-            time.sleep(0.1)
-
-        self.logger.debug('Combiners returned.')
-
-        self._pool.terminate()
-        self._pool.join()
-
         # XXX(damb): Since the worker pool is implemented by means of
         # multiprocessing.Pool tasks are actually *killed* when calling
         # self._pool.terminate(). This may cause an abrupt interrupt such that
@@ -715,21 +684,36 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         # remaining. Though, waiting before performing a final cleanup might
         # solve the problem. However, there is a trade-off between waiting and
         # freeing resources, again.
+        # Calling self._pool.close() relies on tasks returning immediately
+        # if noting that no active context is available.
         if (self._keep_tempfiles not in (KeepTempfiles.ALL,
                                          KeepTempfiles.ON_ERRORS)):
+            self.logger.debug(
+                'Waiting for tasks (allowing them a graceful shutdown) ...')
+            while True:
+                ready = []
+                for result in self._results:
+                    if result.ready():
 
-            # XXX(damb): Wait a second before performing a final cleanup.
-            time.sleep(1)
-            for result in self._results:
-                if result.ready():
-                    _result = result.get()
-                    try:
-                        os.remove(_result.data)
-                    except (TypeError, OSError) as err:
-                        pass
+                        _result = result.get()
+                        try:
+                            os.remove(_result.data)
+                        except (TypeError, OSError):
+                            pass
+
+                        ready.append(result)
+
+                # TODO(damb): Implement a timeout solution in case results are
+                # never ready.
+                for result in ready:
+                    self._results.remove(result)
+
+                if not self._results:
+                    break
+
+                time.sleep(0.1)
 
         self.logger.debug('Terminate ...')
-        self._pool = None
 
     # _terminate ()
 
@@ -789,7 +773,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                 t = StationXMLNetworkCombinerTask(
                     routes, self.query_params, name=net, context=ctx,
                     keep_tempfiles=self._keep_tempfiles)
-                self._num_combiners += 1
             else:
                 raise RoutingError('Missing routes.')
 
@@ -856,9 +839,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                             self._sizes.append(0)
 
                         ready.append(result)
-
-                        if _result.extras['type_task'] == ETask.COMBINER:
-                            self._num_combiners -= 1
 
                 # TODO(damb): Implement a timeout solution in case results are
                 # never ready.

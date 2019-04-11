@@ -321,7 +321,12 @@ class CombinerTask(TaskBase):
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
         return self._run()
+
+    # __call__()
 
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self.name)
@@ -516,6 +521,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         _length = 0
         # dump xml tree for <Network></Network> epochs to temporary file
         self.path_tempfile = get_temp_filepath()
+        self.logger.debug('{}: tempfile={!r}'.format(self, self.path_tempfile))
         with open(self.path_tempfile, 'wb') as ofd:
             for net_element in self._network_elements:
                 s = etree.tostring(net_element)
