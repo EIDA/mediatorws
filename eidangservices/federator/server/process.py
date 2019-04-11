@@ -661,6 +661,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
               '<Created>{}</Created>')
     FOOTER = '</FDSNStationXML>'
 
+    TIMEOUT_SHUTDOWN = settings.EIDA_FEDERATOR_SHUTDOWN_TIMEOUT
+
     def _terminate(self):
         """
         Terminate the processor.
@@ -690,6 +692,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                                          KeepTempfiles.ON_ERRORS)):
             self.logger.debug(
                 'Waiting for tasks (allowing them a graceful shutdown) ...')
+            now = datetime.datetime.utcnow()
             while True:
                 ready = []
                 for result in self._results:
@@ -703,12 +706,16 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
                         ready.append(result)
 
-                # TODO(damb): Implement a timeout solution in case results are
-                # never ready.
                 for result in ready:
                     self._results.remove(result)
 
                 if not self._results:
+                    break
+
+                if (datetime.datetime.utcnow() > now +
+                        datetime.timedelta(seconds=self.TIMEOUT_SHUTDOWN)):
+                    self.logger.warning('Timeout. Forced shutdown. '
+                                        'Temporary files might remain.')
                     break
 
                 time.sleep(0.1)
