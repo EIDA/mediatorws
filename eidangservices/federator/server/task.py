@@ -659,10 +659,6 @@ class SplitAndAlignTask(TaskBase):
 
     Concrete implementations of this task type implement stream epoch splitting
     and merging facilities.
-
-    Assuming FDSN webservice endpoints are able to return HTTP status code 413
-    (i.e. Request too large) within `TIMEOUT_REQUEST_TOO_LARGE` there is no
-    need to implement this task recursively.
     """
     _TYPE = ETask.SPLITALIGN
     LOGGER = 'flask.app.task_saa'
