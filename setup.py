@@ -56,7 +56,8 @@ _entry_points_federator = {
     ]}
 _entry_points_stationlite = {
     'console_scripts': [
-        'eida-stationlite = eidangservices.stationlite.server.app:main',
+        ('eida-stationlite-test = '
+         'eidangservices.stationlite.server.app:main_test'),
         ('eida-stationlite-harvest = '
          'eidangservices.stationlite.harvest.harvest:main'),
         ('eida-stationlite-db-init = '

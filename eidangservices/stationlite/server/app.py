@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # This is <app.py>
@@ -74,17 +73,18 @@ def url(url):
 
 # url ()
 
+
 # ----------------------------------------------------------------------------
-class StationLiteWebservice(App):
+class StationLiteWebserviceBase(App):
     """
-    Implementation of the EIDA StationLite webservice.
+    Base production implementation of the EIDA StationLite webservice.
     """
     DB_PRAGMAS = ['PRAGMA case_sensitive_like=on']
     PROG = 'eida-stationlite'
 
     def build_parser(self, parents=[]):
         """
-        Set up the stationlite commandline argument parser.
+        Set up the commandline argument parser.
 
         :param list parents: list of parent parsers
         :returns: parser
@@ -97,15 +97,6 @@ class StationLiteWebservice(App):
         # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
-        parser.add_argument('--start-local', action='store_true',
-                            default=False,
-                            help=("start a local WSGI server "
-                                  "(not for production)"))
-        parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.\
-                            EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
-                            help=('server port (only considered when serving '
-                                  'locally i.e. with --start-local)'))
 
         # positional arguments
         parser.add_argument('db_url', type=url, metavar='URL',
@@ -134,20 +125,13 @@ class StationLiteWebservice(App):
             if self.args.db_url.startswith('sqlite'):
                 configure_sqlite(self.DB_PRAGMAS)
 
-            if self.args.start_local:
-                # run local Flask WSGI server (not for production)
-                self.logger.info('Serving with local WSGI server.')
-                app.run(
-                    threaded=True, port=self.args.port,
-                    debug=(os.environ.get('DEBUG') == 'True'))
-            else:
-                try:
-                    from mod_wsgi import version  # noqa
-                    self.logger.info('Serving with mod_wsgi.')
-                except Exception as err:
-                    raise ModWSGIError(err)
+            try:
+                from mod_wsgi import version  # noqa
+                self.logger.info('Serving with mod_wsgi.')
+            except Exception as err:
+                raise ModWSGIError(err)
 
-                return app
+            return app
 
         except Error as err:
             self.logger.error(err)
@@ -200,17 +184,78 @@ class StationLiteWebservice(App):
 
     # setup_app ()
 
-# class StationLiteWebservice
+# class StationLiteWebserviceBase
+
+
+class StationLiteWebserviceTest(StationLiteWebserviceBase):
+    """
+    Test implementation of the EIDA StationLite webservice.
+    """
+    PROG = 'eida-stationlite-test'
+
+    def build_parser(self, parents=[]):
+        """
+        Set up the commandline argument parser.
+
+        :param list parents: list of parent parsers
+        :returns: parser
+        :rtype: :py:class:`argparse.ArgumentParser`
+        """
+        parser = super().build_parser(parents)
+        parser.add_argument('-p', '--port', metavar='PORT', type=int,
+                            default=settings.\
+                            EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
+                            help='server port')
+
+        return parser
+
+    # build_parser ()
+
+    def run(self):
+        """
+        Run application.
+        """
+        exit_code = ExitCodes.EXIT_SUCCESS
+        try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+            app = self.setup_app()
+
+            if self.args.db_url.startswith('sqlite'):
+                configure_sqlite(self.DB_PRAGMAS)
+
+            # run local Flask WSGI server (not for production)
+            self.logger.info('Serving with local WSGI server.')
+            app.run(threaded=True, port=self.args.port,
+                    debug=(os.environ.get('DEBUG') == 'True'),
+                    use_reloader=True, passthrough_errors=True)
+
+        except Error as err:
+            self.logger.error(err)
+            exit_code = ExitCodes.EXIT_ERROR
+        except Exception as err:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.critical('Local Exception: %s' % err)
+            self.logger.critical('Traceback information: ' +
+                                 repr(traceback.format_exception(
+                                     exc_type, exc_value, exc_traceback)))
+            exit_code = ExitCodes.EXIT_ERROR
+
+        sys.exit(exit_code)
+
+    # run ()
+
+# class StationLiteWebserviceTest
+
+
+StationLiteWebservice = StationLiteWebserviceBase
 
 
 # ----------------------------------------------------------------------------
-def main():
+def _main(app):
     """
-    main function for EIDA stationlite webservice
+    main function executor for EIDA stationlite webservice
     """
-
-    app = StationLiteWebservice(log_id='STL')
-
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
@@ -225,11 +270,23 @@ def main():
 
     return app.run()
 
-# main ()
+# _main ()
+
+
+def main_test():
+    return _main(StationLiteWebserviceTest(log_id='STL'))
+
+
+def main_prod():
+    return _main(StationLiteWebservice(log_id='STL'))
+
+
+main = main_prod
 
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
-    main()
+    main_test()
+
 
 # ---- END OF <app.py> ----
