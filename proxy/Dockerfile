@@ -31,7 +31,7 @@ COPY *.conf /etc/apache2/sites-available/
 RUN a2ensite noa.conf
 
 # Enable required modules 
-RUN a2enmod file_cache proxy headers
+RUN a2enmod file_cache proxy headers proxy_http
 
 # Add the apache2 service
 RUN mkdir /etc/service/apache2 && \
