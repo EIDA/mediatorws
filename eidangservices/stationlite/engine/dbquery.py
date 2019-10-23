@@ -186,7 +186,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
         #print('Query response: {0!r}'.format(row))
         # NOTE(damb): Adjust epoch in case the ChannelEpoch is smaller than the
         # RoutingEpoch (regarding time constraints).
-        starttime = row[2] if row[2] > row[6] else row[6]
+        starttime = max(row[2], row[6])
         endtime = row[3] if ((row[7] is None and row[3] is not None) or
                              (row[7] is not None and row[3] is not None and
                               row[7] > row[3])) else row[7]
