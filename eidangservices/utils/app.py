@@ -66,7 +66,7 @@ class AppError(ErrorWithTraceback):
 class LoggingConfOptionAlreadyAvailable(AppError):
     """CLI option '--logging-conf' already defined. ({})."""
 
-class App(object):
+class App:
     """
     Implementation of a configurable application.
 

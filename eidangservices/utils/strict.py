@@ -59,7 +59,7 @@ def _callable_or_raise(obj):
 # _callable_or_raise ()
 
 # -----------------------------------------------------------------------------
-class KeywordParser(object):
+class KeywordParser:
     """
     Base class for keyword parsers.
     """

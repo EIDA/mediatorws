@@ -50,7 +50,7 @@ from eidangservices.utils.sncl import Stream, StreamEpoch
 
 
 # -----------------------------------------------------------------------------
-class Response(object):
+class Response:
 
     def __init__(self, status_code=500, data=None):
         self.status_code = status_code

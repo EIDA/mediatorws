@@ -57,7 +57,7 @@ class KeepTempfiles(enum.Enum):
 # class KeepTempfiles
 
 
-class Context(object):
+class Context:
     """
     Utility implementation of a simple hierarchical context. Contexts are
     pickable.

@@ -438,7 +438,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
 
 
 @functools.total_ordering
-class StreamEpochs(object):
+class StreamEpochs:
     """
     This class represents a mapping of a :py:class:`Stream` object to multiple
     epochs. In an abstract sense it is a container for :py:class:`StreamEpoch`
@@ -663,7 +663,7 @@ class StreamEpochs(object):
 # class StreamEpochs
 
 
-class StreamEpochsHandler(object):
+class StreamEpochsHandler:
     """
     This class is intended to represent a handler/container for
     :py:class:`StreamEpochs` objects.

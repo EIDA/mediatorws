@@ -32,7 +32,7 @@ StationLite output format facilities.
 import eidangservices as eidangws
 
 
-class OutputStream(object):
+class OutputStream:
     """
     Base class for the StationLite ouput stream format.
 

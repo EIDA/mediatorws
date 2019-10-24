@@ -44,7 +44,7 @@ from eidangservices.utils.httperrors import FDSNHTTPError
 
 
 # -----------------------------------------------------------------------------
-class FDSNWSParserMixin(object):
+class FDSNWSParserMixin:
     """
     Mixin providing additional FDSNWS specific parsing facilities for `webargs
     https://webargs.readthedocs.io/en/latest/`_ parsers.

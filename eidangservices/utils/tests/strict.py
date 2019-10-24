@@ -49,7 +49,7 @@ class KeywordParserTestCase(unittest.TestCase):
 
     # class TestSchema
 
-    class TestReq(object):
+    class TestReq:
         pass
 
     # class TestReq

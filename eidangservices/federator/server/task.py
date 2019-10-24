@@ -158,7 +158,7 @@ class Result(collections.namedtuple('Result', ['status',
 
 
 # -----------------------------------------------------------------------------
-class TaskBase(object):
+class TaskBase:
     """
     Base class for tasks.
 

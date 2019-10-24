@@ -114,7 +114,7 @@ class StreamingError(RequestProcessorError):
     """Error while streaming ({})."""
 
 # -----------------------------------------------------------------------------
-class RequestProcessor(object):
+class RequestProcessor:
     """
     Abstract base class for request processors.
     """

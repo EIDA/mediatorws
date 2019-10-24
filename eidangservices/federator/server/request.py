@@ -39,7 +39,7 @@ from eidangservices.utils.schema import StreamEpochSchema
 from eidangservices.federator import __version__
 
 
-class RequestHandlerBase(object):
+class RequestHandlerBase:
     """
     RequestHandler base class implementation. Provides bulk request handling
     facilities.
@@ -136,7 +136,7 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    class GET(object):
+    class GET:
         """
         Utility class emulating a GET request.
         """
