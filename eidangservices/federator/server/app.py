@@ -83,6 +83,7 @@ def thread_config(config_dict):
 
 # thread_config ()
 
+
 def keeptempfile_config(arg):
     """
     Populate the corresponding :code:`enum` value from the CLI configuration.
@@ -91,16 +92,17 @@ def keeptempfile_config(arg):
 
 # keeptempfile_config ()
 
+
 # -----------------------------------------------------------------------------
-class FederatorWebservice(App):
+class FederatorWebserviceBase(App):
     """
-    Implementation of the EIDA Federator webservice.
+    Base production implementation of the EIDA Federator webservice.
     """
     PROG = 'eida-federator'
 
     def build_parser(self, parents=[]):
         """
-        Set up the stationlite commandline argument parser.
+        Set up the commandline argument parser.
 
         :param list parents: list of parent parsers
         :returns: parser
@@ -114,15 +116,6 @@ class FederatorWebservice(App):
 
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
-        parser.add_argument('--start-local', action='store_true',
-                            default=False,
-                            help=("start a local WSGI server "
-                                  "(not for production)"))
-        parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_SERVER_PORT,
-                            help=('server port (only considered when '
-                                  'serving locally i.e. with --start-local)'))
         parser.add_argument('-R', '--routing-url', type=str, metavar='URL',
                             default=settings.\
                             EIDA_FEDERATOR_DEFAULT_ROUTING_URL,
@@ -174,20 +167,13 @@ class FederatorWebservice(App):
 
             app = self.setup_app()
 
-            if self.args.start_local:
-                # run local Flask WSGI server (not for production)
-                self.logger.info('Serving with local WSGI server.')
-                app.run(threaded=True, port=self.args.port,
-                        debug=(os.environ.get('DEBUG') == 'True'),
-                        use_reloader=True, passthrough_errors=True)
+            try:
+                from mod_wsgi import version  # noqa
+                self.logger.info('Serving with mod_wsgi.')
+            except Exception:
+                pass
 
-            else:
-                try:
-                    from mod_wsgi import version  # noqa
-                    self.logger.info('Serving with mod_wsgi.')
-                except Exception:
-                    pass
-                return app
+            return app
 
         except Error as err:
             self.logger.error(err)
@@ -279,17 +265,76 @@ class FederatorWebservice(App):
 
     # setup_app()
 
-# class FederatorWebservice
+# class FederatorWebserviceBase
+
+
+class FederatorWebserviceTest(FederatorWebserviceBase):
+    """
+    Test implementation of the EIDA Federator webservice.
+    """
+    PROG = 'eida-federator-test'
+
+    def build_parser(self, parents=[]):
+        """
+        Set up the commandline argument parser.
+
+        :param list parents: list of parent parsers
+        :returns: parser
+        :rtype: :py:class:`argparse.ArgumentParser`
+        """
+        parser = super().build_parser(parents)
+        parser.add_argument('-p', '--port', metavar='PORT', type=int,
+                            default=settings.\
+                            EIDA_FEDERATOR_DEFAULT_SERVER_PORT,
+                            help='server port')
+
+        return parser
+
+    # build_parser ()
+
+    def run(self):
+        """
+        Run application.
+        """
+        exit_code = ExitCodes.EXIT_SUCCESS
+        try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
+            app = self.setup_app()
+
+            # run local Flask WSGI server (not for production)
+            self.logger.info('Serving with local WSGI server.')
+            app.run(threaded=True, port=self.args.port,
+                    debug=(os.environ.get('DEBUG') == 'True'),
+                    use_reloader=True, passthrough_errors=True)
+
+        except Error as err:
+            self.logger.error(err)
+            exit_code = ExitCodes.EXIT_ERROR
+        except Exception as err:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.critical('Local Exception: %s' % err)
+            self.logger.critical('Traceback information: ' +
+                                 repr(traceback.format_exception(
+                                     exc_type, exc_value, exc_traceback)))
+            exit_code = ExitCodes.EXIT_ERROR
+
+        sys.exit(exit_code)
+
+    # run ()
+
+# class FederatorWebserviceTest
+
+
+FederatorWebservice = FederatorWebserviceBase
 
 
 # -----------------------------------------------------------------------------
-def main():
+def _main(app):
     """
-    main function for EIDA Federator
+    main function executor for EIDA Federator
     """
-
-    app = FederatorWebservice(log_id='FED')
-
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
@@ -305,8 +350,20 @@ def main():
 # main ()
 
 
+def main_test():
+    return _main(FederatorWebserviceTest(log_id='FED'))
+
+
+def main_prod():
+    return _main(FederatorWebservice(log_id='FED'))
+
+
+main = main_prod
+
+
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    main_test()
+
 
 # ---- END OF <app.py> ----

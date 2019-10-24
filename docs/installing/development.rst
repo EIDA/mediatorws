@@ -140,7 +140,7 @@ webservice installation enter
 
 .. code::
 
-  (venv) $ eida-federator -V
+  (venv) $ eida-federator-test -V
 
 The version of your *federator* installation should be displayed. Now you are
 ready to launch the `Test WSGI servers

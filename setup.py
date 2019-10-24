@@ -52,11 +52,12 @@ _description = ("EIDA NG Mediator/Federator webservices")
 
 _entry_points_federator = {
     'console_scripts': [
-        'eida-federator = eidangservices.federator.server.app:main',
+        'eida-federator-test = eidangservices.federator.server.app:main_test',
     ]}
 _entry_points_stationlite = {
     'console_scripts': [
-        'eida-stationlite = eidangservices.stationlite.server.app:main',
+        ('eida-stationlite-test = '
+         'eidangservices.stationlite.server.app:main_test'),
         ('eida-stationlite-harvest = '
          'eidangservices.stationlite.harvest.harvest:main'),
         ('eida-stationlite-db-init = '
