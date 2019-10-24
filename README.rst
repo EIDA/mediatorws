@@ -69,13 +69,13 @@ To launch a local test WSGI server (**NOT** for production environments) enter:
 
 .. code::
 
-  (venv) $ eida-federator --start-local --tmpdir='/path/to/tmp'
+  (venv) $ eida-federator-test --tmpdir='/path/to/tmp'
 
 For further configuration options invoke
 
 .. code::
 
-  (venv) $ eida-federator -h
+  (venv) $ eida-federator-test -h
 
 The service currently writes temporary files to the :code:`tmpdir`. Make sure
 that plenty of space is available.
@@ -87,7 +87,7 @@ To launch a local test WSGI server (**NOT** for production environments) enter:
 
 .. code::
 
-  (venv) $ eida-stationlite --start-local URL
+  (venv) $ eida-stationlite-test URL
 
 :code:`URL` is a database url as described at the `SQLAlchemy documentation
 <http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
@@ -95,7 +95,7 @@ For further configuration options invoke
 
 .. code::
 
-  (venv) $ eida-stationlite -h
+  (venv) $ eida-stationlite-test -h
 
 Mediator server (deprecated)
 ----------------------------
