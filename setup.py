@@ -33,9 +33,6 @@ import sys
 from copy import deepcopy
 from setuptools import setup, find_packages
 
-if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 5):
-    raise RuntimeError("Python version 2.7 or >= 3.5 required.")
-
 
 def get_version(filename):
     from re import findall
@@ -251,6 +248,7 @@ setup(
     setup_requires=['pytest-runner', ],
     tests_require=_test_deps,
     extras_require=_extras,
+    python_requires='~=3.5',
     # configure sphinx
     command_options={
         'build_sphinx': {
