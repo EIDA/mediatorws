@@ -25,6 +25,7 @@ CMD ["/sbin/my_init"]
 RUN apt-get update && apt-get install -y libxml2-dev \
                                          libxslt-dev \
                                          python3-dev \
+                                         python3-venv \
                                          git \
                                          build-essential \
                                          python-setuptools \
@@ -42,9 +43,6 @@ RUN apt-get update && apt-get install -y libxml2-dev \
 # Update pip
 RUN pip install --upgrade pip
 
-# Install the Python dependencies
-RUN pip install virtualenv
-
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
 
@@ -53,12 +51,12 @@ WORKDIR /var/www/mediatorws
 
 # Create the virtual environments
 RUN mkdir /var/www/federator && cd /var/www/federator && \
-    virtualenv -p $(which python3.5) venv3 && \
+    python3.5 -m venv venv3 && \
     /bin/bash -c "source /var/www/federator/venv3/bin/activate && \
     make -C /var/www/mediatorws install SERVICES=federator && deactivate"
 
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
-    virtualenv -p $(which python3.5) venv3 && \
+    python3.5 -m venv venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
     pip install psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
