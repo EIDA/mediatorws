@@ -20,12 +20,14 @@
 # http://localhost/eidaws/routing/1/)
 #
 # routing=SERVICE_URL/IDENTIFIER
+#
 # ----
 # Enable/disable federator endpoint resources. Choices are: 
 # {fdsnws-dataselect, fdsnws-station, eidaws-wfcatalog}. By default all
 # endpoint resources are enabled.
 #
 # endpoint_resources = fdsnws-dataselect fdsnws-station eidaws-wfcatalog
+#
 # ----
 # Configure the number of download threads/request by means of a dictionary
 # (JSON syntax required). The default configuration is:
@@ -39,15 +41,18 @@
 #                      "fdsnws-station-xml": 5,
 #                      "fdsnws-station-text": 10,
 #                      "eidaws-wfcatalog": 10}'
+#
 # ----
 # Configure where temporary files will be located.
 # 
 # tmpdir=/path/to/tmpdir
+#
 # ----
 # Keep temporary files the service is generating. Choices are: {all, none,
 # on-errors}; The default configuration is: none
 #
 # keep_tempfiles = none
+#
 # ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
@@ -125,16 +130,19 @@
 # odc, resif}.
 #
 # nodes_exclude = bgr eth gfz
+#
 # ----
 # Do not harvest <route></route> information while harvesting.
 # (default: False)
 #
 # no_routes={True,False}
+#
 # ----
 # Do not harvest <vnetwork></vnetwork> information while harvesting.
 # (default: False)
 #
 # no_vnetworks={True,False}
+#
 # ----
 # Truncate DB i.e. delete outdated information. The TIMESTAMP format must agree
 # with formats supported by obspy.UTCDateTime.
@@ -142,12 +150,14 @@
 # https://docs.obspy.org/packages/autogen/obspy.core.utcdatetime.UTCDateTime.html
 #
 # truncate=2017-01-01T00:00:00
+#
 # ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
 # path_logging_conf=/path/to/logging.conf
+#
 # ----
 # DB URL indicating the database dialect and the connection arguments.
 # See also:
