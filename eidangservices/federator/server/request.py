@@ -27,13 +27,6 @@
 """
 EIDA federator request handling facilities
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
-from future.standard_library import install_aliases
-install_aliases()
 
 import functools
 

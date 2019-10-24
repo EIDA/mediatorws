@@ -25,10 +25,6 @@
 # REVISION AND CHANGES
 # 2018/03/14        V0.1    Daniel Armbruster
 # =============================================================================
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 
