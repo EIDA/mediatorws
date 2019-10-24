@@ -6,7 +6,7 @@
 EIDA NG Mediator/Federator webservices
 **************************************
 
-|BuildStatus|_ (py27, py35, py36)
+|BuildStatus|_ (py35, py36)
 
 This repository is intended to contain the source code for three of the web
 services of EIDA NG: (i) the *federator*, (ii) *stationlite* and (iii) the
