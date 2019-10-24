@@ -69,9 +69,6 @@ _includes = ('*')
 _deps_all = [
     'Flask>=0.12.2',
     'Flask-RESTful>=0.3.6',
-    # TODO(damb): Seems not to work for Python 2.7
-    # 'mock:python_version<"3.3"',
-    'future>=0.16.0',
     'intervaltree>=3.0.2',
     'lxml>=4.2.0',
     'marshmallow==3.0.0rc1',
