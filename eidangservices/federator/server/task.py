@@ -34,6 +34,7 @@ from builtins import * # noqa
 
 import collections
 import datetime
+import enum
 import json
 import logging
 import os
@@ -46,13 +47,19 @@ from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
-from eidangservices.federator.server.misc import (get_temp_filepath,
-                                                  elements_equal)
+from eidangservices.federator.server.misc import (
+    Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
+    elements_equal)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
-from eidangservices.utils.error import Error
+from eidangservices.utils.error import Error, ErrorWithTraceback
 
+
+class ETask(enum.Enum):
+    DOWNLOAD = 0
+    COMBINER = 1
+    SPLITALIGN = 2
 
 # -----------------------------------------------------------------------------
 def catch_default_task_exception(func):
@@ -70,56 +77,86 @@ def catch_default_task_exception(func):
             except AttributeError:
                 pass
 
-            msg = 'TaskError ({}): {}:{}.'.format(type(self).__name__,
-                                                  type(err), err)
+            msg = 'TaskError ({}): {}:{}'.format(type(self).__name__,
+                                                 type(err), err)
             return Result.error(
                 status='TaskError-{}'.format(type(self).__name__),
                 status_code=500, data=msg,
-                warning='Caught in default task exception handler.')
+                warning='Caught in default task exception handler.',
+                extras={'type_task': self._TYPE})
 
     return decorator
 
 # catch_default_task_exception ()
+
+
+def with_ctx_guard(func):
+    """
+    Method decorator acting as a context guard performing garbage collection.
+    """
+    def decorator(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except TaskBase.MissingContextLock as err:
+            try:
+                self.logger.debug(
+                    '{}: Teardown (stream_epochs={}) ...'.format(
+                        type(self).__name__,
+                        self._request_handler.stream_epochs))
+            except AttributeError:
+                self.logger.debug(
+                    '{}: Teardown (type={}) ...'.format(
+                        type(self).__name__, self._TYPE))
+            self._teardown(self.path_tempfile)
+
+            return Result.teardown(data=self._ctx,
+                                   extras={'type_task': self._TYPE})
+
+    return decorator
+
+# with_ctx_guard ()
+
 
 # -----------------------------------------------------------------------------
 class Result(collections.namedtuple('Result', ['status',
                                                'status_code',
                                                'data',
                                                'length',
-                                               'warning'])):
+                                               'warning',
+                                               'extras'])):
     """
     General purpose task result. Properties correspond to a tiny subset of
     HTTP.
     """
     @classmethod
-    def ok(cls, data, length=None):
+    def ok(cls, data, length=None, extras=None):
         if length is None:
             length = len(data)
         return cls(data=data, length=length, status='Ok', status_code=200,
-                   warning=None)
+                   warning=None, extras=extras)
 
     @classmethod
     def error(cls, status, status_code, data=None, length=None,
-              warning=None):
+              warning=None, extras=None):
         if length is None:
             try:
                 length = len(data)
             except Exception:
                 length = None
         return cls(status=status, status_code=status_code, warning=warning,
-                   data=data, length=length)
+                   data=data, length=length, extras=extras)
 
     @classmethod
     def nocontent(cls, status='NoContent', status_code=204, data=None,
-                  warning=None):
+                  warning=None, extras=None):
         return cls.error(status=status, status_code=status_code, data=data,
-                         warning=warning)
+                         warning=warning, extras=extras)
 
     @classmethod
     def teardown(cls, status="I'm a teapot", status_code=418, data=None,
-                 warning=None):
+                 warning=None, extras=None):
         return cls.error(status=status, status_code=status_code, data=data,
-                         warning=warning)
+                         warning=warning, extras=extras)
 
 # class Result
 
@@ -128,32 +165,84 @@ class Result(collections.namedtuple('Result', ['status',
 class TaskBase(object):
     """
     Base class for tasks.
+
+    :param str logger: Name of the logger to be aqucired
+    :param keep_tempfiles: Flag how temporary files should be treated
+    :type keep_tempfiles: :py:class:`KeepTempfiles`
     """
+    _TYPE = ETask.DOWNLOAD
 
     class TaskError(Error):
         """Base task error ({})."""
 
-    def __init__(self, logger):
-        self.logger = logging.getLogger(logger)
+    class MissingContextLock(TaskError):
+        """Context is not locked."""
+
+    def __init__(self, logger, **kwargs):
+
+        self._logger = logging.getLogger(logger)
+        self._ctx = kwargs.get('context')
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
+
+        self._keep_tempfiles = kwargs.get(
+            'keep_tempfiles', KeepTempfiles.NONE)
+
+    # __init__ ()
 
     def __getstate__(self):
         # prevent pickling errors for loggers
         d = dict(self.__dict__)
+        if '_logger' in d.keys():
+            d['_logger'] = d['_logger'].name
         if 'logger' in d.keys():
-            d['logger'] = d['logger'].name
+            del d['logger']
         return d
 
     # __getstate__ ()
 
     def __setstate__(self, d):
-        if 'logger' in d.keys():
-            d['logger'] = logging.getLogger(d['logger'])
-            self.__dict__.update(d)
+        if '_logger' in d.keys():
+            d['_logger'] = logging.getLogger(d['_logger'])
+            try:
+                d['logger'] = ContextLoggerAdapter(
+                    d['_logger'], {'ctx': self._ctx})
+            except AttributeError:
+                if '_ctx' in d.keys():
+                    d['logger'] = ContextLoggerAdapter(
+                        d['_logger'], {'ctx': d['_ctx']})
+                else:
+                    d['logger'] = d['_logger']
+
+        self.__dict__.update(d)
 
     # __setstate__ ()
 
     def __call__(self):
         raise NotImplementedError
+
+    def _has_inactive_ctx(self):
+        return self._ctx and not self._ctx.locked
+
+    def _teardown(self, paths_tempfiles=None):
+        """
+        Securely tear a task down and perform garbage collection.
+
+        :param paths_tempfiles: Temporary files to be removed
+        :type path_tempfiles: None or str or list
+        """
+        if isinstance(paths_tempfiles, str):
+            paths_tempfiles = [paths_tempfiles]
+
+        if (paths_tempfiles and
+            self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            for p in paths_tempfiles:
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+    # _teardown ()
 
 # class TaskBase
 
@@ -163,14 +252,14 @@ class CombinerTask(TaskBase):
     Task downloading and combining the information for a network. Downloading
     is performed concurrently.
     """
-
+    _TYPE = ETask.COMBINER
     LOGGER = 'flask.app.federator.task_combiner_raw'
 
     MAX_THREADS_DOWNLOADING = 5
 
     def __init__(self, routes, query_params, **kwargs):
-        super().__init__((kwargs['logger'] if kwargs.get('logger') else
-                          self.LOGGER))
+        super().__init__((kwargs.pop('logger') if kwargs.get('logger') else
+                          self.LOGGER), **kwargs)
 
         self._routes = routes
         self.query_params = query_params
@@ -195,15 +284,49 @@ class CombinerTask(TaskBase):
     def _handle_error(self, err):
         self.logger.warning(str(err))
 
+    def _terminate(self):
+        """
+        Terminate the combiner.
+
+        Implies both shutting down the combiner's pool and removing temporary
+        files of already successfully returned tasks.
+        """
+        try:
+            self._ctx.release()
+        except (AttributeError, ErrorWithTraceback):
+            pass
+        self._pool.terminate()
+        self._pool.join()
+
+        if (self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            for result in self._results:
+                if result.ready():
+                    _result = result.get()
+                    try:
+                        os.remove(_result.data)
+                    except OSError as err:
+                        pass
+
+        self._pool = None
+
+    # _terminate ()
+
     def _run(self):
         """
         Template method for CombinerTask declarations. Must be reimplemented.
         """
-        return Result.nocontent()
+        return Result.nocontent(extras={'type_task': self._TYPE})
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
         return self._run()
+
+    # __call__()
 
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self.name)
@@ -264,10 +387,13 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         self.logger.debug(
             'Removing temporary file {!r} ...'.format(
                 result.data))
-        try:
-            os.remove(result.data)
-        except OSError as err:
-            pass
+        if (result.data and
+            self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                         KeepTempfiles.ON_ERRORS)):
+            try:
+                os.remove(result.data)
+            except OSError as err:
+                pass
 
     # _clean ()
 
@@ -276,18 +402,23 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         Combine `StationXML <http://www.fdsn.org/xml/station/>`_
         :code:`<Network></Network>` information.
         """
-        self.logger.info('Executing task {!r}.'.format(self))
+        self.logger.info('Executing task {!r} ...'.format(self))
         self._pool = ThreadPool(processes=self._num_workers)
 
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
+            ctx = Context(root_only=True)
+            self._ctx.append(ctx)
+
             t = RawDownloadTask(
                 GranularFdsnRequestHandler(
                     route.url,
                     route.streams[0],
                     query_params=self.query_params),
-                decode_unicode=True)
+                decode_unicode=True,
+                context=ctx,
+                keep_tempfiles=self._keep_tempfiles)
 
             # apply DownloadTask asynchronoulsy to the worker pool
             result = self._pool.apply_async(t)
@@ -375,28 +506,38 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             if not self._results:
                 break
 
+            if self._has_inactive_ctx():
+                self.logger.debug('{}: Closing ...'.format(self.name))
+                self._terminate()
+                raise self.MissingContextLock
+
         self._pool.join()
 
         if not sum(self._sizes):
             self.logger.warning(
                 'Task {!r} terminates with no valid result.'.format(self))
-            return Result.nocontent()
+            return Result.nocontent(extras={'type_task': self._TYPE})
 
         _length = 0
         # dump xml tree for <Network></Network> epochs to temporary file
         self.path_tempfile = get_temp_filepath()
+        self.logger.debug('{}: tempfile={!r}'.format(self, self.path_tempfile))
         with open(self.path_tempfile, 'wb') as ofd:
             for net_element in self._network_elements:
                 s = etree.tostring(net_element)
                 _length += len(s)
                 ofd.write(s)
 
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
         self.logger.info(
             ('Task {!r} sucessfully finished '
              '(total bytes processed: {}, after processing: {}).').format(
                  self, sum(self._sizes), _length))
 
-        return Result.ok(data=self.path_tempfile, length=_length)
+        return Result.ok(data=self.path_tempfile, length=_length,
+                         extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -518,17 +659,14 @@ class SplitAndAlignTask(TaskBase):
 
     Concrete implementations of this task type implement stream epoch splitting
     and merging facilities.
-
-    Assuming FDSN webservice endpoints are able to return HTTP status code 413
-    (i.e. Request too large) within `TIMEOUT_REQUEST_TOO_LARGE` there is no
-    need to implement this task recursively.
     """
+    _TYPE = ETask.SPLITALIGN
     LOGGER = 'flask.app.task_saa'
 
     DEFAULT_SPLITTING_CONST = 2
 
     def __init__(self, url, stream_epoch, query_params, **kwargs):
-        super().__init__(self.LOGGER)
+        super().__init__(self.LOGGER, **kwargs)
         self.query_params = query_params
         self.path_tempfile = get_temp_filepath()
         self._url = url
@@ -570,11 +708,18 @@ class SplitAndAlignTask(TaskBase):
     # split ()
 
     def _handle_error(self, err):
-        os.remove(self.path_tempfile)
+        if self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                        KeepTempfiles.ON_ERRORS):
+            try:
+                os.remove(self.path_tempfile)
+            except OSError:
+                pass
 
         return Result.error(status='EndpointError',
                             status_code=err.response.status_code,
-                            warning=str(err), data=err.response.data)
+                            warning=str(err), data=err.response.data,
+                            extras={'type_task': self._TYPE})
+
     # _handle_error ()
 
     def _run(self, stream_epoch):
@@ -584,6 +729,7 @@ class SplitAndAlignTask(TaskBase):
         raise NotImplementedError
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
         return self._run(self._stream_epoch_orig)
 
@@ -609,6 +755,7 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
 
         # make a request for the first stream epoch
         for stream_epoch in stream_epochs:
+
             request_handler = GranularFdsnRequestHandler(
                 self._url, stream_epoch, query_params=self.query_params)
 
@@ -621,9 +768,12 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 pass
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     for chunk in stream_request(
@@ -651,8 +801,12 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
+            if self._has_inactive_ctx():
+                raise self.MissingContextLock
+
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
-                return Result.ok(data=self.path_tempfile, length=self._size)
+                return Result.ok(data=self.path_tempfile, length=self._size,
+                                 extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -692,9 +846,12 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                 self._url, stream_epoch, query_params=self.query_params)
 
             self.logger.debug(
-                'Downloading (url={}, stream_epoch={}) ...'.format(
+                'Downloading (url={}, stream_epochs={}) '
+                'to tempfile {!r}...'.format(
                     request_handler.url,
-                    request_handler.stream_epochs))
+                    request_handler.stream_epochs,
+                    self.path_tempfile))
+
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     with raw_request(request_handler.post()) as ifd:
@@ -706,7 +863,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         for obj in ijson.items(ifd, 'item'):
                             # NOTE(damb): A python object has to be created
                             # since else we cannot compare objects. (JSON is
-                            # unorederd.)
+                            # unordered.)
 
                             if (self._last_obj is not None and
                                     self._last_obj == obj):
@@ -739,13 +896,17 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
+            if self._has_inactive_ctx():
+                raise self.MissingContextLock
+
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
 
                 with open(self.path_tempfile, 'ab') as ofd:
                     ofd.write(self.JSON_LIST_END)
                     self._size += 1
 
-                return Result.ok(data=self.path_tempfile, length=self._size)
+                return Result.ok(data=self.path_tempfile, length=self._size,
+                                 extras={'type_task': self._TYPE})
 
     # _run ()
 
@@ -765,10 +926,8 @@ class RawDownloadTask(TaskBase):
     DECODE_UNICODE = False
 
     def __init__(self, request_handler, **kwargs):
-        super().__init__(self.LOGGER)
+        super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
-        self.path_tempfile = get_temp_filepath()
-
         self.chunk_size = (self.CHUNK_SIZE
                            if kwargs.get('chunk_size') is None
                            else kwargs.get('chunk_size'))
@@ -776,17 +935,19 @@ class RawDownloadTask(TaskBase):
                                if kwargs.get('decode_unicode') is None
                                else kwargs.get('decode_unicode'))
 
+        self.path_tempfile = get_temp_filepath()
         self._size = 0
 
     # __init__ ()
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
-
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
@@ -806,15 +967,21 @@ class RawDownloadTask(TaskBase):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 
     def _handle_error(self, err):
-        try:
-            os.remove(self.path_tempfile)
-        except OSError:
-            pass
+        if self._keep_tempfiles not in (KeepTempfiles.ALL,
+                                        KeepTempfiles.ON_ERRORS):
+            try:
+                os.remove(self.path_tempfile)
+            except (TypeError, OSError):
+                pass
 
         try:
             resp = err.response
@@ -824,19 +991,27 @@ class RawDownloadTask(TaskBase):
                 return Result.error('RequestsError',
                                     status_code=503,
                                     warning=type(err),
-                                    data=str(err))
+                                    data=str(err),
+                                    extras={'type_task': self._TYPE,
+                                            'req_handler': \
+                                            self._request_handler})
+
         except Exception as err:
             return Result.error('InternalServerError',
                                 status_code=500,
                                 warning='Unhandled exception.',
-                                data=str(err))
+                                data=str(err),
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
         else:
             if resp.status_code == 413:
                 data = self._request_handler
 
             return Result.error(status='EndpointError',
                                 status_code=resp.status_code,
-                                warning=str(err), data=data)
+                                warning=str(err), data=data,
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
     # _handle_error ()
 
 # class RawDownloadTask
@@ -849,12 +1024,14 @@ class StationTextDownloadTask(RawDownloadTask):
     """
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         try:
             with open(self.path_tempfile, 'wb') as ofd:
@@ -875,7 +1052,11 @@ class StationTextDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 
@@ -902,12 +1083,17 @@ class StationXMLDownloadTask(RawDownloadTask):
                      kwargs.get('name') else type(self).__name__)
 
     @catch_default_task_exception
+    @with_ctx_guard
     def __call__(self):
 
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) ...'.format(
-                self._request_handler.url,
-                self._request_handler.stream_epochs))
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self.path_tempfile))
 
         network_tags = ['{}{}'.format(ns, self.network_tag)
                         for ns in settings.STATIONXML_NAMESPACES]
@@ -931,7 +1117,11 @@ class StationXMLDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        return Result.ok(data=self.path_tempfile, length=self._size)
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
+        return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
 
     # __call__ ()
 

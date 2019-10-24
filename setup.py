@@ -96,12 +96,17 @@ _deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))
 
+if sys.version_info[:2] < (3, 4):
+    # XXX(damb): actually federator only, but necessary for jenkins/tox
+    _deps.append('enum34>=1.1.6')
+
 _test_deps = ['pytest']
 if sys.version_info[:2] < (3, 3):
     _test_deps.append('mock')
 
 _extras = {
     'test': _test_deps,
+    'postgres': ['psycopg2']
 }
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]

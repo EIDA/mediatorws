@@ -44,6 +44,7 @@ from flask_restful import Api
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
+from eidangservices.federator.server.misc import KeepTempfiles
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
     WFCatalogVersionResource, DataselectWadlResource,
@@ -82,11 +83,20 @@ def thread_config(config_dict):
 
 # thread_config ()
 
+def keeptempfile_config(arg):
+    """
+    Populate the corresponding :code:`enum` value from the CLI configuration.
+    """
+    return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
+
+# keeptempfile_config ()
+
 # -----------------------------------------------------------------------------
 class FederatorWebservice(App):
     """
     Implementation of the EIDA Federator webservice.
     """
+    PROG = 'eida-federator'
 
     def build_parser(self, parents=[]):
         """
@@ -98,7 +108,7 @@ class FederatorWebservice(App):
         """
 
         parser = CustomParser(
-            prog="eida-federator",
+            prog=self.PROG,
             description='Launch EIDA federator web service.',
             parents=parents)
 
@@ -139,6 +149,14 @@ class FederatorWebservice(App):
                                   '(default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
+        parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
+                            choices=sorted(
+                                [str(c).replace('KeepTempfiles.', '').lower().\
+                                    replace('_', '-') for c in KeepTempfiles]),
+                            default='none', type=str,
+                            help=('Keep temporary files the service is '
+                                  'generating. (default: %(default)s) '
+                                  '(choices: {%(choices)s})'))
 
         return parser
 
@@ -151,6 +169,9 @@ class FederatorWebservice(App):
 
         exit_code = ExitCodes.EXIT_SUCCESS
         try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
             app = self.setup_app()
 
             if self.args.start_local:
@@ -249,6 +270,7 @@ class FederatorWebservice(App):
             PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
             FED_THREAD_CONFIG=self.args.thread_config,
+            FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

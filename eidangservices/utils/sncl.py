@@ -244,7 +244,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
                kwargs.get('location') is not None else
                kwargs.get('loc', '*'))
         cha = (kwargs.get('channel') if kwargs.get('channel') is not None else
-               kwargs.get('sta', '*'))
+               kwargs.get('cha', '*'))
         start = (kwargs.get('starttime') if
                  kwargs.get('starttime') is not None else
                  kwargs.get('start', None))

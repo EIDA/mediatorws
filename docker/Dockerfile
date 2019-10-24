@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          zlib* \
                                          python-pip \
                                          pkg-config \
+                                         libpq-dev \
                                          libpng-dev \
                                          libfreetype6-dev \
                                          libblas-dev \
@@ -59,6 +60,7 @@ RUN mkdir /var/www/federator && cd /var/www/federator && \
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
     virtualenv -p $(which python3.5) venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
+    pip install psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
 
 # Copy Apache configuration configuration
@@ -85,9 +87,9 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-RUN (crontab -l ; echo "0 1 * * * \
-     /var/www/stationlite/venv3/bin/eida-stationlite-harvest \
-     sqlite:////var/www/mediatorws/db/stationlite.db") | crontab
+COPY .env /var/www/mediatorws/docker/cron-env
+RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/cron-env
+RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db

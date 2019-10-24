@@ -54,6 +54,11 @@
 # 
 tmpdir=/var/tmp
 # ----
+# Keep temporary files the service is generating. Choices are: {all, none,
+# on-errors}; The default configuration is: none
+#
+# keep_tempfiles = none
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
@@ -92,7 +97,7 @@ path_logging_conf=/var/www/mediatorws/config/fed-logging.conf
 # See also:
 # http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
 #
-db_url = sqlite:////var/www/mediatorws/db/stationlite.db
+db_url = postgresql://%(POSTGRES_USER)s:%(POSTGRES_PASSWORD)s@%(POSTGRES_HOST)s:5432/%(POSTGRES_DB)s
 #
 # ----
 # Set the path to a logging configuration file. For information on howto setup
@@ -156,6 +161,6 @@ path_logging_conf=/var/www/mediatorws/config/harvest-logging.conf
 # See also:
 # http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
 #
-# db_engine = sqlite:////abs/path/to/stationlite.db
+db_engine = postgresql://%(POSTGRES_USER)s:%(POSTGRES_PASSWORD)s@%(POSTGRES_HOST)s:5432/%(POSTGRES_DB)s
 #
 # ---- END OF <eidangws_config> ----

@@ -44,7 +44,7 @@ from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.task import (
-    StationXMLNetworkCombinerTask, SplitAndAlignTask,
+    ETask, StationXMLNetworkCombinerTask, SplitAndAlignTask,
     WFCatalogSplitAndAlignTask, Result)
 from eidangservices.utils import Route
 from eidangservices.utils.request import RequestsError
@@ -318,7 +318,8 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         reference_result = Result.error('EndpointError',
                                         err.response.status_code,
                                         data=err.response.data,
-                                        warning=str(err))
+                                        warning=str(err),
+                                        extras={'type_task': ETask.SPLITALIGN})
 
         stream_epoch_orig = StreamEpoch(
             stream=self.stream,

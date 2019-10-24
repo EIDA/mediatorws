@@ -35,12 +35,13 @@ from builtins import * # noqa
 
 import logging
 
-from flask import request
+from flask import current_app, g, request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.misc import ContextLoggerAdapter
 from eidangservices.federator.server.schema import DataselectSchema
 from eidangservices.federator.server.process import RequestProcessor
 from eidangservices.utils import fdsnws
@@ -57,7 +58,8 @@ class DataselectResource(Resource):
 
     def __init__(self):
         super(DataselectResource, self).__init__()
-        self.logger = logging.getLogger(self.LOGGER)
+        self._logger = logging.getLogger(self.LOGGER)
+        self.logger = ContextLoggerAdapter(self._logger, {'ctx': g.ctx})
 
     @use_args(DataselectSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
@@ -79,11 +81,16 @@ class DataselectResource(Resource):
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(args['service'],
-                                       settings.DATASELECT_MIMETYPE,
-                                       query_params=args,
-                                       stream_epochs=stream_epochs,
-                                       post=False).streamed_response
+        return RequestProcessor.create(
+            args['service'],
+            settings.DATASELECT_MIMETYPE,
+            query_params=args,
+            stream_epochs=stream_epochs,
+            post=False,
+            context=g.ctx,
+            keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+        ).streamed_response
+
     # get ()
 
     @fdsnws.use_fdsnws_args(DataselectSchema(), locations=('form',))
@@ -107,11 +114,15 @@ class DataselectResource(Resource):
         self.logger.debug('DataselectSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(args['service'],
-                                       settings.DATASELECT_MIMETYPE,
-                                       query_params=args,
-                                       stream_epochs=stream_epochs,
-                                       post=True).streamed_response
+        return RequestProcessor.create(
+            args['service'],
+            settings.DATASELECT_MIMETYPE,
+            query_params=args,
+            stream_epochs=stream_epochs,
+            post=True,
+            context=g.ctx,
+            keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+        ).streamed_response
 
     # post ()
 

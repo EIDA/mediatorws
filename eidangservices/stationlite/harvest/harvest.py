@@ -872,6 +872,8 @@ class StationLiteHarvestApp(App):
     """
     Implementation of the harvesting application for EIDA StationLite.
     """
+    PROG = 'eida-stationlite-harvest'
+
     DB_PRAGMAS = ['PRAGMA journal_mode=WAL']
 
     def build_parser(self, parents=[]):
@@ -882,7 +884,7 @@ class StationLiteHarvestApp(App):
         :returns: parser
         :rtype: :py:class:`argparse.ArgumentParser`
         """
-        parser = CustomParser(prog="eida-stationlite-harvest",
+        parser = CustomParser(prog=self.PROG,
                               description='Harvest for EIDA StationLite.',
                               parents=parents)
         # optional arguments
@@ -933,6 +935,9 @@ class StationLiteHarvestApp(App):
         exit_code = ExitCodes.EXIT_SUCCESS
 
         try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
             pid_lock = InterProcessLock(self.args.path_pidfile)
             pid_lock_gotten = pid_lock.acquire(blocking=False)
             if not pid_lock_gotten:
@@ -1085,8 +1090,7 @@ def main():
             settings.PATH_EIDANGWS_CONF,
             config_section=settings.EIDA_STATIONLITE_HARVEST_CONFIG_SECTION,
             positional_required_args=['db_engine'],
-            capture_warnings=False,
-            interpolation=None)
+            capture_warnings=False)
     except AppError as err:
         # handle errors during the application configuration
         print('ERROR: Application configuration failed "%s".' % err,

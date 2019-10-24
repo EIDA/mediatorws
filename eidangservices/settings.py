@@ -579,6 +579,8 @@ EIDA_FEDERATOR_STREAMING_TIMEOUT = 600
 # timeout (federator) for endpoint requests. Should be <
 # EIDA_FEDERATOR_STREAMING_TIMEOUT
 EIDA_FEDERATOR_ENDPOINT_TIMEOUT = 540
+# timeout in seconds allowing processors a graceful shutdown
+EIDA_FEDERATOR_SHUTDOWN_TIMEOUT = 30
 
 # number of federator-dataselect download threads
 EIDA_FEDERATOR_THREADS_DATASELECT = 10
@@ -598,6 +600,7 @@ EIDA_FEDERATOR_THREAD_CONFIG = {
 EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
 EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
+EIDA_FEDERATOR_HIDDEN_CTX_LOCKS = True
 
 # -----------------------------------------------------------------------------
 # StationLite configuration parameters
