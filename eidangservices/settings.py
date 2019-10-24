@@ -579,6 +579,8 @@ EIDA_FEDERATOR_STREAMING_TIMEOUT = 600
 # timeout (federator) for endpoint requests. Should be <
 # EIDA_FEDERATOR_STREAMING_TIMEOUT
 EIDA_FEDERATOR_ENDPOINT_TIMEOUT = 540
+# timeout in seconds allowing processors a graceful shutdown
+EIDA_FEDERATOR_SHUTDOWN_TIMEOUT = 30
 
 # number of federator-dataselect download threads
 EIDA_FEDERATOR_THREADS_DATASELECT = 10

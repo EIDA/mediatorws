@@ -220,6 +220,9 @@ class TaskBase(object):
     def __call__(self):
         raise NotImplementedError
 
+    def _has_inactive_ctx(self):
+        return self._ctx and not self._ctx.locked
+
     def _teardown(self, paths_tempfiles=None):
         """
         Securely tear a task down and perform garbage collection.
@@ -318,7 +321,12 @@ class CombinerTask(TaskBase):
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
+        if self._has_inactive_ctx():
+            raise self.MissingContextLock
+
         return self._run()
+
+    # __call__()
 
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self.name)
@@ -498,7 +506,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             if not self._results:
                 break
 
-            if self._ctx and not self._ctx.locked:
+            if self._has_inactive_ctx():
                 self.logger.debug('{}: Closing ...'.format(self.name))
                 self._terminate()
                 raise self.MissingContextLock
@@ -513,13 +521,14 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         _length = 0
         # dump xml tree for <Network></Network> epochs to temporary file
         self.path_tempfile = get_temp_filepath()
+        self.logger.debug('{}: tempfile={!r}'.format(self, self.path_tempfile))
         with open(self.path_tempfile, 'wb') as ofd:
             for net_element in self._network_elements:
                 s = etree.tostring(net_element)
                 _length += len(s)
                 ofd.write(s)
 
-        if self._ctx and not self._ctx.locked:
+        if self._has_inactive_ctx():
             raise self.MissingContextLock
 
         self.logger.info(
@@ -650,10 +659,6 @@ class SplitAndAlignTask(TaskBase):
 
     Concrete implementations of this task type implement stream epoch splitting
     and merging facilities.
-
-    Assuming FDSN webservice endpoints are able to return HTTP status code 413
-    (i.e. Request too large) within `TIMEOUT_REQUEST_TOO_LARGE` there is no
-    need to implement this task recursively.
     """
     _TYPE = ETask.SPLITALIGN
     LOGGER = 'flask.app.task_saa'
@@ -796,7 +801,7 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
-            if self._ctx and not self._ctx.locked:
+            if self._has_inactive_ctx():
                 raise self.MissingContextLock
 
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
@@ -891,7 +896,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
-            if self._ctx and not self._ctx.locked:
+            if self._has_inactive_ctx():
                 raise self.MissingContextLock
 
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
@@ -962,7 +967,7 @@ class RawDownloadTask(TaskBase):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        if self._ctx and not self._ctx.locked:
+        if self._has_inactive_ctx():
             raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size,
@@ -1047,7 +1052,7 @@ class StationTextDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        if self._ctx and not self._ctx.locked:
+        if self._has_inactive_ctx():
             raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size,
@@ -1081,7 +1086,7 @@ class StationXMLDownloadTask(RawDownloadTask):
     @with_ctx_guard
     def __call__(self):
 
-        if self._ctx and not self._ctx.locked:
+        if self._has_inactive_ctx():
             raise self.MissingContextLock
 
         self.logger.debug(
@@ -1112,7 +1117,7 @@ class StationXMLDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        if self._ctx and not self._ctx.locked:
+        if self._has_inactive_ctx():
             raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size,
