@@ -47,32 +47,12 @@ except ImportError:
 
 # -----------------------------------------------------------------------------
 class CLITestCase(unittest.TestCase):
+
     def setUp(self):
         self.parser = FederatorWebservice().build_parser()
 
     def tearDown(self):
         self.parser = None
-
-    def test_start_local(self):
-        # test default argument
-        args = self.parser.parse_args([])
-        self.assertEqual(args.start_local, False)
-        args = self.parser.parse_args(['--start-local'])
-        self.assertEqual(args.start_local, True)
-
-    # test_start_local ()
-
-    def test_port(self):
-        # test default argument
-        args = self.parser.parse_args([])
-        self.assertEqual(args.port,
-                         settings.EIDA_FEDERATOR_DEFAULT_SERVER_PORT)
-        args = self.parser.parse_args(['-p', '5001'])
-        self.assertEqual(args.port, 5001)
-        args = self.parser.parse_args(['--port', '5001'])
-        self.assertEqual(args.port, 5001)
-
-    # test_port ()
 
     @mock.patch('sys.stderr', open(os.devnull, 'w'))
     def test_routing(self):
