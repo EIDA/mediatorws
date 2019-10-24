@@ -94,13 +94,7 @@ _deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))
 
-if sys.version_info[:2] < (3, 4):
-    # XXX(damb): actually federator only, but necessary for jenkins/tox
-    _deps.append('enum34>=1.1.6')
-
 _test_deps = ['pytest']
-if sys.version_info[:2] < (3, 3):
-    _test_deps.append('mock')
 
 _extras = {
     'test': _test_deps,
@@ -156,9 +150,6 @@ if 'federator' == subsys:
     _deps = _deps_federator
     _data_files = _data_files_federator
 
-    if sys.version_info[:2] < (3, 3):
-        _deps.append('mock')
-
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
 
 elif 'stationlite' == subsys:
@@ -178,8 +169,6 @@ elif 'stationlite' == subsys:
     _deps = _deps_stationlite
     _data_files = _data_files_stationlite
 
-    if sys.version_info[:2] < (3, 3):
-        _deps.append('mock')
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
 
 elif 'mediator' == subsys:
