@@ -28,10 +28,6 @@
 """
 Task related test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import io
@@ -39,6 +35,8 @@ import json
 import os
 import tempfile
 import unittest
+
+from unittest import mock
 
 from lxml import etree
 
@@ -49,11 +47,6 @@ from eidangservices.federator.server.task import (
 from eidangservices.utils import Route
 from eidangservices.utils.request import RequestsError
 from eidangservices.utils.sncl import Stream, StreamEpoch
-
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 
 # -----------------------------------------------------------------------------

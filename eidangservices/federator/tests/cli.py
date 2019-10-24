@@ -28,22 +28,16 @@
 """
 Federator CLI tests.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import os
 import tempfile
 import unittest
 
+from unittest import mock
+
 from eidangservices import settings
 from eidangservices.federator.server.app import FederatorWebservice
 
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 # -----------------------------------------------------------------------------
 class CLITestCase(unittest.TestCase):
