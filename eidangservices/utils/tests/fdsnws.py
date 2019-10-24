@@ -28,13 +28,11 @@
 """
 EIDA NG webservices utility test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import unittest
+
+from unittest import mock
 
 import flask # noqa
 import marshmallow as ma
@@ -44,10 +42,6 @@ from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
 from eidangservices.utils import fdsnws, schema, sncl
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 
 # -----------------------------------------------------------------------------
