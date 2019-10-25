@@ -1,0 +1,1326 @@
+{
+	"info": {
+		"_postman_id": "0aed3b57-6af4-4722-9a4a-fd8fd69d595b",
+		"name": "EIDA/stationlite",
+		"description": "API tests for the EIDA stationlite webservice.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "version",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ec8be5c7-b561-4351-af21-690e8249140c",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is correct\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    pm.response.to.have.body(\"0.9.5rc2\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/version",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"version"
+					]
+				},
+				"description": "validate version"
+			},
+			"response": []
+		},
+		{
+			"name": "query?foo=bar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Header is correct\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+							"});",
+							"",
+							"pm.test(\"Body matches string\", function () {",
+							"    var reference_result =",
+							"`",
+							"Error 400: Bad request",
+							"",
+							"ValidationError: Invalid request query parameters: {'foo'}.",
+							"",
+							"Usage details are available from http://www.fdsn.org/webservices/",
+							"",
+							"Request:",
+							"${pm.environment.get('url_base')}:${pm.environment.get('port_stl')}/eidaws/routing/1/query?foo=bar`;",
+							"    ",
+							"    pm.expect(pm.response.text()).to.include(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?foo=bar",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "foo",
+							"value": "bar"
+						}
+					]
+				},
+				"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+			},
+			"response": []
+		},
+		{
+			"name": "query?foo=bar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Header is correct\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+							"});",
+							"",
+							"pm.test(\"Body matches string\", function () {",
+							"    var reference_result = ",
+							"`",
+							"Error 400: Bad request",
+							"",
+							"{'_schema': ['No StreamEpoch defined.']}",
+							"",
+							"Usage details are available from http://www.fdsn.org/webservices/",
+							"",
+							"Request:",
+							"${pm.environment.get('url_base')}:${pm.environment.get('port_stl')}/eidaws/routing/1/query",
+							"",
+							"Request Submitted:`;",
+							"    ",
+							"    pm.expect(pm.response.text()).to.include(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "text/plain",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "foo=bar",
+					"options": {
+						"raw": {
+							"language": "text"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&net=FOO&sta=BALST&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "49a57954-a27e-4c78-8030-594ec8377d69",
+						"exec": [
+							"pm.test(\"Status code is 204\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=FOO&sta=BALST&format=post",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "FOO"
+						},
+						{
+							"key": "sta",
+							"value": "BALST"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						}
+					]
+				},
+				"description": "HTTP status code 204\n\nservice=dataselect\nnet=FOO\nsta=BALST\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&net=FOO&sta=BALST&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "49a57954-a27e-4c78-8030-594ec8377d69",
+						"exec": [
+							"pm.test(\"Status code is 204\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=dataselect\nformat=post\n\nFOO BALST * * 1070-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "HTTP status code 204\n\nservice=dataselect\nnet=FOO\nsta=BALST\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&net=CH&sta=BALST&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "49a57954-a27e-4c78-8030-594ec8377d69",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result = ",
+							"`http://eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH BALST -- BHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHE 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2004-04-05T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=BALST&format=post",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "BALST"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						}
+					]
+				},
+				"description": "single route:\n\nservice=dataselect\nnet=CH\nsta=BALST\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&net=CH&sta=BALST&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "49a57954-a27e-4c78-8030-594ec8377d69",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result = ",
+							"`http://eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH BALST -- BHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- BHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- BHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=dataselect\nformat=post\n\nCH BALST * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "single route:\n\nservice=dataselect\nnet=CH\nsta=BALST\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&format=post&level=network",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH * * * 1980-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=CH&format=post&level=network",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "network"
+						}
+					]
+				},
+				"description": "Single route:\n\nlevel=network"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&format=post&level=network",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_response =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH * * * 1980-01-01T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_response);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nlevel=network\n\nCH * * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route:\n\nlevel=network"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d4d1e11f-47a0-4093-adac-1d98edee0a1d",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH BALST * * 2000-06-16T00:00:00",
+							"CH DAVOX * * 2002-07-24T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=station",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "BALST,DAVOX"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "station"
+						}
+					]
+				},
+				"description": "Single route; one net; two stas:\n\nlevel=station\nnet=CH\nsta=BALST,DAVOX"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d4d1e11f-47a0-4093-adac-1d98edee0a1d",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH BALST * * 2000-06-16T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX * * 2002-07-24T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nformat=post\nlevel=station\n\nCH BALST * * 1970-01-01 2019-01-01\nCH DAVOX * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route; one net; two stas:\n\nlevel=station\nnet=CH\nsta=BALST,DAVOX"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=channel",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c46c7d04-a3f3-4d8d-bb06-92dac5d3a84e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH BALST -- BHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHE 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2004-04-05T00:00:00",
+							"CH DAVOX -- BHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHE 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- BHE 2019-09-27T15:00:00",
+							"CH DAVOX -- BHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHN 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- BHN 2019-09-27T15:00:00",
+							"CH DAVOX -- BHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHZ 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- BHZ 2019-09-27T15:00:00",
+							"CH DAVOX -- HGE 2019-09-27T15:00:00",
+							"CH DAVOX -- HGN 2019-09-27T15:00:00",
+							"CH DAVOX -- HGZ 2019-09-27T15:00:00",
+							"CH DAVOX -- HHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHE 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- HHE 2019-09-27T15:00:00",
+							"CH DAVOX -- HHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHN 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- HHN 2019-09-27T15:00:00",
+							"CH DAVOX -- HHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHZ 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- HHZ 2019-09-27T15:00:00",
+							"CH DAVOX -- LHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHE 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- LHE 2019-09-27T15:00:00",
+							"CH DAVOX -- LHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHN 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- LHN 2019-09-27T15:00:00",
+							"CH DAVOX -- LHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHZ 2004-02-20T00:00:00 2019-09-27T15:00:00",
+							"CH DAVOX -- LHZ 2019-09-27T15:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=channel",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "BALST,DAVOX"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "channel"
+						}
+					]
+				},
+				"description": "Single route; one net; two stas:\n\nlevel=channel\nnet=CH\nsta=BALST,DAVOX"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&sta=BALST,DAVOX&format=post&level=channel",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c46c7d04-a3f3-4d8d-bb06-92dac5d3a84e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH BALST -- BHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- BHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- BHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- BHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- HHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- HHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHE 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHE 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHN 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHN 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH BALST -- LHZ 2000-06-16T00:00:00 2004-04-05T00:00:00",
+							"CH BALST -- LHZ 2004-04-05T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- BHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHE 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- BHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHN 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- BHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- BHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- BHZ 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- HHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHE 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- HHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHN 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- HHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- HHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- HHZ 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- LHE 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHE 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHE 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- LHN 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHN 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHN 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"CH DAVOX -- LHZ 2002-07-24T00:00:00 2003-07-09T00:00:00",
+							"CH DAVOX -- LHZ 2003-07-09T00:00:00 2004-02-20T00:00:00",
+							"CH DAVOX -- LHZ 2004-02-20T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nformat=post\nlevel=channel\n\nCH BALST * * 1970-01-01 2019-01-01\nCH DAVOX * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route; one net; two stas:\n\nlevel=channel\nnet=CH\nsta=BALST,DAVOX"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH,GR&sta=HASLI,BFO&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d706bfed-c976-470a-a5d4-3fec365bd5cd",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.bgr.de/fdsnws/station/1/query",
+							"GR BFO * * 1991-01-01T00:00:00",
+							"",
+							"http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH HASLI * * 1999-01-19T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=CH,GR&sta=HASLI,BFO&format=post&level=station",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "CH,GR"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,BFO"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "station"
+						}
+					]
+				},
+				"description": "Multi route; two nets; two stas:\n\nlevel=channel\nnet=CH,GR\nsta=HASLI,BFO"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH,GR&sta=HASLI,BFO&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d706bfed-c976-470a-a5d4-3fec365bd5cd",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.bgr.de/fdsnws/station/1/query",
+							"GR BFO * * 1991-01-01T00:00:00 2019-01-01T00:00:00",
+							"",
+							"http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH HASLI * * 1999-01-19T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nformat=post\nlevel=station\n\nCH HASLI * * 1970-01-01 2019-01-01\nGR BFO * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Multi route; two nets; two stas:\n\nlevel=channel\nnet=CH,GR\nsta=HASLI,BFO"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=_ALPARRAY&sta=HASLI,A253A,BFO,AGO&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a2fd1eb8-457d-470c-ba26-6bbf4d096469",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.bgr.de/fdsnws/station/1/query",
+							"GR BFO * * 1991-01-01T00:00:00",
+							"",
+							"http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH HASLI * * 1999-01-19T00:00:00",
+							"",
+							"http://ws.resif.fr/fdsnws/station/1/query",
+							"FR AGO * * 2016-12-13T14:54:00 2500-12-31T23:59:59",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=_ALPARRAY&sta=HASLI,A253A,BFO,AGO&format=post&level=station",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "_ALPARRAY"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,A253A,BFO,AGO"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "station"
+						}
+					]
+				},
+				"description": "Virtual net:\n\nlevel=station\nnet=_ALPARRAY\nsta=HASLI,A253A,BFO,AGO"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=_ALPARRAY&sta=HASLI,A253A,BFO,AGO&format=post&level=station",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a2fd1eb8-457d-470c-ba26-6bbf4d096469",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.bgr.de/fdsnws/station/1/query",
+							"GR BFO * * 1991-01-01T00:00:00 2019-01-01T00:00:00",
+							"",
+							"http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH HASLI * * 1999-01-19T00:00:00 2019-01-01T00:00:00",
+							"",
+							"http://ws.resif.fr/fdsnws/station/1/query",
+							"FR AGO * * 2016-12-13T14:54:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nformat=post\nlevel=station\n\n_ALPARRAY HASLI * * 1970-01-01 2019-01-01\n_ALPARRAY A253A * * 1970-01-01 2019-01-01\n_ALPARRAY BFO * * 1970-01-01 2019-01-01\n_ALPARRAY AGO * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Virtual net:\n\nlevel=station\nnet=_ALPARRAY\nsta=HASLI,A253A,BFO,AGO"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=Z3&format=post&level=network",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a1bfd7e2-1ee2-4a2d-a409-9dff86fe84ee",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"Z3 * * * 2015-08-14T14:00:00 2020-07-01T00:00:00",
+							"",
+							"http://erde.geophysik.uni-muenchen.de/fdsnws/station/1/query",
+							"Z3 * * * 2015-07-01T00:00:00 2020-07-01T00:00:00",
+							"",
+							"http://geofon.gfz-potsdam.de/fdsnws/station/1/query",
+							"Z3 * * * 2005-06-05T00:00:00 2007-04-28T00:00:00",
+							"",
+							"http://webservices.ingv.it/fdsnws/station/1/query",
+							"Z3 * * * 2015-10-26T09:00:00",
+							"",
+							"http://ws.resif.fr/fdsnws/station/1/query",
+							"Z3 * * * 2015-11-23T13:00:00 2020-07-01T00:00:00",
+							"",
+							"http://www.orfeus-eu.org/fdsnws/station/1/query",
+							"Z3 * * * 2015-02-10T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=Z3&format=post&level=network",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "Z3"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "network"
+						}
+					]
+				},
+				"description": "Distributed physical network:\n\nlevel=network\nnet=Z3"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=Z3&format=post&level=network",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a1bfd7e2-1ee2-4a2d-a409-9dff86fe84ee",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"Z3 * * * 2015-08-14T14:00:00 2019-01-01T00:00:00",
+							"",
+							"http://erde.geophysik.uni-muenchen.de/fdsnws/station/1/query",
+							"Z3 * * * 2015-07-01T00:00:00 2019-01-01T00:00:00",
+							"",
+							"http://geofon.gfz-potsdam.de/fdsnws/station/1/query",
+							"Z3 * * * 2005-06-05T00:00:00 2007-04-28T00:00:00",
+							"",
+							"http://webservices.ingv.it/fdsnws/station/1/query",
+							"Z3 * * * 2015-10-26T09:00:00 2019-01-01T00:00:00",
+							"",
+							"http://ws.resif.fr/fdsnws/station/1/query",
+							"Z3 * * * 2015-11-23T13:00:00 2019-01-01T00:00:00",
+							"",
+							"http://www.orfeus-eu.org/fdsnws/station/1/query",
+							"Z3 * * * 2015-02-10T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nformat=post\nlevel=network\n\nZ3 * * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Distributed physical network:\n\nlevel=network\nnet=Z3"
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
