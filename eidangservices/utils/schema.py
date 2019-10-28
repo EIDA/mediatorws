@@ -270,7 +270,7 @@ class ManyStreamEpochSchema(Schema):
                 self.context.get('request').method == 'POST'):
             if 'stream_epochs' not in data or not data['stream_epochs']:
                 raise ValidationError('No StreamEpoch defined.')
-            if [v for v in data['stream_epochs'] if v is None]:
+            if not all(data['stream_epochs']):
                 raise ValidationError('Invalid StreamEpoch defined.')
 
     class Meta:
