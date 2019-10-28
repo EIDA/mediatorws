@@ -26,10 +26,6 @@
 """
 EIDA NG stationlite ORM.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 
@@ -46,7 +42,7 @@ LENGTH_STD_CODE = 32
 LENGTH_URL = 256
 
 # -----------------------------------------------------------------------------
-class Base(object):
+class Base:
 
     @declared_attr
     def __tablename__(cls):
@@ -57,7 +53,7 @@ class Base(object):
 # class Base
 
 
-class EpochMixin(object):
+class EpochMixin:
 
     @declared_attr
     def starttime(cls):
@@ -70,7 +66,7 @@ class EpochMixin(object):
 # class EpochMixin
 
 
-class LastSeenMixin(object):
+class LastSeenMixin:
 
     @declared_attr
     def lastseen(cls):

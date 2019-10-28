@@ -27,10 +27,6 @@
 """
 Keywordparser facilities for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import functools
 import inspect
@@ -63,7 +59,7 @@ def _callable_or_raise(obj):
 # _callable_or_raise ()
 
 # -----------------------------------------------------------------------------
-class KeywordParser(object):
+class KeywordParser:
     """
     Base class for keyword parsers.
     """

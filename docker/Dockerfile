@@ -25,11 +25,11 @@ CMD ["/sbin/my_init"]
 RUN apt-get update && apt-get install -y libxml2-dev \
                                          libxslt-dev \
                                          python3-dev \
+                                         python3-setuptools \
+                                         python3-pip \
                                          git \
                                          build-essential \
-                                         python-setuptools \
                                          zlib* \
-                                         python-pip \
                                          pkg-config \
                                          libpq-dev \
                                          libpng-dev \
@@ -40,10 +40,10 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          libapache2-mod-wsgi-py3
 
 # Update pip
-RUN pip install --upgrade pip
+RUN pip3 install --upgrade pip
 
-# Install the Python dependencies
-RUN pip install virtualenv
+# Install Python packages
+RUN pip3 install virtualenv
 
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
@@ -60,7 +60,7 @@ RUN mkdir /var/www/federator && cd /var/www/federator && \
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
     virtualenv -p $(which python3.5) venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
-    pip install psycopg2 && \
+    pip install numpy psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
 
 # Copy Apache configuration configuration

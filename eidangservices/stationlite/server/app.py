@@ -32,10 +32,6 @@ EIDA NG stationlite server.
 This file is part of the EIDA mediator/federator webservices.
 
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 #import logging
 import argparse
@@ -159,7 +155,6 @@ class StationLiteWebserviceBase(App):
         api = Api()
         app_config = {
             'PROPAGATE_EXCEPTIONS': True,
-            'PORT': self.args.port,
             'SQLALCHEMY_DATABASE_URI': self.args.db_url,
             'SQLALCHEMY_TRACK_MODIFICATIONS': False
         }

@@ -27,10 +27,6 @@
 """
 EIDA federator task facilities
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import collections
 import datetime
@@ -162,7 +158,7 @@ class Result(collections.namedtuple('Result', ['status',
 
 
 # -----------------------------------------------------------------------------
-class TaskBase(object):
+class TaskBase:
     """
     Base class for tasks.
 

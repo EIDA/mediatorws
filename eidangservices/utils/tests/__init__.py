@@ -27,6 +27,7 @@
 """
 Provides testsuite loading methods.
 """
+
 import unittest
 
 from eidangservices.utils.tests import schema, sncl, fdsnws

@@ -30,10 +30,6 @@ EIDA NG stationlite utils.
 Functions which might be used as *executables*:
     - :code:`db_init()` -- create and initialize a stationlite DB
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import argparse
 import logging # noqa

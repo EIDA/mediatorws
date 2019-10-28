@@ -27,10 +27,6 @@
 """
 General purpose utils for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import functools
 import itertools
@@ -48,7 +44,7 @@ from eidangservices.utils.httperrors import FDSNHTTPError
 
 
 # -----------------------------------------------------------------------------
-class FDSNWSParserMixin(object):
+class FDSNWSParserMixin:
     """
     Mixin providing additional FDSNWS specific parsing facilities for `webargs
     https://webargs.readthedocs.io/en/latest/`_ parsers.

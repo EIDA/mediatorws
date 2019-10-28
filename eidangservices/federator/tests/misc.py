@@ -28,10 +28,6 @@
 """
 Federator misc related test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import copy
 import io
@@ -41,6 +37,7 @@ from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import elements_equal
+
 
 # -----------------------------------------------------------------------------
 class ElementsEqualTestCase(unittest.TestCase):

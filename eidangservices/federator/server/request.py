@@ -27,13 +27,6 @@
 """
 EIDA federator request handling facilities
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
-from future.standard_library import install_aliases
-install_aliases()
 
 import functools
 
@@ -46,7 +39,7 @@ from eidangservices.utils.schema import StreamEpochSchema
 from eidangservices.federator import __version__
 
 
-class RequestHandlerBase(object):
+class RequestHandlerBase:
     """
     RequestHandler base class implementation. Provides bulk request handling
     facilities.
@@ -143,7 +136,7 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    class GET(object):
+    class GET:
         """
         Utility class emulating a GET request.
         """

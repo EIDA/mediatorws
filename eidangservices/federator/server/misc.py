@@ -26,10 +26,6 @@
 """
 Miscellaneous utils.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import enum
 import os
@@ -61,7 +57,7 @@ class KeepTempfiles(enum.Enum):
 # class KeepTempfiles
 
 
-class Context(object):
+class Context:
     """
     Utility implementation of a simple hierarchical context. Contexts are
     pickable.

@@ -28,12 +28,10 @@
 """
 EIDA NG webservices strict module test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import unittest
+
+from unittest import mock
 
 import flask # noqa
 import marshmallow as ma
@@ -41,11 +39,6 @@ import marshmallow as ma
 from werkzeug.datastructures import OrderedMultiDict
 
 from eidangservices.utils import strict
-
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 
 # -----------------------------------------------------------------------------
@@ -56,7 +49,7 @@ class KeywordParserTestCase(unittest.TestCase):
 
     # class TestSchema
 
-    class TestReq(object):
+    class TestReq:
         pass
 
     # class TestReq

@@ -28,24 +28,17 @@
 """
 Field and schema related test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import unittest
+
+from unittest import mock
 
 import flask # noqa
 import marshmallow as ma
 
 from eidangservices.utils import schema, sncl
 from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
-
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 
 SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR

@@ -28,12 +28,8 @@
 Provide facilities building general purpose CLI applications.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
 import argparse
+import configparser
 import logging
 import logging.config
 import logging.handlers  # needed for handlers defined in logging.conf
@@ -45,12 +41,6 @@ from collections import OrderedDict
 from eidangservices import utils
 from eidangservices.utils.error import ErrorWithTraceback, ExitCodes
 
-try:
-    # Python 2.x
-    import ConfigParser as configparser
-except ImportError:
-    # Python 3:
-    import configparser
 
 # ------------------------------------------------------------------------------
 class CustomParser(argparse.ArgumentParser):
@@ -76,7 +66,7 @@ class AppError(ErrorWithTraceback):
 class LoggingConfOptionAlreadyAvailable(AppError):
     """CLI option '--logging-conf' already defined. ({})."""
 
-class App(object):
+class App:
     """
     Implementation of a configurable application.
 

@@ -27,10 +27,6 @@
 """
 EIDA NG stationlite harvesting facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import functools
@@ -78,7 +74,7 @@ class AlreadyHarvesting(Error):
     """There seems to be a harvesting process already in action ({})."""
 
 # ----------------------------------------------------------------------------
-class Harvester(object):
+class Harvester:
     """
     Abstract base class for harvesters, harvesting EIDA nodes.
     """
