@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <__init__.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2017/12/14        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Provides testsuite loading methods.
 """
@@ -71,8 +46,6 @@ def general_testsuite():
     general_testsuite.addTests(loader.loadTestsFromModule(fdsnws))
     return general_testsuite
 
-# general_testsuite ()
-
 
 def federator_testsuite():
     """
@@ -83,8 +56,6 @@ def federator_testsuite():
         federator_testsuite.addTests(
             eidangservices.federator.tests.testsuite())
     return federator_testsuite
-
-# federator_testsuite()
 
 
 def mediator_testsuite():
@@ -97,8 +68,6 @@ def mediator_testsuite():
             eidangservices.mediator.tests.testsuite())
     return mediator_testsuite
 
-# mediator_testsuite ()
-
 
 def stationlite_testsuite():
     """
@@ -109,8 +78,6 @@ def stationlite_testsuite():
         stationlite_testsuite.addTests(
             eidangservices.stationlite.tests.testsuite())
     return stationlite_testsuite
-
-# stationlite_testsuite ()
 
 
 def testsuite():
@@ -130,5 +97,3 @@ def testsuite():
     if stationlite_available:
         testsuite.addTests(eidangservices.stationlite.tests.testsuite())
     return testsuite
-
-# testsuite ()

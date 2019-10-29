@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <schema.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/12        V0.1    Daniel Armbruster
-# =============================================================================
 """
 General marshmallow schema definitions for EIDA NG webservices.
 """
@@ -91,8 +65,6 @@ class JSONBool(fields.Bool):
 
         return bool(value)
 
-# class JSONBool
-
 
 FDSNWSBool = JSONBool
 
@@ -114,7 +86,6 @@ class FDSNWSDateTime(fields.DateTime):
     SERIALIZATION_FUNCS['fdsnws'] = utils.fdsnws_isoformat
     DESERIALIZATION_FUNCS['fdsnws'] = utils.from_fdsnws_datetime
 
-# class FDSNWSDateTime
 
 # -----------------------------------------------------------------------------
 class StreamEpochSchema(Schema):
@@ -171,8 +142,6 @@ class StreamEpochSchema(Schema):
                 data.pop(alt_key)
 
         return data
-
-    # merge_keys ()
 
     @post_load
     def make_stream_epoch(self, data, **kwargs):
@@ -245,13 +214,9 @@ class StreamEpochSchema(Schema):
                     raise ValidationError(
                         'endtime must be greater than starttime')
 
-    # validate_temporal_constraints ()
-
     class Meta:
         strict = True
         ordered = True
-
-# class StreamEpochSchema
 
 
 class ManyStreamEpochSchema(Schema):
@@ -275,7 +240,3 @@ class ManyStreamEpochSchema(Schema):
 
     class Meta:
         strict = True
-
-# class ManyStreamEpochSchema
-
-# ---- END OF <schema.py> ----

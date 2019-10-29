@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <utils.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EDIA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2017/12/12        V0.1    Daniel Armbruster
-# =============================================================================
 """
 General purpose utils for EIDA NG webservices.
 """
@@ -31,7 +6,7 @@ General purpose utils for EIDA NG webservices.
 import argparse
 import collections
 import datetime
-#import logging
+# import logging
 import os
 import re
 
@@ -72,8 +47,6 @@ Container for routes.
 def realpath(p):
     return os.path.realpath(os.path.expanduser(p))
 
-# realpath ()
-
 
 def real_file_path(path):
     """
@@ -89,8 +62,6 @@ def real_file_path(path):
         raise argparse.ArgumentTypeError
     return path
 
-# real_file_path ()
-
 
 def real_dir_path(path):
     """
@@ -105,8 +76,6 @@ def real_dir_path(path):
     if not os.path.isdir(path):
         raise argparse.ArgumentTypeError
     return path
-
-# real_dir_path ()
 
 
 def from_fdsnws_datetime(datestring, use_dateutil=True):
@@ -139,8 +108,6 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
             # Strip off microseconds and timezone info.
             return datetime.datetime.strptime(datestring[:19],
                                               '%Y-%m-%dT%H:%M:%S')
-
-# from_fdsnws_datetime ()
 
 
 def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
@@ -196,7 +163,6 @@ def convert_sncl_dicts_to_query_params(stream_epochs_dict):
 
     return retval
 
-# convert_sncl_dicts_to_query_params ()
 
 def get_version_response(version_string):
     """
@@ -210,7 +176,3 @@ def get_version_response(version_string):
     response = make_response(version_string)
     response.headers['Content-Type'] = settings.VERSION_MIMETYPE
     return response
-
-# get_version_response ()
-
-# ---- END OF <utils.py> ----

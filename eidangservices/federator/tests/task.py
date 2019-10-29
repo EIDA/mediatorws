@@ -56,21 +56,23 @@ class Response:
         self.status_code = status_code
         self.data = data
 
-# class Response
 
 class HTTP413(RequestsError):
+
     def __init__(self):
         self.response = Response(status_code=413,
                                  data='RequestTooLarge')
 
+
 class HTTP500(RequestsError):
+
     def __init__(self):
         self.response = Response(status_code=500,
                                  data='InternalServerError')
 
+
 # -----------------------------------------------------------------------------
 # CombinerTask related test cases
-
 class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
 
     @mock.patch('eidangservices.federator.server.task.'
@@ -100,7 +102,7 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
         # XXX(damb): Using *open* from future requires mocking the function
         # within the module it is actually used.
         with mock.patch(
-                'eidangservices.federator.server.task.open', mock_open) as m:
+                'eidangservices.federator.server.task.open', mock_open):
             net_element = t._extract_net_elements(
                 path_xml='/path/to/station.xml')[0]
 
@@ -112,8 +114,6 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
             self.assertEqual(net_element[2].get('code'), 'DAVOX')
 
         mock_max_threads.has_calls()
-
-    # test_extract_net_elements ()
 
     @mock.patch('eidangservices.federator.server.task.elements_equal')
     @mock.patch('eidangservices.federator.server.task.'
@@ -152,8 +152,6 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
 
         self.assertEqual(etree.tostring(net_element), reference_xml)
         mock_max_threads.has_calls()
-
-    # test_merge_sta_element_sta_append ()
 
     @mock.patch('eidangservices.federator.server.task.elements_equal')
     @mock.patch('eidangservices.federator.server.task.'
@@ -194,14 +192,9 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
         self.assertEqual(etree.tostring(net_element), reference_xml)
         mock_max_threads.has_calls()
 
-    # test_merge_sta_element_sta_extend ()
-
-# class StationXMLNetworkCombinerTaskTestCase
-
 
 # -----------------------------------------------------------------------------
 # SplitAndAlign task related test cases
-
 class SplitAndAlignTaskTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -240,8 +233,6 @@ class SplitAndAlignTaskTestCase(unittest.TestCase):
                          reference_result)
         self.assertEqual(t.stream_epochs, reference_result)
 
-    # test_split_once ()
-
     def test_split_multiple(self):
         stream_epoch_orig = StreamEpoch(
             stream=self.stream,
@@ -276,10 +267,6 @@ class SplitAndAlignTaskTestCase(unittest.TestCase):
 
         self.assertEqual(sub_stream_epochs, sub_reference_result)
         self.assertEqual(t.stream_epochs, reference_result)
-
-    # test_split_multiple ()
-
-# class SplitAndAlignTaskTestCase
 
 
 class WFCatalogSAATaskTestCase(unittest.TestCase):
@@ -324,8 +311,6 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(result, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_missing ()
-
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
     def test_split_single_without_overlap(self, mock_get_temp_filepath,
@@ -353,8 +338,6 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_single_without_overlap ()
-
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
     def test_split_single_with_overlap(self, mock_get_temp_filepath,
@@ -381,8 +364,6 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
 
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
-
-    # test_split_single_with_overlap ()
 
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
@@ -414,8 +395,6 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_multiple_without_overlap ()
-
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
     def test_split_multiple_with_overlap(self, mock_get_temp_filepath,
@@ -446,13 +425,7 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_multiple_with_overlap ()
-
-# class WFCatalogSplitAndAlignTask
-
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     unittest.main()
-
-# ---- END OF <task.py> ----

@@ -1,31 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <app.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/15        V0.1    Daniel Armbruster; standing on the shoulders of
-#                           Fabian :)
-# =============================================================================
 """
 EIDA NG stationlite server.
 
@@ -33,7 +6,7 @@ This file is part of the EIDA mediator/federator webservices.
 
 """
 
-#import logging
+# import logging
 import argparse
 import os
 import sys
@@ -57,6 +30,7 @@ from eidangservices.utils.error import Error, ErrorWithTraceback, ExitCodes
 class ModWSGIError(ErrorWithTraceback):
     """Base mod_wsgi error ({})."""
 
+
 # ----------------------------------------------------------------------------
 def url(url):
     """
@@ -66,8 +40,6 @@ def url(url):
             (url.startswith('////', 7) or url.startswith('///C:', 7))):
         raise argparse.ArgumentTypeError('SQLite URL must be absolute.')
     return url
-
-# url ()
 
 
 # ----------------------------------------------------------------------------
@@ -101,8 +73,6 @@ class StationLiteWebserviceBase(App):
                                   'absolute file path is supported.'))
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -142,8 +112,6 @@ class StationLiteWebserviceBase(App):
 
         sys.exit(exit_code)
 
-    # run ()
-
     def setup_app(self):
         """
         Setup and configure the Flask app with its API.
@@ -177,15 +145,12 @@ class StationLiteWebserviceBase(App):
         api.init_app(app)
         return app
 
-    # setup_app ()
-
-# class StationLiteWebserviceBase
-
 
 class StationLiteWebserviceTest(StationLiteWebserviceBase):
     """
     Test implementation of the EIDA StationLite webservice.
     """
+
     PROG = 'eida-stationlite-test'
 
     def build_parser(self, parents=[]):
@@ -198,13 +163,11 @@ class StationLiteWebserviceTest(StationLiteWebserviceBase):
         """
         parser = super().build_parser(parents)
         parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.\
+                            default=settings.
                             EIDA_STATIONLITE_DEFAULT_SERVER_PORT,
                             help='server port')
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -238,10 +201,6 @@ class StationLiteWebserviceTest(StationLiteWebserviceBase):
 
         sys.exit(exit_code)
 
-    # run ()
-
-# class StationLiteWebserviceTest
-
 
 StationLiteWebservice = StationLiteWebserviceBase
 
@@ -265,8 +224,6 @@ def _main(app):
 
     return app.run()
 
-# _main ()
-
 
 def main_test():
     return _main(StationLiteWebserviceTest(log_id='STL'))
@@ -282,6 +239,3 @@ main = main_prod
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     main_test()
-
-
-# ---- END OF <app.py> ----

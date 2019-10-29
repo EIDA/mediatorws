@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <db.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/02/16        V0.1    Daniel Armbruster
-# =============================================================================
 """
 StationLite (stationlite) DB tools.
 """
@@ -42,12 +17,15 @@ from eidangservices.utils.error import Error, ErrorWithTraceback
 
 logger = logging.getLogger(__name__)
 
+
 # -----------------------------------------------------------------------------
 class DBError(ErrorWithTraceback):
     """Base DB error ({})."""
 
+
 class StationLiteDBEngineError(Error):
     """General purpose EIDA StationLite DB engine error ({})."""
+
 
 class MissingNodeConfigParam(StationLiteDBEngineError):
     """Parameter missing in node config ({})."""
@@ -55,11 +33,14 @@ class MissingNodeConfigParam(StationLiteDBEngineError):
 
 InvalidEndpointConfig = MissingNodeConfigParam
 
+
 class InvalidDBUrl(StationLiteDBEngineError):
     """Invalid URL: '{}'"""
 
+
 class DBEmptyQueryResultError(StationLiteDBEngineError):
     """Query '{}' returned no results."""
+
 
 # -----------------------------------------------------------------------------
 class ScopedSession:
@@ -99,8 +80,6 @@ class ScopedSession:
             raise self.NotConfigured()
         return self._session()
 
-# class ScopedSession
-
 
 # -----------------------------------------------------------------------------
 @contextmanager
@@ -115,7 +94,6 @@ def session_guard(session):
     finally:
         session.close()
 
-# session_guard ()
 
 def configure_sqlite(pragmas):
     """
@@ -132,8 +110,6 @@ def configure_sqlite(pragmas):
                 dbapi_connection.execute(pragma)
         except Exception as err:
             raise DBError(err)
-
-# configure_db ()
 
 
 def clean(session, timestamp):
@@ -172,8 +148,8 @@ def clean(session, timestamp):
             [item for sublist in vnets_active for item in sublist])
 
     vnets_active = set(
-        session.query(orm.StreamEpochGroup).\
-        filter(orm.StreamEpochGroup.oid.in_(vnets_active)).\
+        session.query(orm.StreamEpochGroup).
+        filter(orm.StreamEpochGroup.oid.in_(vnets_active)).
         all())
 
     vnets_all = set(session.query(orm.StreamEpochGroup).all())
@@ -184,8 +160,3 @@ def clean(session, timestamp):
         retval += 1
 
     return retval
-
-# clean ()
-
-
-# ---- END OF <db.py> ----

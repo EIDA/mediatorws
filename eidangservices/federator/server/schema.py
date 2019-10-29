@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <schema.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/10/19        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Federator schema definitions
 """
@@ -43,6 +17,7 @@ from eidangservices.utils.schema import (Percentage, NotEmptyString,
 Quality = functools.partial(fields.Str,
                             validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B']))
 
+
 # -----------------------------------------------------------------------------
 class ServiceOpts(SchemaOpts):
     """
@@ -52,8 +27,6 @@ class ServiceOpts(SchemaOpts):
     def __init__(self, meta, **kwargs):
         SchemaOpts.__init__(self, meta, **kwargs)
         self.service = getattr(meta, 'service', 'dataselect')
-
-# class ServiceOpts
 
 
 # -----------------------------------------------------------------------------
@@ -73,8 +46,6 @@ class ServiceSchema(Schema):
 
     class Meta:
         strict = True
-
-# class ServiceSchema
 
 
 class DataselectSchema(ServiceSchema):
@@ -99,8 +70,6 @@ class DataselectSchema(ServiceSchema):
     class Meta:
         service = 'dataselect'
         strict = True
-
-# class DataselectSchema
 
 
 class StationSchema(ServiceSchema):
@@ -175,8 +144,6 @@ class StationSchema(ServiceSchema):
 
         return data
 
-    # merge_keys ()
-
     @validates_schema
     def validate_level(self, data, **kwargs):
         if data['format'] == 'text' and data['level'] == 'response':
@@ -200,8 +167,6 @@ class StationSchema(ServiceSchema):
     class Meta:
         service = 'station'
         strict = True
-
-# class StationSchema
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -586,7 +551,3 @@ class WFCatalogSchema(ServiceSchema):
     class Meta:
         service = 'wfcatalog'
         strict = True
-
-# class WfCatalogSchema
-
-# ---- END OF <schema.py> ----

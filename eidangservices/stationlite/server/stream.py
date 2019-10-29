@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <stream.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2018/05/03        V0.1    Daniel Armbruster
-# =============================================================================
 """
 StationLite output format facilities.
 """
@@ -50,12 +24,8 @@ class OutputStream:
         else:
             raise KeyError('Invalid output format chosen.')
 
-    # create ()
-
     def __str__(self):
         raise NotImplementedError
-
-# class OutputStream
 
 
 class PostStream(OutputStream):
@@ -70,7 +40,7 @@ class PostStream(OutputStream):
         return ' '.join(PostStream.DESERIALIZER.dump(stream_epoch).values())
 
     def __str__(self):
-        retval =''
+        retval = ''
         for url, stream_epoch_lst in self.routes:
             if retval:
                 retval += '\n\n'
@@ -81,10 +51,6 @@ class PostStream(OutputStream):
             retval += '\n'
 
         return retval
-
-    # __str__ ()
-
-# class PostStream
 
 
 class GetStream(OutputStream):
@@ -100,16 +66,9 @@ class GetStream(OutputStream):
                          GetStream.DESERIALIZER.dump(stream_epoch).items()])
 
     def __str__(self):
-        retval =''
+        retval = ''
         for url, stream_epoch_lst in self.routes:
             for se in stream_epoch_lst:
                 retval += '{}?{}\n'.format(url, self._deserialize(se))
 
         return retval
-
-    # __str__ ()
-
-# class GetStream
-
-
-# ---- END OF <stream.py> ----

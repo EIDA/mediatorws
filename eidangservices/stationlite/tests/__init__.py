@@ -1,6 +1,7 @@
 import os
 import unittest
 
+
 def testsuite():
     """
     Load the stationlite testsuite.

@@ -1,28 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <misc.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/05/28        V0.1    Daniel Armbruster
-# -----------------------------------------------------------------------------
 """
 Miscellaneous utils.
 """
@@ -46,15 +22,11 @@ class ContextLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return '[%s] %s' % (self.extra['ctx'], msg), kwargs
 
-# class ContextLoggerAdapter
-
 
 class KeepTempfiles(enum.Enum):
     ALL = 0
     ON_ERRORS = 1
     NONE = 2
-
-# class KeepTempfiles
 
 
 class Context:
@@ -94,8 +66,6 @@ class Context:
         # check if the root context is still locked
         return self._get_root_ctx().locked
 
-    # locked ()
-
     @property
     def payload(self):
         return self._payload
@@ -131,8 +101,6 @@ class Context:
             for c in root:
                 c._path_ctx = root._path_ctx
 
-    # acquire ()
-
     def release(self):
         """
         Remove a previously acquired temporary file.
@@ -153,8 +121,6 @@ class Context:
             for c in root:
                 c._path_ctx = None
 
-    # release ()
-
     def teardown(self):
         """
         Securely remove the context.
@@ -168,8 +134,6 @@ class Context:
                 pass
         else:
             self._get_root_ctx().teardown()
-
-    # teardown ()
 
     def append(self, ctx):
         self.__add__(ctx)
@@ -185,8 +149,6 @@ class Context:
 
         return d
 
-    # __getstate__ ()
-
     def __setstate__(self, state):
         if '_ctx' in state.keys() and '_ctx_type' in state.keys():
             m = importlib.import_module(
@@ -201,8 +163,6 @@ class Context:
                 c._parent_ctx = self
 
         self.__dict__.update(state)
-
-    # __setstate__ ()
 
     def __add__(self, ctx):
         """
@@ -227,8 +187,6 @@ class Context:
         ctx._parent_ctx = self
         self._child_ctxs.append(ctx)
 
-    # __add__ ()
-
     def __sub__(self, ctx):
         """
         Remove a sub-context from the current context.
@@ -243,8 +201,6 @@ class Context:
             if ctx.locked:
                 ctx.release()
             self._child_ctxs.remove(ctx)
-
-    # __sub__ ()
 
     def __contains__(self, other):
         return other in self._child_ctxs
@@ -265,8 +221,6 @@ class Context:
             for _c in iter(c):
                 yield _c
 
-    # __iter__ ()
-
     def __str__(self):
         stack = [self._ctx]
 
@@ -278,8 +232,6 @@ class Context:
             parent_ctx = parent_ctx._parent_ctx
 
         return self.SEP.join(str(e) for e in reversed(stack))
-
-    # __str__ ()
 
     def _get_root_ctx(self):
         if self._parent_ctx is None:
@@ -295,12 +247,8 @@ class Context:
 
         return ctx
 
-    # _get_root_ctx ()
-
     def _get_current_object(self):
         return self._ctx
-
-# class Context
 
 
 # -----------------------------------------------------------------------------
@@ -311,8 +259,6 @@ def qualname(obj):
             if m is None or m == type(str).__module__ else
             m + '.' + type(obj).__name__)
 
-# qualname ()
-
 
 def get_temp_filepath():
     """Return path of temporary file."""
@@ -320,13 +266,9 @@ def get_temp_filepath():
     return os.path.join(
         tempfile.gettempdir(), next(tempfile._get_candidate_names()))
 
-# get_temp_filepath ()
-
 
 def choices(seq, k=1):
     return ''.join(random.choice(seq) for i in range(k))
-
-# choices ()
 
 
 def elements_equal(e, e_other, exclude_tags=[], recursive=True):
@@ -376,8 +318,3 @@ def elements_equal(e, e_other, exclude_tags=[], recursive=True):
         return False
     return all(elements_equal(c, c_other)
                for c, c_other in zip(local_e, local_e_other))
-
-# elements_equal ()
-
-
-# ---- END OF <misc.py> ----
