@@ -270,7 +270,8 @@ def register_parser_errorhandler(service_version):
     """
     @fdsnws_parser.error_handler
     @flaskparser.error_handler
-    def handle_parser_error(err, req, schema):
+    def handle_parser_error(
+            err, req, schema, error_status_code, error_headers):
         """
         configure webargs error handler
         """
