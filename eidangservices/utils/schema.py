@@ -147,7 +147,7 @@ class StreamEpochSchema(Schema):
     end = fields.Str(load_only=True)
 
     @pre_load
-    def merge_keys(self, data):
+    def merge_keys(self, data, **kwargs):
         """
         Merge alternative field parameter values.
 
@@ -175,7 +175,7 @@ class StreamEpochSchema(Schema):
     # merge_keys ()
 
     @post_load
-    def make_stream_epoch(self, data):
+    def make_stream_epoch(self, data, **kwargs):
         """
         Factory method generating
         :py:class:`eidangservices.utils.sncl.StreamEpoch` objects.
@@ -185,7 +185,7 @@ class StreamEpochSchema(Schema):
         return sncl.StreamEpoch.from_sncl(**data)
 
     @post_dump
-    def skip_empty_datetimes(self, data):
+    def skip_empty_datetimes(self, data, **kwargs):
         """
         Provides context dependend skipping of *empty* datetimes when
         serializing.
@@ -205,7 +205,7 @@ class StreamEpochSchema(Schema):
         return data
 
     @post_dump
-    def replace_empty_location(self, data):
+    def replace_empty_location(self, data, **kwargs):
         """
         Replaces empty location identifiers when serializing.
         """
@@ -214,7 +214,7 @@ class StreamEpochSchema(Schema):
         return data
 
     @validates_schema
-    def validate_temporal_constraints(self, data):
+    def validate_temporal_constraints(self, data, **kwargs):
         """
         Validation of temporal constraints.
         """
@@ -264,13 +264,13 @@ class ManyStreamEpochSchema(Schema):
     stream_epochs = fields.List(fields.Nested('StreamEpochSchema'))
 
     @validates_schema
-    def validate_schema(self, data):
+    def validate_schema(self, data, **kwargs):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
                 self.context.get('request').method == 'POST'):
             if 'stream_epochs' not in data or not data['stream_epochs']:
                 raise ValidationError('No StreamEpoch defined.')
-            if [v for v in data['stream_epochs'] if v is None]:
+            if not all(data['stream_epochs']):
                 raise ValidationError('Invalid StreamEpoch defined.')
 
     class Meta:

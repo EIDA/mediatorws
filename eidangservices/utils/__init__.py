@@ -54,7 +54,6 @@ _iso8601_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
     r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
-    # tzinfo must not be available
     r'(?P<tzinfo>Z|(?![+-]\d{2}(?::?\d{2})?))?$'
 )
 
@@ -127,8 +126,8 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
 
     if len(datestring) == 10:
         # only YYYY-mm-dd is defined
-        return datetime.datetime.combine(ma.utils.from_iso_date(datestring,
-                                         use_dateutil), datetime.time())
+        return datetime.datetime.combine(ma.utils.from_iso_date(datestring),
+                                         datetime.time())
     else:
         # from marshmallow
         if not _iso8601_re.match(datestring):

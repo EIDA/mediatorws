@@ -67,7 +67,7 @@ class ServiceSchema(Schema):
     service = fields.Str(dump_only=True)
 
     @post_load
-    def set_service(self, data):
+    def set_service(self, data, **kwargs):
         data['service'] = self.opts.service
         return data
 
@@ -151,7 +151,7 @@ class StationSchema(ServiceSchema):
     matchtimeseries = FDSNWSBool(missing='false')
 
     @pre_load
-    def merge_keys(self, data):
+    def merge_keys(self, data, **kwargs):
         """
         Merge alternative field parameter values.
 
@@ -178,12 +178,12 @@ class StationSchema(ServiceSchema):
     # merge_keys ()
 
     @validates_schema
-    def validate_level(self, data):
+    def validate_level(self, data, **kwargs):
         if data['format'] == 'text' and data['level'] == 'response':
             raise ValidationError("Invalid level for format 'text'.")
 
     @validates_schema
-    def validate_spatial_params(self, data):
+    def validate_spatial_params(self, data, **kwargs):
         # NOTE(damb): Allow either rectangular or circular spatial parameters
         rectangular_spatial = ('minlatitude', 'maxlatitude', 'minlongitude',
                                'maxlongitude')

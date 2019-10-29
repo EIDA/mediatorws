@@ -71,10 +71,10 @@ _deps_all = [
     'Flask-RESTful>=0.3.6',
     'intervaltree>=3.0.2',
     'lxml>=4.2.0',
-    'marshmallow==3.0.0rc1',
+    'marshmallow==3.2.1',
     'python-dateutil>=2.6.1',
     'requests>=2.18.4',
-    'webargs==4.1.3', ]
+    'webargs==5.5.2', ]
 _deps_federator = _deps_all + [
     'Flask-Cors>=3.0.7',
     'ijson>=2.3', ]
