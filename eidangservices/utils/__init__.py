@@ -126,8 +126,8 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
 
     if len(datestring) == 10:
         # only YYYY-mm-dd is defined
-        return datetime.datetime.combine(ma.utils.from_iso_date(datestring,
-                                         use_dateutil), datetime.time())
+        return datetime.datetime.combine(ma.utils.from_iso_date(datestring),
+                                         datetime.time())
     else:
         # from marshmallow
         if not _iso8601_re.match(datestring):

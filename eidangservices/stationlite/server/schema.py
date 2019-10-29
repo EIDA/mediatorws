@@ -73,7 +73,7 @@ class StationLiteSchema(Schema):
     maxlon = Latitude(load_only=True)
 
     @pre_load
-    def merge_keys(self, data):
+    def merge_keys(self, data, **kwargs):
         """
         Merge both alternative field parameter values and assign default
         values.
@@ -105,7 +105,7 @@ class StationLiteSchema(Schema):
     # merge_keys ()
 
     @validates_schema
-    def validate_spatial(self, data):
+    def validate_spatial(self, data, **kwargs):
         if (data['minlatitude'] >= data['maxlatitude'] or
                 data['minlongitude'] >= data['maxlongitude']):
             raise ValidationError('Bad Request: Invalid spatial constraints.')
