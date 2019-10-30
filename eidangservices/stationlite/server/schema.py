@@ -38,13 +38,13 @@ class StationLiteSchema(Schema):
 
     # geographic (rectangular spatial) options
     # XXX(damb): Default values are defined and assigned within merge_keys ()
-    minlatitude = Latitude()
+    minlatitude = Latitude(missing=-90.)
     minlat = Latitude(load_only=True)
-    maxlatitude = Latitude()
+    maxlatitude = Latitude(missing=90.)
     maxlat = Latitude(load_only=True)
-    minlongitude = Longitude()
+    minlongitude = Longitude(missing=-180.)
     minlon = Latitude(load_only=True)
-    maxlongitude = Longitude()
+    maxlongitude = Longitude(missing=180.)
     maxlon = Latitude(load_only=True)
 
     @pre_load
@@ -61,19 +61,17 @@ class StationLiteSchema(Schema):
         :param dict data: data
         """
         _mappings = [
-            ('minlat', 'minlatitude', -90.),
-            ('maxlat', 'maxlatitude', 90.),
-            ('minlon', 'minlongitude', -180.),
-            ('maxlon', 'maxlongitude', 180.)]
+            ('minlat', 'minlatitude'),
+            ('maxlat', 'maxlatitude'),
+            ('minlon', 'minlongitude'),
+            ('maxlon', 'maxlongitude')]
 
-        for alt_key, key, missing in _mappings:
+        for alt_key, key in _mappings:
             if alt_key in data and key in data:
                 data.pop(alt_key)
             elif alt_key in data and key not in data:
                 data[key] = data[alt_key]
                 data.pop(alt_key)
-            else:
-                data[key] = missing
 
         return data
 
