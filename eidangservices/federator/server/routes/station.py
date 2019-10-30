@@ -1,26 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <station.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# -----------------------------------------------------------------------------
 """
 This file is part of the EIDA mediator/federator webservices.
 """
@@ -83,8 +61,6 @@ class StationResource(Resource):
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
         ).streamed_response
 
-    # get ()
-
     @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
         ManyStreamEpochSchema(context={'request': request}),
@@ -115,17 +91,9 @@ class StationResource(Resource):
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
         ).streamed_response
 
-    # post ()
-
     def _get_result_mimetype(self, args):
         """Return result mimetype (either XML or plain text."""
         if args.get('format', 'xml') == 'text':
             return settings.STATION_MIMETYPE_TEXT
 
         return settings.STATION_MIMETYPE_XML
-
-    # _get_result_mimetype ()
-
-# class StationResource
-
-# ---- END OF <station.py> ----

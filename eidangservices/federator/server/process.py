@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <process.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator)
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/03/29        V0.1    Daniel Armbruster
-# =============================================================================
 """
 federator processing facilities
 """
@@ -66,7 +41,6 @@ def demux_routes(routes):
     return [utils.Route(route.url, streams=[se]) for route in routes
             for se in route.streams]
 
-# demux_routes ()
 
 def group_routes_by(routes, key='network'):
     """
@@ -85,7 +59,7 @@ def group_routes_by(routes, key='network'):
     for route in routes:
         try:
             _key = getattr(route.streams[0].stream, key)
-        except AttributeError as err:
+        except AttributeError:
             try:
                 if SEP in key:
                     # combined key
@@ -101,17 +75,18 @@ def group_routes_by(routes, key='network'):
 
     return retval
 
-# group_routes_by ()
-
 
 class RequestProcessorError(ErrorWithTraceback):
     """Base RequestProcessor error ({})."""
 
+
 class RoutingError(RequestProcessorError):
     """Error while routing ({})."""
 
+
 class StreamingError(RequestProcessorError):
     """Error while streaming ({})."""
+
 
 # -----------------------------------------------------------------------------
 class RequestProcessor:
@@ -156,8 +131,6 @@ class RequestProcessor:
 
         self._default_endtime = datetime.datetime.utcnow()
 
-    # __init__ ()
-
     @staticmethod
     def create(service, *args, **kwargs):
         """Factory method for RequestProcessor object instances.
@@ -177,8 +150,6 @@ class RequestProcessor:
             return WFCatalogRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
-
-    # create ()
 
     @property
     def DEFAULT_ENDTIME(self):
@@ -201,8 +172,6 @@ class RequestProcessor:
         resp.call_on_close(self._call_on_close)
 
         return resp
-
-    # streamed_response ()
 
     def _route(self):
         """
@@ -260,8 +229,6 @@ class RequestProcessor:
 
         return routing_table
 
-    # _route ()
-
     def _handle_error(self, err):
         self.logger.warning(str(err))
 
@@ -269,10 +236,8 @@ class RequestProcessor:
                                         KeepTempfiles.ON_ERRORS):
             try:
                 os.remove(err.data)
-            except OSError as err:
+            except OSError:
                 pass
-
-    # _handle_error ()
 
     def _handle_413(self, result):
         self.logger.warning(
@@ -281,12 +246,8 @@ class RequestProcessor:
                                         result.data.stream_epochs))
         raise FDSNHTTPError.create(413, service_version=__version__)
 
-    # _handle_413 ()
-
     def _handle_teapot(self, result):
         self.logger.debug('Teapot: {}'.format(result))
-
-    # _handle_teapot ()
 
     def _wait(self, timeout=None):
         """
@@ -337,8 +298,6 @@ class RequestProcessor:
                         'nodata',
                         settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
 
-    # _wait ()
-
     def _terminate(self):
         """
         Terminate the processor.
@@ -360,12 +319,10 @@ class RequestProcessor:
                     _result = result.get()
                     try:
                         os.remove(_result.data)
-                    except (TypeError, OSError) as err:
+                    except (TypeError, OSError):
                         pass
 
         self._pool = None
-
-    # _terminate ()
 
     def _request(self):
         """
@@ -396,12 +353,8 @@ class RequestProcessor:
 
         self._pool = None
 
-    # _call_on_close ()
-
     def __iter__(self):
         raise NotImplementedError
-
-# class RequestProcessor
 
 
 class RawRequestProcessor(RequestProcessor):
@@ -450,8 +403,6 @@ class RawRequestProcessor(RequestProcessor):
             result = self._pool.apply_async(t)
             self._results.append(result)
 
-    # _request ()
-
     def _handle_413(self, result):
         self.logger.info(
             'Handle endpoint HTTP status code 413 (url={}, '
@@ -473,8 +424,6 @@ class RawRequestProcessor(RequestProcessor):
 
         result = self._pool.apply_async(t)
         self._results.append(result)
-
-    # _handle_413 ()
 
     def __iter__(self):
         """
@@ -502,7 +451,7 @@ class RawRequestProcessor(RequestProcessor):
                         if _result.status_code == 200:
                             self._sizes.append(_result.length)
                             self.logger.debug(
-                                'Streaming from file {!r} (chunk_size={}).'.\
+                                'Streaming from file {!r} (chunk_size={}).'.
                                 format(_result.data, self.CHUNK_SIZE))
                             try:
                                 with open(_result.data, 'rb') as fd:
@@ -550,13 +499,9 @@ class RawRequestProcessor(RequestProcessor):
             self.logger.info(
                 'Results successfully processed (Total bytes: {}).'.format(
                     sum(self._sizes)))
-        except GeneratorExit as err:
+        except GeneratorExit:
             self.logger.debug('GeneratorExit: Terminate ...')
             self._terminate()
-
-    # __iter__ ()
-
-# class RawRequestProcessor
 
 
 class StationRequestProcessor(RequestProcessor):
@@ -581,8 +526,6 @@ class StationRequestProcessor(RequestProcessor):
         if self._level is None:
             raise RequestProcessorError("Missing parameter: 'level'.")
 
-    # __init__ ()
-
     @staticmethod
     def create(response_format, *args, **kwargs):
         if response_format == 'xml':
@@ -591,8 +534,6 @@ class StationRequestProcessor(RequestProcessor):
             return StationTextRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
-
-    # create ()
 
     def _route(self):
         """
@@ -619,10 +560,6 @@ class StationRequestProcessor(RequestProcessor):
                 retval[net].append(utils.Route(url=url, streams=ses))
 
         return retval
-
-    # _route ()
-
-# class StationRequestProcessor
 
 
 class StationXMLRequestProcessor(StationRequestProcessor):
@@ -718,8 +655,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         self.logger.debug('Terminate ...')
 
-    # _terminate ()
-
     def _route(self):
         """
         Demultiplexes immediately routes for distributed physical networks i.e.
@@ -734,8 +669,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
             routes[net] = _routes
 
         return routes
-
-    # _route ()
 
     def _request(self):
         """
@@ -784,8 +717,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         self._pool.close()
 
-    # _request ()
-
     def __iter__(self):
         """
         Make the processor *streamable*.
@@ -812,7 +743,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
                             self._sizes.append(_result.length)
                             self.logger.debug(
-                                'Streaming from file {!r} (chunk_size={}).'.\
+                                'Streaming from file {!r} (chunk_size={}).'.
                                 format(_result.data, self.CHUNK_SIZE))
                             try:
                                 with open(_result.data, 'r',
@@ -865,10 +796,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         except GeneratorExit:
             self.logger.debug('GeneratorExit: Propagating close event ...')
             self._terminate()
-
-    # __iter__ ()
-
-# class StationXMLRequestProcessor
 
 
 class StationTextRequestProcessor(StationRequestProcessor):
@@ -927,8 +854,6 @@ class StationTextRequestProcessor(StationRequestProcessor):
                 self._results.append(result)
 
         self._pool.close()
-
-    # _request ()
 
     def __iter__(self):
         """
@@ -995,13 +920,9 @@ class StationTextRequestProcessor(StationRequestProcessor):
                 'Results successfully processed (Total bytes: {}).'.format(
                     sum(self._sizes)))
 
-        except GeneratorExit as err:
+        except GeneratorExit:
             self.logger.debug('GeneratorExit: Terminate ...')
             self._terminate()
-
-    # __iter__ ()
-
-# class StationTextRequestProcessor
 
 
 class WFCatalogRequestProcessor(RequestProcessor):
@@ -1053,8 +974,6 @@ class WFCatalogRequestProcessor(RequestProcessor):
             result = self._pool.apply_async(t)
             self._results.append(result)
 
-    # _request ()
-
     def _handle_413(self, result):
         self.logger.info(
             'Handle endpoint HTTP status code 413 (url={}, '
@@ -1076,8 +995,6 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
         result = self._pool.apply_async(t)
         self._results.append(result)
-
-    # _handle_413 ()
 
     def __iter__(self):
         """
@@ -1113,7 +1030,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
                                 yield self.JSON_LIST_SEP
 
                             self.logger.debug(
-                                'Streaming from file {!r} (chunk_size={}).'.\
+                                'Streaming from file {!r} (chunk_size={}).'.
                                 format(_result.data, self.CHUNK_SIZE))
                             try:
                                 with open(_result.data, 'rb') as fd:
@@ -1167,14 +1084,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
             self.logger.debug('Result sizes: {}.'.format(self._sizes))
             self.logger.info(
                 'Results successfully processed (Total bytes: {}).'.format(
-                    sum(self._sizes) + 2 + len(self._sizes)-1))
-        except GeneratorExit as err:
+                    sum(self._sizes) + 2 + len(self._sizes) - 1))
+        except GeneratorExit:
             self.logger.debug('GeneratorExit: Terminate ...')
             self._terminate()
-
-    # __iter__ ()
-
-# class WFCatalogRequestProcessor
-
-
-# ---- END OF <process.py> ----

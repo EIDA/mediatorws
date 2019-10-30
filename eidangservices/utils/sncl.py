@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <sncl.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2018/01/10        V0.1    Daniel Armbruster
-# =============================================================================
 """
 SNCL related facilities.
 """
@@ -59,7 +33,6 @@ def none_as_max(endtime):
         end = datetime.datetime.max
     yield end
 
-# none_as_max ()
 
 @contextlib.contextmanager
 def none_as_now(endtime, now=datetime.datetime.utcnow()):
@@ -77,7 +50,6 @@ def none_as_now(endtime, now=datetime.datetime.utcnow()):
         end = now
     yield end
 
-# none_as_now ()
 
 @contextlib.contextmanager
 def max_as_none(endtime):
@@ -92,7 +64,6 @@ def max_as_none(endtime):
         end = None
     yield end
 
-# max_as_none ()
 
 @contextlib.contextmanager
 def max_as_empty(endtime):
@@ -107,7 +78,6 @@ def max_as_empty(endtime):
         end = ''
     yield end
 
-# max_as_empty ()
 
 def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
                             like_escape='/'):
@@ -126,14 +96,13 @@ def fdsnws_to_sql_wildcards(str_old, like_multiple='%', like_single='_', # noqa
     """
     # NOTE(damb): first escape the *like_single* character, then replace '*'
     return str_old.replace(
-        like_single, like_escape+like_single).replace(
+        like_single, like_escape + like_single).replace(
         settings.FDSNWS_QUERY_WILDCARD_SINGLE_CHAR, like_single).\
         replace(settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR, like_multiple)
 
-# fdsnws_to_sql_wildcards ()
 
 # ----------------------------------------------------------------------------
-@functools.total_ordering # noqa
+@functools.total_ordering
 class Stream(namedtuple('Stream',
                         ['network', 'station', 'location', 'channel'])):
     """
@@ -190,8 +159,6 @@ class Stream(namedtuple('Stream',
         fields = self.FIELDS_SHORT if short_keys else self._fields
         return OrderedDict(zip(fields, self))
 
-    # _asdict ()
-
     def __eq__(self, other):
         return self.id() == other.id()
 
@@ -205,8 +172,6 @@ class Stream(namedtuple('Stream',
     def __str__(self):
         return ' '.join([self.network, self.station, self.location,
                         self.channel])
-
-# class Stream
 
 
 @functools.total_ordering
@@ -255,8 +220,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
                    starttime=start,
                    endtime=end)
 
-    # from_sncl ()
-
     @classmethod
     def from_snclline(cls, line, default_endtime=None):
         """
@@ -285,8 +248,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
                    starttime=utils.from_fdsnws_datetime(args[4]),
                    endtime=end)
 
-    # from_snclline ()
-
     @classmethod
     def from_orm(cls, stream_epoch):
         """
@@ -310,8 +271,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
                                  channel=stream_epochs.channel),
                    starttime=stream_epochs.starttime,
                    endtime=stream_epochs.endtime)
-
-    # from_streamepochs ()
 
     def id(self, sep='.'):
         """
@@ -349,8 +308,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
                                       channel=cha)
         return self._replace(stream=stream)
 
-    # fdsnws_to_sql_wildcards ()
-
     def slice(self, num=2, default_endtime=datetime.datetime.utcnow()):
         """
         Split :py:class:`StreamEpoch` into :code:`num` equally sized chunks.
@@ -369,13 +326,11 @@ class StreamEpoch(namedtuple('StreamEpoch',
         for n in range(1, num):
             t.slice(self.starttime +
                     datetime.timedelta(
-                        seconds=((end-self.starttime).total_seconds() / num *
+                        seconds=((end - self.starttime).total_seconds() / num *
                                  n)))
 
         return [type(self)(stream=self.stream,
                            starttime=i.begin, endtime=i.end) for i in t]
-
-    # slice ()
 
     def _asdict(self, short_keys=False):
         """
@@ -384,8 +339,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
         """
         fields = self.FIELDS_SHORT if short_keys else self._fields
         return OrderedDict(zip(fields, self))
-
-    # _asdict ()
 
     @property
     def network(self):
@@ -410,7 +363,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
         return (self.stream == other.stream and
                 self.starttime == other.starttime and
                 self.endtime == other.endtime)
-    # __eq__ ()
 
     def __lt__(self, other):
         if self.stream == other.stream:
@@ -423,8 +375,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
             return self.starttime < other.starttime
         return self.stream < other.stream
 
-    # __lt__ ()
-
     def __repr__(self):
         return ("<StreamEpoch(stream=%r, start=%r, end=%r)>" %
                 (self.stream, self.starttime, self.endtime))
@@ -433,8 +383,6 @@ class StreamEpoch(namedtuple('StreamEpoch',
         se_schema = eidangws.utils.schema.StreamEpochSchema()
         stream_epoch = se_schema.dump(self)
         return ' '.join(str(v) for v in stream_epoch.values())
-
-# class StreamEpoch
 
 
 @functools.total_ordering
@@ -471,8 +419,6 @@ class StreamEpochs:
         except TypeError:
             self.epochs = Epochs()
         self.epochs.merge_overlaps()
-
-    # __init__ ()
 
     @classmethod
     def from_stream_epoch(cls, stream_epoch):
@@ -518,8 +464,6 @@ class StreamEpochs:
 
         self.epochs.merge_overlaps()
 
-    # merge ()
-
     def fdsnws_to_sql_wildcards(self, like_multiple='%', like_single='_',
                                 like_escape='/'):
         """
@@ -544,8 +488,6 @@ class StreamEpochs:
 
         self._stream = self._stream._replace(network=net, station=sta,
                                              location=loc, channel=cha)
-
-    # fdsnws_to_sql_wildcards ()
 
     def modify_with_temporal_constraints(self, start=None, end=None):
         """
@@ -578,8 +520,6 @@ class StreamEpochs:
         self.epochs.slice(_end)
         # search and assign the overlap
         self.epochs = Epochs(sorted(self.epochs.overlap(_start, _end)))
-
-    # modify_with_temporal_constraints ()
 
     @property
     def network(self):
@@ -629,7 +569,6 @@ class StreamEpochs:
                                         channel=self.channel,
                                         starttime=epoch.begin,
                                         endtime=epoch.end)
-    # __iter__ ()
 
     def __eq__(self, other):
         """
@@ -637,16 +576,12 @@ class StreamEpochs:
         """
         return (self._stream == other._stream and self.epochs == other.epochs)
 
-    # __eq__ ()
-
     def __lt__(self, other):
         if self._stream == other._stream:
             if self.starttime == other.starttime:
                 return self.epochs.end() < other.epochs.end()
             return self.epochs.begin() < other.epochs.begin()
         return self._stream < other._stream
-
-    # __lt__ ()
 
     def __repr__(self):
         return ('<StreamEpochs(stream=%r, start=%r, end=%r)>' %
@@ -657,10 +592,6 @@ class StreamEpochs:
         stream_epochs = se_schema.dump(list(self))
         return '\n'.join([' '.join(stream_epoch.values())
                          for stream_epoch in stream_epochs])
-
-    # __str__ ()
-
-# class StreamEpochs
 
 
 class StreamEpochsHandler:
@@ -701,8 +632,6 @@ class StreamEpochsHandler:
 
             self.d[se.id()] = se.epochs
 
-    # modify_with_temporal_constraints ()
-
     def merge(self, others):
         """
         Merge a list of other :py:class:`StreamEpochs` to objects.
@@ -711,8 +640,6 @@ class StreamEpochsHandler:
         """
         for stream_epochs in others:
             self._merge(stream_epochs.id(), stream_epochs.epochs)
-
-    # merge ()
 
     def _merge(self, key, epochs):
         """
@@ -727,8 +654,6 @@ class StreamEpochsHandler:
 
         # tree for key may be overlapping
         self.d[key].merge_overlaps()
-
-    # _merge ()
 
     @property
     def streams(self):
@@ -745,8 +670,6 @@ class StreamEpochsHandler:
                 Stream(**self.__stream_id_to_dict(stream_id)),
                 epochs=stream_epochs)
 
-    # __iter__ ()
-
     def __repr__(self):
         return '<StreamEpochsHandler(streams=%r)>' % list(self)
 
@@ -760,7 +683,3 @@ class StreamEpochsHandler:
                     station=sta,
                     location=loc,
                     channel=cha)
-
-# class StreamEpochsHandler
-
-# ---- END OF <scnl.py> ----

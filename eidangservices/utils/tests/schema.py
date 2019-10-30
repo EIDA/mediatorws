@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <schema.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/13        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Field and schema related test facilities.
 """
@@ -43,10 +17,10 @@ from eidangservices.settings import FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
 SEP = FDSNWS_QUERY_LIST_SEPARATOR_CHAR
 
+
 # -----------------------------------------------------------------------------
 # field related test cases
-
-class FieldTestCase(unittest.TestCase): # noqa
+class FieldTestCase(unittest.TestCase):
     """
     Base class for all field test cases.
     """
@@ -74,8 +48,6 @@ class FieldTestCase(unittest.TestCase): # noqa
             with self.assertRaises(ma.ValidationError):
                 method(v)
 
-# class FieldTestCase
-
 
 class PercentageFieldTestCase(FieldTestCase):
 
@@ -93,8 +65,6 @@ class PercentageFieldTestCase(FieldTestCase):
     def test_field_invalid(self):
         invalid = [dict(f=-1), dict(f=105), dict(f="foo")]
         self._invalid(invalid)
-
-# class PercentageFieldTestCase
 
 
 class NotEmptyStringFieldTestCase(FieldTestCase):
@@ -114,8 +84,6 @@ class NotEmptyStringFieldTestCase(FieldTestCase):
         invalid = [dict(f=1), dict(f='')]
         self._invalid(invalid)
 
-# class NotEmptyStringFieldTestCase
-
 
 class NotEmptyIntFieldTestCase(FieldTestCase):
 
@@ -133,8 +101,6 @@ class NotEmptyIntFieldTestCase(FieldTestCase):
     def test_field_invalid(self):
         invalid = [dict(f='foo'), dict(f='')]
         self._invalid(invalid)
-
-# class NotEmptyIntFieldTestCase
 
 
 class NotEmptyFloatFieldTestCase(FieldTestCase):
@@ -154,8 +120,6 @@ class NotEmptyFloatFieldTestCase(FieldTestCase):
         invalid = [dict(f='foo'), dict(f='')]
         self._invalid(invalid)
 
-# class NotEmptyFloatFieldTestCase
-
 
 class LatitudeFieldTestCase(FieldTestCase):
 
@@ -173,8 +137,6 @@ class LatitudeFieldTestCase(FieldTestCase):
     def test_field_invalid(self):
         invalid = [dict(f=-100), dict(f=100), dict(f=''), dict(f='foo')]
         self._invalid(invalid)
-
-# class LatitudeFieldTestCase
 
 
 class LongitudeFieldTestCase(FieldTestCase):
@@ -194,8 +156,6 @@ class LongitudeFieldTestCase(FieldTestCase):
         invalid = [dict(f=-200), dict(f=200), dict(f=''), dict(f='foo')]
         self._invalid(invalid)
 
-# class LongitudeFieldTestCase
-
 
 class RadiusFieldTestCase(FieldTestCase):
 
@@ -213,8 +173,6 @@ class RadiusFieldTestCase(FieldTestCase):
     def test_field_invalid(self):
         invalid = [dict(f=-200), dict(f=200), dict(f=''), dict(f='foo')]
         self._invalid(invalid)
-
-# class RadiusFieldTestCase
 
 
 class FDSNWSBoolFieldTestCase(FieldTestCase):
@@ -237,8 +195,6 @@ class FDSNWSBoolFieldTestCase(FieldTestCase):
         invalid = [dict(f='True'), dict(f='yes'),
                    dict(f='False'), dict(f='no'), dict(f='')]
         self._invalid(invalid)
-
-# class FDSNWSBoolFieldTestCase
 
 
 class FDSNWSDateTimeFieldTestCase(FieldTestCase):
@@ -268,8 +224,6 @@ class FDSNWSDateTimeFieldTestCase(FieldTestCase):
                    dict(f='2017-01'),
                    dict(f='2017-01-01T01:01:01.123456+00:01')]
         self._invalid(invalid)
-
-# class FDSNWSDateTimeFieldTestCase
 
 
 # -----------------------------------------------------------------------------
@@ -599,8 +553,6 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         with self.assertRaises(ma.ValidationError):
             self._load(s, test_dataset)
 
-# class StreamEpochSchemaTestCase
-
 
 class ManyStreamEpochSchemaTestCase(unittest.TestCase):
 
@@ -639,10 +591,7 @@ class ManyStreamEpochSchemaTestCase(unittest.TestCase):
         with self.assertRaises(ma.ValidationError):
             s.load(test_dataset)
 
-# class ManyStreamEpochSchemaTestCase
 
 # -----------------------------------------------------------------------------
-if __name__ == '__main__': # noqa
+if __name__ == '__main__':
     unittest.main()
-
-# ---- END OF <schema.py> ----

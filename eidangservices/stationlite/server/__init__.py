@@ -43,6 +43,7 @@ from eidangservices.stationlite import __version__
 
 db = SQLAlchemy()
 
+
 def create_app(config_dict, service_version=__version__):
     """
     Factory function for Flask application.

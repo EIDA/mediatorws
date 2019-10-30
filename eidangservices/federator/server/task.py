@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <task.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/03/28        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA federator task facilities
 """
@@ -57,6 +32,7 @@ class ETask(enum.Enum):
     COMBINER = 1
     SPLITALIGN = 2
 
+
 # -----------------------------------------------------------------------------
 def catch_default_task_exception(func):
     """
@@ -83,8 +59,6 @@ def catch_default_task_exception(func):
 
     return decorator
 
-# catch_default_task_exception ()
-
 
 def with_ctx_guard(func):
     """
@@ -93,7 +67,7 @@ def with_ctx_guard(func):
     def decorator(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except TaskBase.MissingContextLock as err:
+        except TaskBase.MissingContextLock:
             try:
                 self.logger.debug(
                     '{}: Teardown (stream_epochs={}) ...'.format(
@@ -109,8 +83,6 @@ def with_ctx_guard(func):
                                    extras={'type_task': self._TYPE})
 
     return decorator
-
-# with_ctx_guard ()
 
 
 # -----------------------------------------------------------------------------
@@ -154,8 +126,6 @@ class Result(collections.namedtuple('Result', ['status',
         return cls.error(status=status, status_code=status_code, data=data,
                          warning=warning, extras=extras)
 
-# class Result
-
 
 # -----------------------------------------------------------------------------
 class TaskBase:
@@ -183,8 +153,6 @@ class TaskBase:
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
-    # __init__ ()
-
     def __getstate__(self):
         # prevent pickling errors for loggers
         d = dict(self.__dict__)
@@ -193,8 +161,6 @@ class TaskBase:
         if 'logger' in d.keys():
             del d['logger']
         return d
-
-    # __getstate__ ()
 
     def __setstate__(self, d):
         if '_logger' in d.keys():
@@ -210,8 +176,6 @@ class TaskBase:
                     d['logger'] = d['_logger']
 
         self.__dict__.update(d)
-
-    # __setstate__ ()
 
     def __call__(self):
         raise NotImplementedError
@@ -237,10 +201,6 @@ class TaskBase:
                     os.remove(p)
                 except OSError:
                     pass
-
-    # _teardown ()
-
-# class TaskBase
 
 
 class CombinerTask(TaskBase):
@@ -275,8 +235,6 @@ class CombinerTask(TaskBase):
         self._results = []
         self._sizes = []
 
-    # __init__ ()
-
     def _handle_error(self, err):
         self.logger.warning(str(err))
 
@@ -301,12 +259,10 @@ class CombinerTask(TaskBase):
                     _result = result.get()
                     try:
                         os.remove(_result.data)
-                    except OSError as err:
+                    except OSError:
                         pass
 
         self._pool = None
-
-    # _terminate ()
 
     def _run(self):
         """
@@ -322,13 +278,8 @@ class CombinerTask(TaskBase):
 
         return self._run()
 
-    # __call__()
-
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self.name)
-
-
-# class CombinerTask
 
 
 class StationXMLNetworkCombinerTask(CombinerTask):
@@ -373,8 +324,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         self.path_tempfile = None
 
-    # __init__ ()
-
     @property
     def MAX_THREADS_DOWNLOADING(self):
         return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-xml']
@@ -388,10 +337,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                                          KeepTempfiles.ON_ERRORS)):
             try:
                 os.remove(result.data)
-            except OSError as err:
+            except OSError:
                 pass
-
-    # _clean ()
 
     def _run(self):
         """
@@ -443,7 +390,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                                     _net_element,
                                     exclude_tags=[
                                         '{}{}'.format(ns, self.STATION_TAG)
-                                        for ns in \
+                                        for ns in
                                         settings.STATIONXML_NAMESPACES])
 
                                 if not known:
@@ -467,7 +414,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                                     _net_element,
                                     exclude_tags=[
                                         '{}{}'.format(ns, self.STATION_TAG)
-                                        for ns in \
+                                        for ns in
                                         settings.STATIONXML_NAMESPACES])
 
                                 if not known:
@@ -535,8 +482,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         return Result.ok(data=self.path_tempfile, length=_length,
                          extras={'type_task': self._TYPE})
 
-    # _run ()
-
     def _emerge_net_element(self, net_element, exclude_tags=[]):
         """
         Emerge a :code:`<Network></Network>` epoch element. If the
@@ -563,8 +508,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         self._network_elements.append(net_element)
         return net_element, False
 
-    # _emerge_net_element ()
-
     def _emerge_sta_elements(self, net_element,
                              namespaces=settings.STATIONXML_NAMESPACES):
         """
@@ -583,8 +526,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             for sta_element in net_element.findall(tag):
                 yield sta_element
 
-    # _emerge_sta_elements ()
-
     def _emerge_cha_elements(self, sta_element,
                              namespaces=settings.STATIONXML_NAMESPACES):
         """
@@ -596,8 +537,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         for tag in channel_tags:
             for cha_element in sta_element.findall(tag):
                 yield cha_element
-
-    # _emerge_cha_elements ()
 
     def _extract_net_elements(self, path_xml,
                               namespaces=settings.STATIONXML_NAMESPACES):
@@ -615,8 +554,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
             station_xml = etree.parse(ifd).getroot()
             return [net_element
                     for net_element in station_xml.iter(*network_tags)]
-
-    # _extract_net_elements ()
 
     def _merge_sta_element(self, net_element, sta_element,
                            namespaces=settings.STATIONXML_NAMESPACES):
@@ -644,9 +581,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         else:
             net_element.append(sta_element)
 
-    # _merge_sta_element ()
-
-# class StationXMLNetworkCombinerTask
 
 # -----------------------------------------------------------------------------
 class SplitAndAlignTask(TaskBase):
@@ -674,8 +608,6 @@ class SplitAndAlignTask(TaskBase):
 
         self._size = 0
 
-    # __init__ ()
-
     @property
     def stream_epochs(self):
         return self._stream_epochs
@@ -697,11 +629,9 @@ class SplitAndAlignTask(TaskBase):
             # insert at current position
             idx = self._stream_epochs.index(stream_epoch)
             self._stream_epochs = (self._stream_epochs[:idx] + stream_epochs +
-                                   self._stream_epochs[idx+1:])
+                                   self._stream_epochs[idx + 1:])
 
         return stream_epochs
-
-    # split ()
 
     def _handle_error(self, err):
         if self._keep_tempfiles not in (KeepTempfiles.ALL,
@@ -716,8 +646,6 @@ class SplitAndAlignTask(TaskBase):
                             warning=str(err), data=err.response.data,
                             extras={'type_task': self._TYPE})
 
-    # _handle_error ()
-
     def _run(self, stream_epoch):
         """
         Template method.
@@ -728,8 +656,6 @@ class SplitAndAlignTask(TaskBase):
     @with_ctx_guard
     def __call__(self):
         return self._run(self._stream_epoch_orig)
-
-# class SplitAndAlignTask
 
 
 class RawSplitAndAlignTask(SplitAndAlignTask):
@@ -760,7 +686,7 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                 with open(self.path_tempfile, 'rb') as ifd:
                     ifd.seek(-self.MSEED_RECORD_SIZE, 2)
                     last_chunk = ifd.read(self.MSEED_RECORD_SIZE)
-            except (OSError, IOError, ValueError) as err:
+            except (OSError, IOError, ValueError):
                 pass
 
             self.logger.debug(
@@ -803,10 +729,6 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
                 return Result.ok(data=self.path_tempfile, length=self._size,
                                  extras={'type_task': self._TYPE})
-
-    # _run ()
-
-# class RawSplitAndAlignTask
 
 
 class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
@@ -904,9 +826,6 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                 return Result.ok(data=self.path_tempfile, length=self._size,
                                  extras={'type_task': self._TYPE})
 
-    # _run ()
-
-# class WFCatalogSplitAndAlignTask
 
 # -----------------------------------------------------------------------------
 class RawDownloadTask(TaskBase):
@@ -934,13 +853,11 @@ class RawDownloadTask(TaskBase):
         self.path_tempfile = get_temp_filepath()
         self._size = 0
 
-    # __init__ ()
-
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
                    self.path_tempfile))
@@ -969,8 +886,6 @@ class RawDownloadTask(TaskBase):
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
 
-    # __call__ ()
-
     def _handle_error(self, err):
         if self._keep_tempfiles not in (KeepTempfiles.ALL,
                                         KeepTempfiles.ON_ERRORS):
@@ -989,7 +904,7 @@ class RawDownloadTask(TaskBase):
                                     warning=type(err),
                                     data=str(err),
                                     extras={'type_task': self._TYPE,
-                                            'req_handler': \
+                                            'req_handler':
                                             self._request_handler})
 
         except Exception as err:
@@ -1008,9 +923,6 @@ class RawDownloadTask(TaskBase):
                                 warning=str(err), data=data,
                                 extras={'type_task': self._TYPE,
                                         'req_handler': self._request_handler})
-    # _handle_error ()
-
-# class RawDownloadTask
 
 
 class StationTextDownloadTask(RawDownloadTask):
@@ -1024,7 +936,7 @@ class StationTextDownloadTask(RawDownloadTask):
     def __call__(self):
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
                    self.path_tempfile))
@@ -1054,10 +966,6 @@ class StationTextDownloadTask(RawDownloadTask):
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
 
-    # __call__ ()
-
-# class StationTextDownloadTask
-
 
 class StationXMLDownloadTask(RawDownloadTask):
     """
@@ -1086,7 +994,7 @@ class StationXMLDownloadTask(RawDownloadTask):
             raise self.MissingContextLock
 
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.\
+            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
                    self.path_tempfile))
@@ -1118,10 +1026,3 @@ class StationXMLDownloadTask(RawDownloadTask):
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
-
-    # __call__ ()
-
-# class StationXMLDownloadTask
-
-
-# ---- END OF <task.py> ----

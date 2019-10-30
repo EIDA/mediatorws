@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <misc.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices .
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/07/31        V0.1    Daniel Armbruster
-#
-# =============================================================================
 """
 Federator misc related test facilities.
 """
@@ -52,8 +26,6 @@ class ElementsEqualTestCase(unittest.TestCase):
 
         self.assertTrue(elements_equal(t, t_other))
 
-    # test_equal ()
-
     def test_unequal(self):
         t = etree.parse(self.ifd).getroot()
         t[:] = sorted(t, key=lambda c: c.tag)
@@ -62,8 +34,6 @@ class ElementsEqualTestCase(unittest.TestCase):
         t_other[:] = t[1:]
 
         self.assertFalse(elements_equal(t, t_other))
-
-    # test_unequal ()
 
     def test_equal_with_exclude_recursive(self):
         t = etree.parse(self.ifd).getroot()
@@ -75,11 +45,9 @@ class ElementsEqualTestCase(unittest.TestCase):
         self.assertTrue(
             elements_equal(
                 t, t_other,
-                exclude_tags=['{}{}'.format(ns, 'Description') for ns in \
+                exclude_tags=['{}{}'.format(ns, 'Description') for ns in
                               settings.STATIONXML_NAMESPACES],
                 recursive=True))
-
-    # test_equal_with_exclude_recursive ()
 
     def test_unequal_with_exclude_nonrecursive(self):
         t = etree.parse(self.ifd).getroot()
@@ -91,17 +59,11 @@ class ElementsEqualTestCase(unittest.TestCase):
         self.assertFalse(
             elements_equal(
                 t, t_other,
-                exclude_tags=['{}{}'.format(ns, 'Description') for ns in \
+                exclude_tags=['{}{}'.format(ns, 'Description') for ns in
                               settings.STATIONXML_NAMESPACES],
                 recursive=False))
-
-    # test_unequal_with_exclude_nonrecursive ()
-
-# class ElementsEqualTestCasel
 
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     unittest.main()
-
-# ---- END OF <misc.py> ----

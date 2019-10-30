@@ -184,7 +184,7 @@ if 'test' == sys.argv[1]:
     # remove testsuite duplicates
     try:
         idx = sys.argv.index('--addopts')
-        pytest_args = sys.argv[idx+1]
+        pytest_args = sys.argv[idx + 1]
         _test_suites = [suite for suite in _test_suites
                         if suite not in pytest_args.split(' ')]
     except IndexError:

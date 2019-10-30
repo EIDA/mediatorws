@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <request.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA webservices.
-#
-# EIDA webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/06/18        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA webservice request handling facilities.
 """
@@ -44,8 +19,10 @@ class RequestsError(requests.exceptions.RequestException, Error):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class ClientError(RequestsError):
     """Response code not OK ({})."""
+
 
 class NoContent(RequestsError):
     """The request '{}' is returning no content ({})."""
@@ -79,7 +56,6 @@ def binary_request(request,
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
 
-# binary_request ()
 
 @contextlib.contextmanager
 def raw_request(request,
@@ -109,7 +85,6 @@ def raw_request(request,
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
 
-# raw_request ()
 
 def stream_request(request,
                    timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
@@ -166,7 +141,3 @@ def stream_request(request,
         raise err
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
-
-# binary_stream_request ()
-
-# ---- END OF <request.py> ----

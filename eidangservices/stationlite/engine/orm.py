@@ -1,28 +1,4 @@
-# -----------------------------------------------------------------------------
-# This is <orm.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/02/12        V0.1    Daniel Armbruster
-# =============================================================================
+# -*- coding: utf-8 -*-
 """
 EIDA NG stationlite ORM.
 """
@@ -41,6 +17,7 @@ LENGTH_LOCATION_CODE = 2
 LENGTH_STD_CODE = 32
 LENGTH_URL = 256
 
+
 # -----------------------------------------------------------------------------
 class Base:
 
@@ -49,8 +26,6 @@ class Base:
         return cls.__name__.lower()
 
     oid = Column(Integer, primary_key=True)
-
-# class Base
 
 
 class EpochMixin:
@@ -63,8 +38,6 @@ class EpochMixin:
     def endtime(cls):
         return Column(DateTime, index=True)
 
-# class EpochMixin
-
 
 class LastSeenMixin:
 
@@ -72,8 +45,6 @@ class LastSeenMixin:
     def lastseen(cls):
         return Column(DateTime, default=datetime.datetime.utcnow,
                       onupdate=datetime.datetime.utcnow)
-
-# class LastSeenMixin
 
 
 # -----------------------------------------------------------------------------
@@ -92,8 +63,6 @@ class Network(ORMBase):
     def __repr__(self):
         return '<Network(code=%s)>' % self.name
 
-# class Network
-
 
 class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
@@ -102,8 +71,6 @@ class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
     description = Column(Unicode(LENGTH_DESCRIPTION))
 
     network = relationship('Network', back_populates='network_epochs')
-
-# class NetworkEpoch
 
 
 class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
@@ -131,8 +98,6 @@ class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
                 (self.network, self.station, self.channel,
                  self.locationcode, self.starttime, self.endtime))
 
-# class ChannelEpoch
-
 
 class Station(ORMBase):
 
@@ -146,8 +111,6 @@ class Station(ORMBase):
     def __repr__(self):
         return '<Station(code=%s)>' % self.name
 
-# class Station
-
 
 class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
@@ -158,8 +121,6 @@ class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
     latitude = Column(Float, nullable=False, index=True)
 
     station = relationship('Station', back_populates='station_epochs')
-
-# class StationEpoch
 
 
 class Routing(EpochMixin, LastSeenMixin, ORMBase):
@@ -176,8 +137,6 @@ class Routing(EpochMixin, LastSeenMixin, ORMBase):
         return ('<Routing(url=%s, starttime=%r, endtime=%r)>' %
                 (self.endpoint.url, self.starttime, self.endtime))
 
-# class Routing
-
 
 class Endpoint(ORMBase):
 
@@ -193,8 +152,6 @@ class Endpoint(ORMBase):
     def __repr__(self):
         return '<Endpoint(url=%s)>' % self.url
 
-# class Endpoint
-
 
 class Service(ORMBase):
 
@@ -204,8 +161,6 @@ class Service(ORMBase):
 
     def __repr__(self):
         return '<Service(name=%s)>' % self.name
-
-# class Service
 
 
 class StreamEpochGroup(ORMBase):
@@ -218,7 +173,6 @@ class StreamEpochGroup(ORMBase):
     def __repr__(self):
         return '<StreamEpochGroup(code=%s)>' % self.name
 
-# class StreamEpochGroup
 
 # TODO(damb): Find a way to map sncl.StreamEpoch to orm.StreamEpoch more
 # elegantly
@@ -248,8 +202,3 @@ class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
                 'location=%r, starttime=%r, endtime=%r)>' %
                 (self.network, self.station, self.channel, self.location,
                  self.starttime, self.endtime))
-
-# class StreamEpoch
-
-
-# ---- END OF <orm.py> ----

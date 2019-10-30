@@ -1,30 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <stationlite.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/15        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Implementation of a *StationLite* resource.
 """
@@ -51,15 +25,15 @@ from eidangservices.stationlite.server.stream import OutputStream
 
 
 class StationLiteResource(Resource):
-    """Service query for routing."""
+    """
+    Service query for routing.
+    """
 
     LOGGER = 'flask.app.stationlite.stationlite_resource'
 
     def __init__(self):
         super(StationLiteResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
-
-    # __init__ ()
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
@@ -85,8 +59,6 @@ class StationLiteResource(Resource):
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
 
-    # get ()
-
     @fdsnws.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
         eidangws.utils.schema.ManyStreamEpochSchema(
@@ -111,15 +83,11 @@ class StationLiteResource(Resource):
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
 
-    # post ()
-
     def _handle_nodata(self, args):
         raise FDSNHTTPError.create(
             int(
                 args.get('nodata',
                          settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
-
-    # _handle_204 ()
 
     def _process_request(self, args, stream_epochs):
         # resolve virtual network streamepochs
@@ -183,9 +151,3 @@ class StationLiteResource(Resource):
 
         ostream = OutputStream.create(args['format'], routes=routes)
         return str(ostream)
-
-    # _process_request ()
-
-# class StationLiteResource
-
-# ---- END OF <stationlite.py> ----

@@ -1,27 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <app.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# -----------------------------------------------------------------------------
 """
 Launch EIDA NG Federator.
 """
@@ -76,16 +54,12 @@ def thread_config(config_dict):
 
     return retval
 
-# thread_config ()
-
 
 def keeptempfile_config(arg):
     """
     Populate the corresponding :code:`enum` value from the CLI configuration.
     """
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
-
-# keeptempfile_config ()
 
 
 # -----------------------------------------------------------------------------
@@ -112,7 +86,7 @@ class FederatorWebserviceBase(App):
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
         parser.add_argument('-R', '--routing-url', type=str, metavar='URL',
-                            default=settings.\
+                            default=settings.
                             EIDA_FEDERATOR_DEFAULT_ROUTING_URL,
                             dest='routing',
                             # TODO(damb): Perform integrity check.
@@ -139,7 +113,7 @@ class FederatorWebserviceBase(App):
                             help='directory for temp files')
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
-                                [str(c).replace('KeepTempfiles.', '').lower().\
+                                [str(c).replace('KeepTempfiles.', '').lower().
                                     replace('_', '-') for c in KeepTempfiles]),
                             default='none', type=str,
                             help=('Keep temporary files the service is '
@@ -147,8 +121,6 @@ class FederatorWebserviceBase(App):
                                   '(choices: {%(choices)s})'))
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -182,8 +154,6 @@ class FederatorWebserviceBase(App):
             exit_code = ExitCodes.EXIT_ERROR
 
         sys.exit(exit_code)
-
-    # run ()
 
     def setup_app(self):
         """
@@ -258,10 +228,6 @@ class FederatorWebserviceBase(App):
         api.init_app(app)
         return app
 
-    # setup_app()
-
-# class FederatorWebserviceBase
-
 
 class FederatorWebserviceTest(FederatorWebserviceBase):
     """
@@ -279,13 +245,11 @@ class FederatorWebserviceTest(FederatorWebserviceBase):
         """
         parser = super().build_parser(parents)
         parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.\
+                            default=settings.
                             EIDA_FEDERATOR_DEFAULT_SERVER_PORT,
                             help='server port')
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -317,10 +281,6 @@ class FederatorWebserviceTest(FederatorWebserviceBase):
 
         sys.exit(exit_code)
 
-    # run ()
-
-# class FederatorWebserviceTest
-
 
 FederatorWebservice = FederatorWebserviceBase
 
@@ -342,8 +302,6 @@ def _main(app):
 
     return app.run()
 
-# main ()
-
 
 def main_test():
     return _main(FederatorWebserviceTest(log_id='FED'))
@@ -359,6 +317,3 @@ main = main_prod
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     main_test()
-
-
-# ---- END OF <app.py> ----
