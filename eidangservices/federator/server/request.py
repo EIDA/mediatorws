@@ -5,6 +5,7 @@ EIDA federator request handling facilities
 
 import functools
 
+from copy import deepcopy
 from urllib.parse import urlparse, urlunparse
 
 import requests
@@ -126,7 +127,7 @@ class RoutingRequestHandler(RequestHandlerBase):
     def payload_get(self):
         se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
 
-        qp = self._query_params
+        qp = deepcopy(self._query_params)
         qp.update(utils.convert_sncl_dicts_to_query_params(
                   se_schema.dump(self._stream_epochs)))
         return qp
