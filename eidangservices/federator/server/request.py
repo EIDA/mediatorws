@@ -19,12 +19,6 @@ class RequestHandlerBase:
     """
     RequestHandler base class implementation. Provides bulk request handling
     facilities.
-
-    :param str url: URL
-    :param dict query_params: Dictionary of query parameters
-    :param list stream_epochs: List of
-        :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
-
     """
 
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
@@ -33,6 +27,14 @@ class RequestHandlerBase:
                "Accept-Encoding": ""}
 
     def __init__(self, url, query_params={}, stream_epochs=[]):
+        """
+        :param url: URL
+        :type url: str or bytes
+        :param dict query_params: Dictionary of query parameters
+        :param list stream_epochs: List of
+            :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
+        """
+
         if isinstance(url, bytes):
             url = url.decode('utf-8')
         url = urlparse(url)
