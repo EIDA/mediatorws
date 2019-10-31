@@ -377,8 +377,7 @@ class RawRequestProcessor(RequestProcessor):
         """
         routes = demux_routes(self._route())
 
-        pool_size = (len(routes) if
-                     len(routes) < self.POOL_SIZE else self.POOL_SIZE)
+        pool_size = min(len(routes), self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
@@ -676,8 +675,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
         """
         routes = self._route()
 
-        pool_size = (len(routes) if
-                     len(routes) < self.POOL_SIZE else self.POOL_SIZE)
+        pool_size = min(len(routes), self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.Pool(processes=pool_size)
@@ -826,8 +824,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
         """
         routes = self._route()
 
-        pool_size = (len(routes) if
-                     len(routes) < self.POOL_SIZE else self.POOL_SIZE)
+        pool_size = min(len(routes), self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
@@ -947,8 +944,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
         """
         routes = demux_routes(self._route())
 
-        pool_size = (len(routes) if
-                     len(routes) < self.POOL_SIZE else self.POOL_SIZE)
+        pool_size = min(len(routes), self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)

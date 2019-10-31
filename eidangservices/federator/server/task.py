@@ -225,10 +225,8 @@ class CombinerTask(TaskBase):
         if not self.query_params.get('format'):
             raise KeyError("Missing keyword parameter: 'format'.")
 
-        self._num_workers = (
-            len(routes) if len(routes) <
-            kwargs.get('max_threads', self.MAX_THREADS_DOWNLOADING)
-            else
+        self._num_workers = min(
+            len(routes),
             kwargs.get('max_threads', self.MAX_THREADS_DOWNLOADING))
         self._pool = None
 
