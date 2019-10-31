@@ -940,8 +940,9 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
     def _request(self):
         """
-        process a federated fdsnws-station text request
+        Process a federated eidaws-wfcatalog request.
         """
+
         routes = demux_routes(self._route())
 
         pool_size = min(len(routes), self.POOL_SIZE)
