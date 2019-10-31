@@ -136,7 +136,7 @@ class RequestProcessor:
         """Factory method for RequestProcessor object instances.
 
         :param str service: Service identifier.
-        :param dict kwargs: A dictionary passed to the combiner constructors.
+        :param dict kwargs: A dictionary passed to processor constructors.
         :return: A concrete :py:class:`RequestProcessor` implementation
         :rtype: :py:class:`RequestProcessor`
         :raises KeyError: if an invalid format string was passed
