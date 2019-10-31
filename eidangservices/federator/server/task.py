@@ -132,7 +132,7 @@ class TaskBase:
     """
     Base class for tasks.
 
-    :param str logger: Name of the logger to be aqucired
+    :param str logger: Name of the logger to be acquired
     :param keep_tempfiles: Flag how temporary files should be treated
     :type keep_tempfiles: :py:class:`KeepTempfiles`
     """
