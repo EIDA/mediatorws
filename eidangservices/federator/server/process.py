@@ -543,8 +543,7 @@ class StationRequestProcessor(RequestProcessor):
         # NOTE(damb): We group routes by network code, first. This later will
         # enable us to easier provide station metadata combination for
         # distributed physical networks. However, currently we exclusively
-        # combine station-xml. For station-text we issue still granular
-        # download tasks.
+        # combine station-xml.
         # Afterwards, grouped routes are multiplex by network code, again.
 
         retval = collections.defaultdict(list)
