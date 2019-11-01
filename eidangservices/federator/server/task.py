@@ -311,6 +311,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     def __init__(self, routes, query_params, **kwargs):
 
         nets = set([se.network for route in routes for se in route.streams])
+
+        # TODO(damb): Use assert instead
         if len(nets) != 1:
             raise ValueError(
                 'Routes must belong exclusively to a single '
@@ -318,8 +320,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
-        self._network_elements = []
 
+        self._network_elements = []
         self.path_tempfile = None
 
     @property
@@ -841,12 +843,14 @@ class RawDownloadTask(TaskBase):
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
+        # TODO TODO TODO
         self.chunk_size = (self.CHUNK_SIZE
                            if kwargs.get('chunk_size') is None
                            else kwargs.get('chunk_size'))
         self.decode_unicode = (self.DECODE_UNICODE
                                if kwargs.get('decode_unicode') is None
                                else kwargs.get('decode_unicode'))
+        self._http_get = kwargs.get('http_get', False)
 
         self.path_tempfile = get_temp_filepath()
         self._size = 0
@@ -860,10 +864,12 @@ class RawDownloadTask(TaskBase):
                    self._request_handler.stream_epochs,
                    self.path_tempfile))
 
+        req = (self._request_handler.get()
+               if self._http_get else self._request_handler.post())
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 for chunk in stream_request(
-                        self._request_handler.post(),
+                        req,
                         chunk_size=self.chunk_size,
                         method='raw',
                         decode_unicode=self.decode_unicode):
