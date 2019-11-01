@@ -178,8 +178,8 @@ class RequestProcessor:
         Create the routing table using the routing service provided.
         """
         routing_request = RoutingRequestHandler(
-            self._routing_service, self.query_params,
-            self.stream_epochs)
+            self._routing_service, self.stream_epochs,
+            self.query_params)
 
         req = (routing_request.post() if self.post else routing_request.get())
         self.logger.info("Fetching routes from %s" % routing_request.url)
