@@ -683,8 +683,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
         super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
 
         self._level = query_params.get('level')
-        if self._level is None:
-            raise RequestProcessorError("Missing parameter: 'level'.")
+        assert self._level, "Missing parameter: 'level'"
 
     @property
     def POOL_SIZE(self):
