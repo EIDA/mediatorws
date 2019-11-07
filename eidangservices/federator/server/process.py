@@ -75,6 +75,8 @@ class RequestProcessor:
         :type request_strategy: :py:class:`RequestStrategyBase`
         :param keep_tempfiles: Flag indicating how to treat temporary files
         :type keep_tempfiles: :py:class:`KeepTempfiles`
+        :param str http_method: HTTP method used when issuing requests to
+            endpoints
         """
 
         self.mimetype = mimetype
@@ -112,6 +114,8 @@ class RequestProcessor:
         self._strategy = self._strategy(
             context=self._ctx, default_endtime=self.DEFAULT_ENDTIME)
 
+        self._http_method = kwargs.get(
+            'http_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
         self._nodata = int(self.query_params.get(
             'nodata', settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE))
 
@@ -332,7 +336,8 @@ class RawRequestProcessor(RequestProcessor):
         self._results = self._strategy.request(
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
-            keep_tempfiles=self._keep_tempfiles)
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
     def _handle_413(self, result):
         self.logger.info(
@@ -568,7 +573,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
             self._pool, tasks={'default': StationXMLDownloadTask,
                                'combining': StationXMLNetworkCombinerTask},
             query_params=self.query_params,
-            keep_tempfiles=self._keep_tempfiles)
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
         self._pool.close()
 
@@ -701,7 +707,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
         self._results = self._strategy.request(
             self._pool, tasks={'default': StationTextDownloadTask},
             query_params=self.query_params,
-            keep_tempfiles=self._keep_tempfiles)
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
         self._pool.close()
 
@@ -811,7 +818,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
         self._results = self._strategy.request(
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
-            keep_tempfiles=self._keep_tempfiles)
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
     def _handle_413(self, result):
         self.logger.info(

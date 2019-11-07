@@ -569,6 +569,9 @@ EIDA_FEDERATOR_THREAD_CONFIG = {
 EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
 EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
+
+# default HTTP request method when issuing requests to endpoint datacenters
+EIDA_FEDERATOR_DEFAULT_HTTP_METHOD = 'POST'
 EIDA_FEDERATOR_HIDDEN_CTX_LOCKS = True
 
 # -----------------------------------------------------------------------------

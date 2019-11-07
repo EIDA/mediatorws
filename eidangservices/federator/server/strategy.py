@@ -279,6 +279,13 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
 
         default_task = self._get_task_by_kw(tasks, 'default')
 
+        http_method = kwargs.pop(
+            'http_method',
+            settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+        if http_method == 'GET':
+            self.logger.debug(
+                'Force HTTP POST endpoint requests.')
+
         retval = []
         for net, bulk_routes in self._routes.items():
             self.logger.debug(
@@ -292,13 +299,13 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
                 ctx = Context(root_only=True)
                 self._ctx.append(ctx)
 
+                # NOTE(damb): For bulk requests there's only http_method='POST'
                 t = default_task(
                     BulkFdsnRequestHandler(
                         bulk_route.url,
                         stream_epochs=bulk_route.streams,
                         query_params=query_params),
-                    context=ctx,
-                    **kwargs)
+                    context=ctx, http_method='POST', **kwargs)
                 result = pool.apply_async(t)
                 retval.append(result)
 
@@ -341,6 +348,10 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
         default_task = self._get_task_by_kw(tasks, 'default')
         combining_task = self._get_task_by_kw(tasks, 'combining')
 
+        http_method = kwargs.pop(
+            'http_method',
+            settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+
         retval = []
 
         for net, routes in self._routes.items():
@@ -349,23 +360,27 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
             self._ctx.append(ctx)
 
             if len(routes) == 1:
+                if http_method == 'GET':
+                    self.logger.debug(
+                        'Force HTTP POST endpoint requests.')
+
                 self.logger.debug(
                     'Creating {!r} for net={!r} ...'.format(
                         default_task, net))
+                # NOTE(damb): For bulk requests there's only http_method='POST'
                 t = default_task(
                     BulkFdsnRequestHandler(
                         routes[0].url, stream_epochs=routes[0].streams,
                         query_params=query_params),
-                    context=ctx,
-                    name=net,
-                    **kwargs)
+                    context=ctx, name=net, http_method='POST', **kwargs)
 
             elif len(routes) > 1:
                 self.logger.debug(
                     'Creating {!r} for net={!r} ...'.format(
                         combining_task, net))
                 t = combining_task(
-                    routes, query_params, name=net, context=ctx, **kwargs)
+                    routes, query_params, name=net, context=ctx,
+                    http_method=http_method, **kwargs)
             else:
                 raise RoutingError('Missing routes.')
 
