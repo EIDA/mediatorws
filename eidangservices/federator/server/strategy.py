@@ -265,7 +265,7 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
         network codes.
         """
         # NOTE(damb): We firstly group routes by network code. Afterwards,
-        # grouped routes are multiplex by network code, again.
+        # grouped routes are multiplexed by network code, again.
 
         self._routes = _mux_routes(super()._route(req, **kwargs))
         return len(self._routes)
