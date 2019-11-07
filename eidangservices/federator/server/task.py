@@ -855,12 +855,9 @@ class RawDownloadTask(TaskBase):
         super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
         # TODO TODO TODO
-        self.chunk_size = (self.CHUNK_SIZE
-                           if kwargs.get('chunk_size') is None
-                           else kwargs.get('chunk_size'))
-        self.decode_unicode = (self.DECODE_UNICODE
-                               if kwargs.get('decode_unicode') is None
-                               else kwargs.get('decode_unicode'))
+        self.chunk_size = kwargs.get('chunk_size', self.CHUNK_SIZE)
+        self.decode_unicode = kwargs.get('decode_unicode', self.DECODE_UNICODE)
+
         self._http_get = kwargs.get('http_get', False)
 
         self.path_tempfile = get_temp_filepath()
@@ -1004,8 +1001,8 @@ class StationXMLDownloadTask(RawDownloadTask):
     def __init__(self, request_handler, **kwargs):
         super().__init__(request_handler, **kwargs)
         self.network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
-        self.name = ('{}-{}'.format(type(self).__name__, kwargs.get('name')) if
-                     kwargs.get('name') else type(self).__name__)
+        self.name = '{}-{}'.format(type(self).__name__,
+                                   kwargs.get('name', 'UNKOWN'))
 
     @catch_default_task_exception
     @with_ctx_guard

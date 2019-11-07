@@ -90,9 +90,7 @@ class RequestProcessor:
         # TODO(damb): Pass as ctor arg.
         self._routing_service = current_app.config['ROUTING_SERVICE']
 
-        self._logger = logging.getLogger(
-            self.LOGGER if kwargs.get('logger') is None
-            else kwargs.get('logger'))
+        self._logger = logging.getLogger(kwargs.get('logger', self.LOGGER))
 
         self._ctx = kwargs.get('context', Context(uuid.uuid4()))
         if not self._ctx.locked:
