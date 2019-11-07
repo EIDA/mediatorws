@@ -1,0 +1,2187 @@
+{
+	"info": {
+		"_postman_id": "5b26c816-7092-458f-996e-6ab39f135a13",
+		"name": "EIDA/federator",
+		"description": "API and integration tests for the EIDA federator webservice (fdsnws-station endpoint).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "fdsnws-station",
+			"item": [
+				{
+					"name": "version",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ec8be5c7-b561-4351-af21-690e8249140c",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+									"    pm.response.to.have.header(\"Content-Length\");",
+									"    pm.response.to.be.header(\"Content-Length\", \"5\");",
+									"});",
+									"",
+									"pm.test(\"Body is correct\", function () {",
+									"    pm.response.to.have.body(\"1.1.0\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/version",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"version"
+							]
+						},
+						"description": "validate version"
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'foo'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/fdsnws/station/1/query?foo=bar`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?foo=bar",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "foo",
+									"value": "bar"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result = ",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"{'_schema': ['No StreamEpoch defined.']}",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/fdsnws/station/1/query",
+									"",
+									"Request Submitted:`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "text/plain",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "foo=bar",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&level=network&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var regex = /^(#Network\\|Description\\|StartTime\\|EndTime\\|TotalStations)\\n((\\w+\\|[\\w\\s]+\\|\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\|(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?\\|\\d+)\\n)+/gm;",
+									"    pm.expect(pm.response.text()).to.match(regex);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&level=network&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Single node, single network\n\nformat=text"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&level=network&format=xml",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/xml\");",
+									"});",
+									"",
+									"var Ajv = require('ajv');",
+									"var ajv = new Ajv({logger: console});",
+									"var schema = {",
+									"    \"properties\": {",
+									"        \"FDSNStationXML\": {",
+									"            \"type\": \"object\",",
+									"            \"properties\": {",
+									"                \"Network\": {",
+									"                    \"type\": \"object\",",
+									"                    \"properties\": {",
+									"                        \"$\": {",
+									"                            \"type\": \"object\",",
+									"                            \"properties\": {",
+									"                                \"code\": { \"type\": \"string\" },",
+									"                                \"startDate\": {",
+									"                                    \"type\": \"string\",",
+									"                                    // \"format\": \"date-time\"",
+									"                                },",
+									"                                \"restrictedStatus\": {",
+									"                                    \"type\": \"string\",",
+									"                                    \"pattern\": \"^(?:open|closed)$\"",
+									"                                }",
+									"                            },",
+									"                            \"required\": [\"code\", \"startDate\"]",
+									"                        },",
+									"                        \"Description\": { \"type\": \"string\" }",
+									"                    },",
+									"                },",
+									"                \"Source\": { ",
+									"                    \"type\": \"string\",",
+									"                    \"pattern\": \"^EIDA$\"",
+									"                },",
+									"                \"Created\": { ",
+									"                    \"type\": \"string\",",
+									"                    //\"format\": \"date-time\"",
+									"                }",
+									"            }",
+									"        }",
+									"    }",
+									"};",
+									"",
+									"pm.test(\"Body matches schema\", function () {",
+									"    // TODO(damb): Body matches schema even though the content is plain ASCII.",
+									"    // Note(damb): Does not correctly check \"format\": \"date-time\".",
+									"    var jsonObj = xml2Json(pm.response.text());",
+									"    // console.log(jsonObj);",
+									"    ajv.validate(schema, jsonObj)",
+									"    // console.log(ajv.errors);",
+									"    pm.expect(ajv.validate(schema, jsonObj)).to.be.true;",
+									"",
+									"",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&level=network&format=xml",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "xml"
+								}
+							]
+						},
+						"description": "Single node, single network\n\nformat=xml"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH,C4&level=network&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var regex = /^(#Network\\|Description\\|StartTime\\|EndTime\\|TotalStations)\\n((\\w+\\|[\\w\\s]+\\|\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\|(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?\\|\\d+)\\n)+/gm;",
+									"    pm.expect(pm.response.text()).to.match(regex);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,C4&level=network&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,C4"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Single node, multi networks\n\nformat=text"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH,C4&level=network&format=xml",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/xml\");",
+									"});",
+									"",
+									"var Ajv = require('ajv');",
+									"var ajv = new Ajv({logger: console});",
+									"var schema = {",
+									"    \"properties\": {",
+									"        \"FDSNStationXML\": {",
+									"            \"type\": \"object\",",
+									"            \"properties\": {",
+									"                \"Network\": {",
+									"                    \"type\": \"array\",",
+									"                     \"maxItems\": 2,",
+									"                     \"minItems\": 2,",
+									"                     \"uniqueItems\": true",
+									"                },",
+									"                \"Source\": { ",
+									"                    \"type\": \"string\",",
+									"                    \"pattern\": \"^EIDA$\"",
+									"                },",
+									"                \"Created\": { ",
+									"                    \"type\": \"string\",",
+									"                    //\"format\": \"date-time\"",
+									"                }",
+									"            }",
+									"        }",
+									"    }",
+									"};",
+									"",
+									"pm.test(\"Body matches schema\", function () {",
+									"    var jsonObj = xml2Json(pm.response.text());",
+									"    console.log(jsonObj);",
+									"    ajv.validate(schema, jsonObj)",
+									"    console.log(ajv.errors);",
+									"    pm.expect(ajv.validate(schema, jsonObj)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,C4&level=network&format=xml",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,C4"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "xml"
+								}
+							]
+						},
+						"description": "Single node, multi networks\n\nformat=xml"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH,GR&level=network&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var regex = /^(#Network\\|Description\\|StartTime\\|EndTime\\|TotalStations)\\n((\\w+\\|[\\w\\s]+\\|\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\|(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?\\|\\d+)\\n)+/gm;",
+									"    pm.expect(pm.response.text()).to.match(regex);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,GR&level=network&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,GR"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Multi node, multi networks\n\nformat=text"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH,GR&level=network&format=xml",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/xml\");",
+									"});",
+									"",
+									"var Ajv = require('ajv');",
+									"var ajv = new Ajv({logger: console});",
+									"var schema = {",
+									"    \"properties\": {",
+									"        \"FDSNStationXML\": {",
+									"            \"type\": \"object\",",
+									"            \"properties\": {",
+									"                \"Network\": {",
+									"                    \"type\": \"array\",",
+									"                     \"maxItems\": 2,",
+									"                     \"minItems\": 2,",
+									"                     \"uniqueItems\": true",
+									"                },",
+									"                \"Source\": { ",
+									"                    \"type\": \"string\",",
+									"                    \"pattern\": \"^EIDA$\"",
+									"                },",
+									"                \"Created\": { ",
+									"                    \"type\": \"string\",",
+									"                    //\"format\": \"date-time\"",
+									"                }",
+									"            }",
+									"        }",
+									"    }",
+									"};",
+									"",
+									"pm.test(\"Body matches schema\", function () {",
+									"    var jsonObj = xml2Json(pm.response.text());",
+									"    console.log(jsonObj);",
+									"    ajv.validate(schema, jsonObj)",
+									"    console.log(ajv.errors);",
+									"    pm.expect(ajv.validate(schema, jsonObj)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,GR&level=network&format=xml",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,GR"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "xml"
+								}
+							]
+						},
+						"description": "Multi node, multi networks\n\nformat=xml"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI&level=station&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime",
+									"CH|HASLI|46.75681|8.15117|1280.0|Hasliberg, BE|1999-01-19T00:00:00|",
+									"`;",
+									"",
+									"    pm.response.to.have.body(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&sta=HASLI&level=station&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Single node, single network, single station\n\nformat=text"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI&level=station&format=xml",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/xml\");",
+									"});",
+									"",
+									"var Ajv = require('ajv');",
+									"var ajv = new Ajv({logger: console});",
+									"var schema = {",
+									"    \"properties\": {",
+									"        \"FDSNStationXML\": {",
+									"            \"type\": \"object\",",
+									"            \"properties\": {",
+									"                \"Network\": {",
+									"                    \"type\": \"object\",",
+									"                    \"properties\": {",
+									"                        \"$\": {",
+									"                            \"type\": \"object\",",
+									"                            \"properties\": {",
+									"                                \"code\": { \"type\": \"string\" },",
+									"                                \"startDate\": {",
+									"                                    \"type\": \"string\",",
+									"                                    // \"format\": \"date-time\"",
+									"                                },",
+									"                                \"restrictedStatus\": {",
+									"                                    \"type\": \"string\",",
+									"                                    \"pattern\": \"^(?:open|closed)$\"",
+									"                                }",
+									"                            },",
+									"                            \"required\": [\"code\", \"startDate\"]",
+									"                        },",
+									"                        \"Description\": { \"type\": \"string\" },",
+									"                        \"Station\": {",
+									"                            \"type\": \"object\",",
+									"                            \"properties\": {",
+									"                                \"$\": {",
+									"                                    \"type\": \"object\",",
+									"                                    \"properties\": {",
+									"                                        \"code\": { \"type\": \"string\" },",
+									"                                        \"startDate\": { ",
+									"                                            \"type\": \"string\",",
+									"                                            //\"format\": \"date-time\"",
+									"                                        },",
+									"                                        \"restricedStatus\": { ",
+									"                                            \"type\": \"string\",",
+									"                                            \"pattern\": \"^(?:open|closed)$\"",
+									"                                        }",
+									"                                    },",
+									"                                    \"required\": [\"code\", \"startDate\"]",
+									"                                },",
+									"                                \"Latitude\": { \"type\":  \"string\" },",
+									"                                \"Longitude\": { \"type\": \"string\" },",
+									"                                \"Elevation\": { \"type\": \"string\" },",
+									"                                \"CreationDate\": { ",
+									"                                    \"type\": \"string\",",
+									"                                    //\"format\": \"date-time\"",
+									"                                },",
+									"                                \"Site\": {",
+									"                                    \"type\": \"object\",",
+									"                                    \"properties\": {",
+									"                                        \"Name\": {",
+									"                                            \"type\": \"string\",",
+									"                                            \"pattern\": \"^Hasliberg, BE$\"",
+									"                                        },",
+									"                                        \"Country\": {",
+									"                                            \"type\": \"string\",",
+									"                                            \"pattern\": \"^Switzerland$\"",
+									"                                        }",
+									"                                    }",
+									"                                }",
+									"                            }",
+									"                        }",
+									"                    }",
+									"                },",
+									"                \"Source\": { ",
+									"                    \"type\": \"string\",",
+									"                    \"pattern\": \"^EIDA$\"",
+									"                },",
+									"                \"Created\": { ",
+									"                    \"type\": \"string\",",
+									"                    //\"format\": \"date-time\"",
+									"                }",
+									"            }",
+									"        }",
+									"    }",
+									"};",
+									"",
+									"pm.test(\"Body matches schema\", function () {",
+									"    // TODO(damb): Body matches schema even though the content is plain ASCII.",
+									"    // Note(damb): Does not correctly check \"format\": \"date-time\".",
+									"    var jsonObj = xml2Json(pm.response.text());",
+									"    //console.log(jsonObj);",
+									"    ajv.validate(schema, jsonObj)",
+									"    //console.log(ajv.errors);",
+									"    pm.expect(ajv.validate(schema, jsonObj)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&sta=HASLI&level=station&format=xml",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "format",
+									"value": "xml"
+								}
+							]
+						},
+						"description": "Single node, single network, single station\n\nformat=xml"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI,BALST,DAVOX&level=station&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime",
+									"CH|BALST|47.33578|7.69498|863.0|Balsthal, SO|2000-06-16T00:00:00|",
+									"CH|DAVOX|46.7805|9.87952|1830.0|Davos, Dischmatal, GR|2002-07-24T00:00:00|",
+									"CH|HASLI|46.75681|8.15117|1280.0|Hasliberg, BE|1999-01-19T00:00:00|",
+									"`;",
+									"",
+									"    pm.response.to.have.body(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&sta=HASLI,BALST,DAVOX&level=station&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI,BALST,DAVOX"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Single node, single network, multi stations"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI,BALST,DAVOX&level=station&format=xml",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/xml\");",
+									"});",
+									"",
+									"var Ajv = require('ajv');",
+									"var ajv = new Ajv({logger: console});",
+									"var schema = {",
+									"    \"properties\": {",
+									"        \"FDSNStationXML\": {",
+									"            \"type\": \"object\",",
+									"            \"properties\": {",
+									"                \"Network\": {",
+									"                    \"type\": \"object\",",
+									"                    \"properties\": {",
+									"                        \"$\": {",
+									"                            \"type\": \"object\",",
+									"                            \"properties\": {",
+									"                                \"code\": { \"type\": \"string\" },",
+									"                                \"startDate\": {",
+									"                                    \"type\": \"string\",",
+									"                                    // \"format\": \"date-time\"",
+									"                                },",
+									"                                \"restrictedStatus\": {",
+									"                                    \"type\": \"string\",",
+									"                                    \"pattern\": \"^(?:open|closed)$\"",
+									"                                }",
+									"                            },",
+									"                            \"required\": [\"code\", \"startDate\"]",
+									"                        },",
+									"                        \"Description\": { \"type\": \"string\" },",
+									"                        \"Station\": {",
+									"                            \"type\": \"array\",",
+									"                            \"maxItems\": 3,",
+									"                            \"minItems\": 3,",
+									"                            \"uniqueItems\": true",
+									"                        }",
+									"                    }",
+									"                },",
+									"                \"Source\": { ",
+									"                    \"type\": \"string\",",
+									"                    \"pattern\": \"^EIDA$\"",
+									"                },",
+									"                \"Created\": { ",
+									"                    \"type\": \"string\",",
+									"                    //\"format\": \"date-time\"",
+									"                }",
+									"            }",
+									"        }",
+									"    }",
+									"};",
+									"",
+									"pm.test(\"Body matches schema\", function () {",
+									"    // TODO(damb): Body matches schema even though the content is plain ASCII.",
+									"    // Note(damb): Does not correctly check \"format\": \"date-time\".",
+									"    var jsonObj = xml2Json(pm.response.text());",
+									"    //console.log(jsonObj);",
+									"    ajv.validate(schema, jsonObj)",
+									"    console.log(ajv.errors);",
+									"    pm.expect(ajv.validate(schema, jsonObj)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&sta=HASLI,BALST,DAVOX&level=station&format=xml",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI,BALST,DAVOX"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "format",
+									"value": "xml"
+								}
+							]
+						},
+						"description": "Single node, single network, multi stations\n\nformat=xml"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&format=text&level=station - geo constraints (alt keys)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is valid\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body is correct\", function () {",
+									"    var reference_result =",
+									"`#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime",
+									"CH|MUGIO|45.92184|9.04171|924.0|Muggio, TI|2001-12-11T00:00:00|",
+									"CH|SCAS|46.1554|8.616|567.0|Camedo, Paratoia di spurgo, TI|1994-08-05T00:00:00|2012-05-30T15:00:00",
+									"CH|SCAS2|46.155187|8.614781|505.3|Camedo, Stauwehr, TI|2016-10-05T10:00:00|",
+									"CH|SLOP|46.16384|8.79055|200.0|Locarno, Pompieri, TI|2013-06-14T00:00:00|",
+									"CH|SUSI|46.01038|8.95869|280.7|Università della Svizzera italiana Lugano, TI|2017-07-25T00:00:00|",
+									"`;",
+									"    pm.response.to.have.body(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&format=text&level=station&minlat=45.8&maxlat=46.2&minlon=8.5&maxlon=9.2",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "minlat",
+									"value": "45.8"
+								},
+								{
+									"key": "maxlat",
+									"value": "46.2"
+								},
+								{
+									"key": "minlon",
+									"value": "8.5"
+								},
+								{
+									"key": "maxlon",
+									"value": "9.2"
+								}
+							]
+						},
+						"description": "Single route, geo constraints (alt keys):\n\nlevel=network\nformat=get"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&format=text&level=station - geo constraints (full keys)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is valid\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body is correct\", function () {",
+									"    var reference_result =",
+									"`#Network|Station|Latitude|Longitude|Elevation|SiteName|StartTime|EndTime",
+									"CH|MUGIO|45.92184|9.04171|924.0|Muggio, TI|2001-12-11T00:00:00|",
+									"CH|SCAS|46.1554|8.616|567.0|Camedo, Paratoia di spurgo, TI|1994-08-05T00:00:00|2012-05-30T15:00:00",
+									"CH|SCAS2|46.155187|8.614781|505.3|Camedo, Stauwehr, TI|2016-10-05T10:00:00|",
+									"CH|SLOP|46.16384|8.79055|200.0|Locarno, Pompieri, TI|2013-06-14T00:00:00|",
+									"CH|SUSI|46.01038|8.95869|280.7|Università della Svizzera italiana Lugano, TI|2017-07-25T00:00:00|",
+									"`;",
+									"    pm.response.to.have.body(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&format=text&level=station&minlatitude=45.8&maxlatitude=46.2&minlongitude=8.5&maxlongitude=9.2",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								},
+								{
+									"key": "level",
+									"value": "station"
+								},
+								{
+									"key": "minlatitude",
+									"value": "45.8"
+								},
+								{
+									"key": "maxlatitude",
+									"value": "46.2"
+								},
+								{
+									"key": "minlongitude",
+									"value": "8.5"
+								},
+								{
+									"key": "maxlongitude",
+									"value": "9.2"
+								}
+							]
+						},
+						"description": "Single route, geo constraints (full keys):\n\nlevel=network\nformat=get"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI&cha=BHZlevel=channel&format=text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`#Network|Station|Location|Channel|Latitude|Longitude|Elevation|Depth|Azimuth|Dip|SensorDescription|Scale|ScaleFreq|ScaleUnits|SampleRate|StartTime|EndTime",
+									"CH|HASLI||BHZ|46.75681|8.15117|1280.0|-0.2|0.0|-90.0|STS2_gen3|627614130.9|5.0|M/S|40.0|1999-01-19T00:00:00|1999-06-16T00:00:00",
+									"CH|HASLI||BHZ|46.75681|8.15117|1280.0|-0.2|0.0|-90.0|STS2_gen3|627615000.0|1.0|M/S|40.0|1999-06-16T00:00:00|",
+									"`;",
+									"",
+									"    pm.response.to.have.body(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH&sta=HASLI&cha=BHZ&level=channel&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI"
+								},
+								{
+									"key": "cha",
+									"value": "BHZ"
+								},
+								{
+									"key": "level",
+									"value": "channel"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Single node, single network, single station\n\nlevel=channel\nformat=text"
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "fdsnws-dataselect",
+			"item": [
+				{
+					"name": "version",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ec8be5c7-b561-4351-af21-690e8249140c",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+									"    pm.response.to.have.header(\"Content-Length\");",
+									"    pm.response.to.be.header(\"Content-Length\", \"5\");",
+									"});",
+									"",
+									"pm.test(\"Body is correct\", function () {",
+									"    pm.response.to.have.body(\"1.1.0\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/version",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"version"
+							]
+						},
+						"description": "validate version"
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'foo'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/fdsnws/dataselect/1/query?foo=bar`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?foo=bar",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "foo",
+									"value": "bar"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result = ",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"{'_schema': ['No StreamEpoch defined.']}",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/fdsnws/dataselect/1/query",
+									"",
+									"Request Submitted:`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "foo=bar",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/vnd.fdsn.mseed\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?net=CH&sta=HASLI&cha=BHZ&start=2019-01-01&end=2019-01-01T00:01:00",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI"
+								},
+								{
+									"key": "cha",
+									"value": "BHZ"
+								},
+								{
+									"key": "start",
+									"value": "2019-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2019-01-01T00:01:00"
+								}
+							]
+						},
+						"description": "Single node, single network"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI,DAVOX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/vnd.fdsn.mseed\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?net=CH&sta=HASLI,DAVOX&cha=BHZ&start=2019-01-01&end=2019-01-01T00:01:00",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI,DAVOX"
+								},
+								{
+									"key": "cha",
+									"value": "BHZ"
+								},
+								{
+									"key": "start",
+									"value": "2019-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2019-01-01T00:01:00"
+								}
+							]
+						},
+						"description": "Single node, single network, multi stations"
+					},
+					"response": []
+				}
+			],
+			"description": "API and integration tests for the EIDA federator webservice (fdsnws-dataselect endpoint).",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "1c1d1970-c15f-47bf-825d-a12ef046c2a2",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "822a5f09-ea40-46cc-9f7e-ce224d65a412",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "eidaws-wfcatalog",
+			"item": [
+				{
+					"name": "version",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ec8be5c7-b561-4351-af21-690e8249140c",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+									"    pm.response.to.have.header(\"Content-Length\");",
+									"    pm.response.to.be.header(\"Content-Length\", \"5\");",
+									"});",
+									"",
+									"pm.test(\"Body is correct\", function () {",
+									"    pm.response.to.have.body(\"1.0.0\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/version",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"version"
+							]
+						},
+						"description": "validate version"
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'foo'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/eidaws/wfcatalog/1/query?foo=bar`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?foo=bar",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "foo",
+									"value": "bar"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?foo=bar",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result = ",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"{'_schema': ['No StreamEpoch defined.']}",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/eidaws/wfcatalog/1/query",
+									"",
+									"Request Submitted:`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "foo=bar",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"Both starttime and endtime required.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/eidaws/wfcatalog/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter (no time constraints)."
+					},
+					"response": []
+				},
+				{
+					"name": "query?starttime=2019-01-01",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"Both starttime and endtime required.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/eidaws/wfcatalog/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?starttime=2019-01-01",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "starttime",
+									"value": "2019-01-01"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter (missing time constraints)."
+					},
+					"response": []
+				},
+				{
+					"name": "query?endtime=2019-01-01",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"Both starttime and endtime required.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}:${pm.environment.get('port_fed')}/eidaws/wfcatalog/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?endtime=2019-01-01",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "endtime",
+									"value": "2019-01-01"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter (missing time constraints)."
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/json\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?net=CH&sta=HASLI&start=2018-01-01&end=2018-01-02",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI"
+								},
+								{
+									"key": "start",
+									"value": "2018-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2018-01-02"
+								}
+							]
+						},
+						"description": "Single node, single network"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH&sta=HASLI,DAVOX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/vnd.fdsn.mseed\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?net=CH&sta=HASLI,DAVOX&cha=BHZ&start=2019-01-01&end=2019-01-01T00:01:00",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI,DAVOX"
+								},
+								{
+									"key": "cha",
+									"value": "BHZ"
+								},
+								{
+									"key": "start",
+									"value": "2019-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2019-01-01T00:01:00"
+								}
+							]
+						},
+						"description": "Single node, single network, multi stations"
+					},
+					"response": []
+				}
+			],
+			"description": "API and integration tests for the EIDA federator webservice (eidaws-wfcatalog endpoint).",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "672eff26-3c87-4eb7-bb72-d56eb8010581",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "78391cb4-6d31-4cb1-b076-498972b72613",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "83356f94-2a0f-4283-ba81-554129297ca0",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "39ed57f0-8af3-4956-a8bc-6942711f01ee",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
