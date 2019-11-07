@@ -1964,12 +1964,12 @@
 						}
 					]
 				},
-				"description": "Single route, geo constraints:\n\nlevel=network\nformat=post"
+				"description": "Single route, geo constraints (alt keys):\n\nlevel=network\nformat=post"
 			},
 			"response": []
 		},
 		{
-			"name": "query?service=station&net=CH&format=get&level=station - geo constraints Copy",
+			"name": "query?service=station&net=CH&format=get&level=station - geo constraints",
 			"event": [
 				{
 					"listen": "test",
@@ -2050,7 +2050,7 @@
 						}
 					]
 				},
-				"description": "Single route, geo constraints:\n\nlevel=network\nformat=get"
+				"description": "Single route, geo constraints (alt keys):\n\nlevel=network\nformat=get"
 			},
 			"response": []
 		},
@@ -2107,7 +2107,151 @@
 						"query"
 					]
 				},
-				"description": "Single route, geo constraints:\n\nlevel=network\nformat=post"
+				"description": "Single route, geo constraints (alt keys):\n\nlevel=network\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&format=post&level=station - geo constraints",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH MUGIO * * 2001-12-11T00:00:00",
+							"CH SCAS * * 1994-08-05T00:00:00 2012-05-30T15:00:00",
+							"CH SCAS2 * * 2016-10-05T10:00:00",
+							"CH SLOP * * 2013-06-14T00:00:00",
+							"CH SUSI * * 2017-07-25T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=station&net=CH&format=post&level=station&minlatitude=45.8&maxlatitude=46.2&minlongitude=8.5&maxlongitude=9.2",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "station"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "level",
+							"value": "station"
+						},
+						{
+							"key": "minlatitude",
+							"value": "45.8"
+						},
+						{
+							"key": "maxlatitude",
+							"value": "46.2"
+						},
+						{
+							"key": "minlongitude",
+							"value": "8.5"
+						},
+						{
+							"key": "maxlongitude",
+							"value": "9.2"
+						}
+					]
+				},
+				"description": "Single route, geo constraints (full keys):\n\nlevel=network\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=station&net=CH&format=post&level=station - geo constraints Copy Copy",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://eida.ethz.ch/fdsnws/station/1/query",
+							"CH MUGIO * * 2001-12-11T00:00:00 2019-01-01T00:00:00",
+							"CH SCAS * * 1994-08-05T00:00:00 2012-05-30T15:00:00",
+							"CH SCAS2 * * 2016-10-05T10:00:00 2019-01-01T00:00:00",
+							"CH SLOP * * 2013-06-14T00:00:00 2019-01-01T00:00:00",
+							"CH SUSI * * 2017-07-25T00:00:00 2019-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=station\nlevel=station\nminlatitude=45.8\nmaxlatitude=46.2\nminlongitude=8.5\nmaxlongitude=9.2\n\nCH * * * 1970-01-01 2019-01-01"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route, geo constraints (full keys):\n\nlevel=network\nformat=post"
 			},
 			"response": []
 		}
