@@ -458,11 +458,6 @@ class RawRequestProcessor(RequestProcessor):
 class StationRequestProcessor(RequestProcessor):
     """
     Base class for federating fdsnws-station request processors.
-
-    StationRequestProcessor implementations come along with a *reducing*
-    `_route ()` implementation. Routes received from the *StationLite*
-    webservice are reduced depending on the value of the `level` query
-    parameter.
     """
 
     LOGGER = "flask.app.federator.request_processor_station"
@@ -481,23 +476,13 @@ class StationXMLRequestProcessor(StationRequestProcessor):
     """
     `StationXML <http://www.fdsn.org/xml/station/>`_ federation processor.
 
-    For networks located at a single endpoint simple bulk requests are send to
-    the endpoint. Besides, for distributed physical networks this processor
-    federates StationXML using a two-level approach:
+    Due to the nature of the *StationXML* data format this processer performs
+    routing, requesting and merging using a two-level hierarchical approach.
 
-    * On the first level the processor maintains a worker pool (implemented by
-      means of the python multiprocessing module). Special *CombiningTask*
-      object instances are mapped to the pool managing the download for a
-      certain network code.
-    * On a second level RawCombinerTask implementations demultiplex the routing
-      information, again. Multiple DownloadTask object instances (implemented
-      using multiprocessing.pool.ThreadPool) are executed requesting granular
-      stream epoch information (i.e. one task per fully resolved stream epoch).
-
-    Combining tasks collect the information from their child downloading
-    threads. As soon the information for an entire network code is fetched the
-    resulting data is combined and temporarly saved. Finally
-    StationRequestProcessor implementations merge the final result.
+    The first level operates on network code level granularity. The
+    second-level is implemented as part of the strategy actually performing the
+    endpoint requests. Finally, the resulting network epoch tags are merged and
+    wrapped into corresponding StationXML headers.
     """
 
     CHUNK_SIZE = 1024
@@ -680,11 +665,6 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 class StationTextRequestProcessor(StationRequestProcessor):
     """
     This processor implements fdsnws-station format=text data federation.
-
-    Data is fetched multithreaded from endpoints by means of bulk requests.
-
-    Data from distributed physical networks (Networks hosted at multiple
-    datacenters currently is not merged.).
     """
 
     ALLOWED_STRATEGIES = ('granular', 'bulk')
