@@ -690,9 +690,9 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
             except (OSError, IOError, ValueError):
                 pass
 
-            req = (self._request_handler.get()
+            req = (request_handler.get()
                    if self._http_method == 'GET' else
-                   self._request_handler.post())
+                   request_handler.post())
 
             self.logger.debug(
                 'Downloading (url={}, stream_epochs={}, method={!r}) '
@@ -767,9 +767,9 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
             request_handler = GranularFdsnRequestHandler(
                 self._url, stream_epoch, query_params=self.query_params)
 
-            req = (self._request_handler.get()
+            req = (request_handler.get()
                    if self._http_method == 'GET' else
-                   self._request_handler.post())
+                   request_handler.post())
 
             self.logger.debug(
                 'Downloading (url={}, stream_epochs={}, method={!r}) '
