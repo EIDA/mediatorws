@@ -14,7 +14,6 @@ from multiprocessing.pool import ThreadPool
 
 import ijson
 
-from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
@@ -132,7 +131,7 @@ class TaskBase:
     """
     Base class for tasks.
 
-    :param str logger: Name of the logger to be aqucired
+    :param str logger: Name of the logger to be acquired
     :param keep_tempfiles: Flag how temporary files should be treated
     :type keep_tempfiles: :py:class:`KeepTempfiles`
     """
@@ -150,6 +149,8 @@ class TaskBase:
         self._ctx = kwargs.get('context')
         self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
 
+        self._http_method = kwargs.get(
+            'http_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
@@ -209,6 +210,7 @@ class CombinerTask(TaskBase):
     is performed concurrently.
     """
     _TYPE = ETask.COMBINER
+
     LOGGER = 'flask.app.federator.task_combiner_raw'
 
     MAX_THREADS_DOWNLOADING = 5
@@ -227,7 +229,7 @@ class CombinerTask(TaskBase):
 
         self._num_workers = min(
             len(routes),
-            kwargs.get('max_threads', self.MAX_THREADS_DOWNLOADING))
+            kwargs.get('pool_size', self.MAX_THREADS_DOWNLOADING))
         self._pool = None
 
         self._results = []
@@ -304,6 +306,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
 
+    POOL_SIZE = 5
+
     NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
     STATION_TAG = settings.STATIONXML_ELEMENT_STATION
     CHANNEL_TAG = settings.STATIONXML_ELEMENT_CHANNEL
@@ -311,6 +315,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     def __init__(self, routes, query_params, **kwargs):
 
         nets = set([se.network for route in routes for se in route.streams])
+
+        # TODO(damb): Use assert instead
         if len(nets) != 1:
             raise ValueError(
                 'Routes must belong exclusively to a single '
@@ -318,13 +324,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
+
         self._network_elements = []
-
         self.path_tempfile = None
-
-    @property
-    def MAX_THREADS_DOWNLOADING(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-xml']
 
     def _clean(self, result):
         self.logger.debug(
@@ -359,7 +361,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                     query_params=self.query_params),
                 decode_unicode=True,
                 context=ctx,
-                keep_tempfiles=self._keep_tempfiles)
+                keep_tempfiles=self._keep_tempfiles,
+                http_method=self._http_method)
 
             # apply DownloadTask asynchronoulsy to the worker pool
             result = self._pool.apply_async(t)
@@ -687,19 +690,22 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
             except (OSError, IOError, ValueError):
                 pass
 
+            req = (request_handler.get()
+                   if self._http_method == 'GET' else
+                   request_handler.post())
+
             self.logger.debug(
-                'Downloading (url={}, stream_epochs={}) '
+                'Downloading (url={}, stream_epochs={}, method={!r}) '
                 'to tempfile {!r}...'.format(
                     request_handler.url,
                     request_handler.stream_epochs,
+                    self._http_method,
                     self.path_tempfile))
 
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     for chunk in stream_request(
-                        request_handler.post(),
-                        chunk_size=self.CHUNK_SIZE,
-                            method='raw'):
+                            req, hunk_size=self.CHUNK_SIZE, method='raw'):
                         if last_chunk is not None and last_chunk == chunk:
                             continue
                         self._size += len(chunk)
@@ -761,16 +767,20 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
             request_handler = GranularFdsnRequestHandler(
                 self._url, stream_epoch, query_params=self.query_params)
 
+            req = (request_handler.get()
+                   if self._http_method == 'GET' else
+                   request_handler.post())
+
             self.logger.debug(
-                'Downloading (url={}, stream_epochs={}) '
+                'Downloading (url={}, stream_epochs={}, method={!r}) '
                 'to tempfile {!r}...'.format(
                     request_handler.url,
                     request_handler.stream_epochs,
+                    self._http_method,
                     self.path_tempfile))
-
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
-                    with raw_request(request_handler.post()) as ifd:
+                    with raw_request(req) as ifd:
 
                         if self._last_obj is None:
                             ofd.write(self.JSON_LIST_START)
@@ -841,12 +851,11 @@ class RawDownloadTask(TaskBase):
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
-        self.chunk_size = (self.CHUNK_SIZE
-                           if kwargs.get('chunk_size') is None
-                           else kwargs.get('chunk_size'))
-        self.decode_unicode = (self.DECODE_UNICODE
-                               if kwargs.get('decode_unicode') is None
-                               else kwargs.get('decode_unicode'))
+        # TODO TODO TODO
+        self.chunk_size = kwargs.get('chunk_size', self.CHUNK_SIZE)
+        self.decode_unicode = kwargs.get('decode_unicode', self.DECODE_UNICODE)
+
+        self._http_get = kwargs.get('http_get', False)
 
         self.path_tempfile = get_temp_filepath()
         self._size = 0
@@ -854,16 +863,20 @@ class RawDownloadTask(TaskBase):
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
+        req = (self._request_handler.get()
+               if self._http_method == 'GET' else self._request_handler.post())
+
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
+            ('Downloading (url={}, stream_epochs={}, method={!r}) '
+             'to tempfile {!r}...').
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
+                   self._http_method,
                    self.path_tempfile))
-
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 for chunk in stream_request(
-                        self._request_handler.post(),
+                        req,
                         chunk_size=self.chunk_size,
                         method='raw',
                         decode_unicode=self.decode_unicode):
@@ -933,17 +946,21 @@ class StationTextDownloadTask(RawDownloadTask):
     @with_ctx_guard
     def __call__(self):
 
+        req = (self._request_handler.get()
+               if self._http_method == 'GET' else self._request_handler.post())
+
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
+            ('Downloading (url={}, stream_epochs={}, http_method={!r}) '
+             'to tempfile {!r}...').
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
+                   self._http_method,
                    self.path_tempfile))
-
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 # NOTE(damb): For granular fdnsws-station-text request it seems
                 # ok buffering the entire response in memory.
-                with binary_request(self._request_handler.post()) as ifd:
+                with binary_request(req) as ifd:
                     for line in ifd:
                         self._size += len(line)
                         if line.startswith(b'#'):
@@ -981,8 +998,8 @@ class StationXMLDownloadTask(RawDownloadTask):
     def __init__(self, request_handler, **kwargs):
         super().__init__(request_handler, **kwargs)
         self.network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
-        self.name = ('{}-{}'.format(type(self).__name__, kwargs.get('name')) if
-                     kwargs.get('name') else type(self).__name__)
+        self.name = '{}-{}'.format(type(self).__name__,
+                                   kwargs.get('name', 'UNKOWN'))
 
     @catch_default_task_exception
     @with_ctx_guard
@@ -991,10 +1008,15 @@ class StationXMLDownloadTask(RawDownloadTask):
         if self._has_inactive_ctx():
             raise self.MissingContextLock
 
+        req = (self._request_handler.get()
+               if self._http_method == 'GET' else self._request_handler.post())
+
         self.logger.debug(
-            'Downloading (url={}, stream_epochs={}) to tempfile {!r}...'.
+            ('Downloading (url={}, stream_epochs={}, method={!r}) '
+             'to tempfile {!r}...').
             format(self._request_handler.url,
                    self._request_handler.stream_epochs,
+                   self._http_method,
                    self.path_tempfile))
 
         network_tags = ['{}{}'.format(ns, self.network_tag)
@@ -1003,7 +1025,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 # XXX(damb): Load the entire result into memory.
-                with binary_request(self._request_handler.post()) as ifd:
+                with binary_request(req) as ifd:
                     for event, net_element in etree.iterparse(
                             ifd, tag=network_tags):
                         if event == 'end':

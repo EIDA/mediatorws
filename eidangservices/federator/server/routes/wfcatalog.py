@@ -74,6 +74,7 @@ class WFCatalogResource(Resource):
             post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],
         ).streamed_response
 
     @fdsnws.use_fdsnws_args(WFCatalogSchema(), locations=('form',))
@@ -109,4 +110,5 @@ class WFCatalogResource(Resource):
             post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],
         ).streamed_response

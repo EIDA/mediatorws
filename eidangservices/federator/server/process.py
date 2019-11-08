@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+
 """
 federator processing facilities
 """
 
-import collections
 import datetime
 import logging
 import multiprocessing as mp
@@ -13,22 +13,20 @@ import uuid
 
 from flask import current_app, stream_with_context, Response
 
-from eidangservices import utils, settings
+from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles)
-from eidangservices.federator.server.request import (
-    RoutingRequestHandler, GranularFdsnRequestHandler,
-    BulkFdsnRequestHandler)
+from eidangservices.federator.server.request import RoutingRequestHandler
+from eidangservices.federator.server.strategy import (  # noqa
+    GranularRequestStrategy, NetworkBulkRequestStrategy,
+    NetworkCombiningRequestStrategy, AdaptiveNetworkBulkRequestStrategy)
 from eidangservices.federator.server.task import (
     RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLDownloadTask, StationXMLNetworkCombinerTask,
     WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
 from eidangservices.utils.httperrors import FDSNHTTPError
-from eidangservices.utils.request import (binary_request, RequestsError,
-                                          NoContent)
-from eidangservices.utils.sncl import StreamEpoch
 
 
 # TODO(damb): This is a note regarding the federator-registered mode.
@@ -37,47 +35,13 @@ from eidangservices.utils.sncl import StreamEpoch
 # corresponding combiner tasks.
 # For bulk requests no detailed logging can be provided.
 
-def demux_routes(routes):
-    return [utils.Route(route.url, streams=[se]) for route in routes
-            for se in route.streams]
-
-
-def group_routes_by(routes, key='network'):
-    """
-    Group routes by a certain :py:class:`eidangservices.sncl.Stream` keyword.
-    Combined keywords are also possible e.g. network.station. When combining
-    keys the seperating character is `.`. Routes are demultiplexed.
-
-    :param list routes: List of :py:class:`eidangservices.utils.Route` objects
-    :param str key: Key used for grouping.
-    """
-    SEP = '.'
-
-    routes = demux_routes(routes)
-    retval = collections.defaultdict(list)
-
-    for route in routes:
-        try:
-            _key = getattr(route.streams[0].stream, key)
-        except AttributeError:
-            try:
-                if SEP in key:
-                    # combined key
-                    _key = SEP.join(getattr(route.streams[0].stream, k)
-                                    for k in key.split(SEP))
-                else:
-                    raise KeyError(
-                        'Invalid separator. Must be {!r}.'.format(SEP))
-            except (AttributeError, KeyError) as err:
-                raise RequestProcessorError(err)
-
-        retval[_key].append(route)
-
-    return retval
-
 
 class RequestProcessorError(ErrorWithTraceback):
     """Base RequestProcessor error ({})."""
+
+
+class ConfigurationError(RequestProcessorError):
+    """Configuration error ({})."""
 
 
 class RoutingError(RequestProcessorError):
@@ -96,12 +60,37 @@ class RequestProcessor:
 
     LOGGER = "flask.app.federator.request_processor"
 
+    _STRATEGY_MAP = {
+        'granular': GranularRequestStrategy,
+        'bulk': NetworkBulkRequestStrategy,
+        'adaptive-bulk': AdaptiveNetworkBulkRequestStrategy,
+        'combining': NetworkCombiningRequestStrategy}
+
+    ALLOWED_STRATEGIES = None
+    DEFAULT_REQUEST_STRATEGY = None
+
     POOL_SIZE = 5
     # MAX_TASKS_PER_CHILD = 4
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
     def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
                  **kwargs):
+        """
+        :param str mimetype: The response's mimetype
+        :param dict query_params: Request query parameters
+        :param stream_epochs: Stream epochs requested
+        :type stream_epochs: List of :py:class:`StreamEpoch`
+        :param bool post: Issue a post request
+
+        :param str logger: Logger name (optional)
+        :param request_strategy: Request strategy applied (optional)
+        :type request_strategy: :py:class:`RequestStrategyBase`
+        :param keep_tempfiles: Flag indicating how to treat temporary files
+        :type keep_tempfiles: :py:class:`KeepTempfiles`
+        :param str http_method: HTTP method used when issuing requests to
+            endpoints
+        """
+
         self.mimetype = mimetype
         self.content_type = (
             '{}; {}'.format(self.mimetype, settings.CHARSET_TEXT)
@@ -113,9 +102,7 @@ class RequestProcessor:
         # TODO(damb): Pass as ctor arg.
         self._routing_service = current_app.config['ROUTING_SERVICE']
 
-        self._logger = logging.getLogger(
-            self.LOGGER if kwargs.get('logger') is None
-            else kwargs.get('logger'))
+        self._logger = logging.getLogger(kwargs.get('logger', self.LOGGER))
 
         self._ctx = kwargs.get('context', Context(uuid.uuid4()))
         if not self._ctx.locked:
@@ -125,18 +112,37 @@ class RequestProcessor:
 
         self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
 
+        self._num_routes = 0
         self._pool = None
         self._results = []
         self._sizes = []
 
         self._default_endtime = datetime.datetime.utcnow()
 
+        self._nodata = int(self.query_params.get(
+            'nodata', settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE))
+
+        # lookup resource configuration attributes
+        req_strategy = kwargs.get('request_strategy',
+                                  self.DEFAULT_REQUEST_STRATEGY)
+        if req_strategy not in self.ALLOWED_STRATEGIES:
+            raise ConfigurationError(
+                'Invalid strategy: {!r}'.format(req_strategy))
+        self._strategy = self._STRATEGY_MAP[req_strategy]
+        self._strategy = self._strategy(
+            context=self._ctx, default_endtime=self.DEFAULT_ENDTIME)
+
+        self._http_method = kwargs.get(
+            'request_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+        self._num_threads = kwargs.get('num_threads', self.POOL_SIZE)
+
     @staticmethod
     def create(service, *args, **kwargs):
-        """Factory method for RequestProcessor object instances.
+        """
+        Factory method for RequestProcessor object instances.
 
         :param str service: Service identifier.
-        :param dict kwargs: A dictionary passed to the combiner constructors.
+        :param dict kwargs: A dictionary passed to processor constructors.
         :return: A concrete :py:class:`RequestProcessor` implementation
         :rtype: :py:class:`RequestProcessor`
         :raises KeyError: if an invalid format string was passed
@@ -160,6 +166,7 @@ class RequestProcessor:
         """
         Return a streamed :py:class:`flask.Response`.
         """
+        self._route()
         self._request()
 
         # XXX(damb): Only return a streamed response as soon as valid data
@@ -175,59 +182,18 @@ class RequestProcessor:
 
     def _route(self):
         """
-        Create the routing table using the routing service provided.
+        Route a federating request.
+
+        :retval: Number of routes received
+        :rtype: int
         """
-        routing_request = RoutingRequestHandler(
-            self._routing_service, self.query_params,
-            self.stream_epochs)
+        routing_req = RoutingRequestHandler(
+            self._routing_service, self.stream_epochs,
+            self.query_params)
 
-        req = (routing_request.post() if self.post else routing_request.get())
-        self.logger.info("Fetching routes from %s" % routing_request.url)
-
-        routing_table = []
-
-        try:
-            with binary_request(req) as fd:
-                # parse the routing service's output stream; create a routing
-                # table
-                urlline = None
-                stream_epochs = []
-
-                while True:
-                    line = fd.readline()
-
-                    if not urlline:
-                        urlline = line.strip()
-                    elif not line.strip():
-                        # set up the routing table
-                        if stream_epochs:
-                            routing_table.append(
-                                utils.Route(url=urlline,
-                                            streams=stream_epochs))
-                        urlline = None
-                        stream_epochs = []
-
-                        if not line:
-                            break
-                    else:
-                        stream_epochs.append(
-                            StreamEpoch.from_snclline(
-                                line, default_endtime=self.DEFAULT_ENDTIME))
-
-        except NoContent as err:
-            self.logger.warning(err)
-            raise FDSNHTTPError.create(
-                int(self.query_params.get(
-                    'nodata',
-                    settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
-        except RequestsError as err:
-            self.logger.error(err)
-            raise FDSNHTTPError.create(500, service_version=__version__)
-        else:
-            self.logger.debug(
-                'Number of routes received: {}'.format(len(routing_table)))
-
-        return routing_table
+        self._num_routes = self._strategy.route(
+            routing_req, post=self.post, nodata=self._nodata)
+        return self._num_routes
 
     def _handle_error(self, err):
         self.logger.warning(str(err))
@@ -293,10 +259,7 @@ class RequestProcessor:
                     'No valid results to be federated. ({})'.format(
                         ('No valid results.' if not self._results else
                          'Timeout ({}).'.format(timeout))))
-                raise FDSNHTTPError.create(
-                    int(self.query_params.get(
-                        'nodata',
-                        settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
+                raise FDSNHTTPError.create(self._nodata)
 
     def _terminate(self):
         """
@@ -365,20 +328,19 @@ class RawRequestProcessor(RequestProcessor):
 
     LOGGER = "flask.app.federator.request_processor_raw"
 
-    CHUNK_SIZE = 1024
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_DEFAULT_REQUEST_STRATEGY = 'granular'
 
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-dataselect']
+    CHUNK_SIZE = 1024
 
     def _request(self):
         """
-        process a federated request
+        Issue concurrent fdsnws-dataselect requests.
         """
-        routes = demux_routes(self._route())
 
-        pool_size = min(len(routes), self.POOL_SIZE)
+        assert bool(self._num_routes), 'No routes available.'
 
+        pool_size = min(self._num_routes, self.POOL_SIZE)
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
         # NOTE(damb): With pleasure I'd like to define the parameter
@@ -386,21 +348,11 @@ class RawRequestProcessor(RequestProcessor):
         # However, using this parameter seems to lead to processes unexpectedly
         # terminated. Hence some tasks never return a *ready* result.
 
-        for route in routes:
-            self.logger.debug(
-                'Creating DownloadTask for {!r} ...'.format(
-                    route))
-            ctx = Context(root_only=True)
-            self._ctx.append(ctx)
-            t = RawDownloadTask(
-                GranularFdsnRequestHandler(
-                    route.url,
-                    route.streams[0],
-                    query_params=self.query_params),
-                context=ctx,
-                keep_tempfiles=self._keep_tempfiles,)
-            result = self._pool.apply_async(t)
-            self._results.append(result)
+        self._results = self._strategy.request(
+            self._pool, tasks={'default': RawDownloadTask},
+            query_params=self.query_params,
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
     def _handle_413(self, result):
         self.logger.info(
@@ -505,9 +457,7 @@ class RawRequestProcessor(RequestProcessor):
 
 class StationRequestProcessor(RequestProcessor):
     """
-    Base class for federating fdsnws.station request processor. While routing
-    this processor interprets the `level` query parameter in order to reduce
-    the number of endpoint requests.
+    Base class for federating fdsnws-station request processors.
 
     StationRequestProcessor implementations come along with a *reducing*
     `_route ()` implementation. Routes received from the *StationLite*
@@ -517,14 +467,6 @@ class StationRequestProcessor(RequestProcessor):
 
     LOGGER = "flask.app.federator.request_processor_station"
 
-    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
-                 **kwargs):
-        super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
-
-        self._level = query_params.get('level')
-        if self._level is None:
-            raise RequestProcessorError("Missing parameter: 'level'.")
-
     @staticmethod
     def create(response_format, *args, **kwargs):
         if response_format == 'xml':
@@ -533,32 +475,6 @@ class StationRequestProcessor(RequestProcessor):
             return StationTextRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
-
-    def _route(self):
-        """
-        Multiplexed routing i.e. one route contains multiple stream epochs
-        (for a unique network code). Allows bulk requests based on network
-        codes.
-        """
-        # NOTE(damb): We group routes by network code, first. This later will
-        # enable us to easier provide station metadata combination for
-        # distributed physical networks. However, currently we exclusively
-        # combine station-xml. For station-text we issue still granular
-        # download tasks.
-        # Afterwards, grouped routes are multiplex by network code, again.
-
-        retval = collections.defaultdict(list)
-        for net, _routes in group_routes_by(
-                super()._route(), key='network').items():
-            # sort by url
-            mux_routes = collections.defaultdict(list)
-            for r in _routes:
-                mux_routes[r.url].append(r.streams[0])
-
-            for url, ses in mux_routes.items():
-                retval[net].append(utils.Route(url=url, streams=ses))
-
-        return retval
 
 
 class StationXMLRequestProcessor(StationRequestProcessor):
@@ -583,7 +499,11 @@ class StationXMLRequestProcessor(StationRequestProcessor):
     resulting data is combined and temporarly saved. Finally
     StationRequestProcessor implementations merge the final result.
     """
+
     CHUNK_SIZE = 1024
+
+    ALLOWED_STRATEGIES = ('combining', 'adaptive-bulk')
+    DEFAULT_REQUEST_STRATEGY = 'combining'
 
     SOURCE = 'EIDA'
     HEADER = ('<?xml version="1.0" encoding="UTF-8"?>'
@@ -654,64 +574,25 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         self.logger.debug('Terminate ...')
 
-    def _route(self):
-        """
-        Demultiplexes immediately routes for distributed physical networks i.e.
-        networks to be combined.
-        """
-        routes = {}
-        for net, _routes in super()._route().items():
-            if len(_routes) > 1:
-                routes[net] = demux_routes(_routes)
-                continue
-
-            routes[net] = _routes
-
-        return routes
-
     def _request(self):
         """
-        Process a federated fdsnws-station XML request.
+        Process a federated fdsnws-station format=xml request
         """
-        routes = self._route()
 
-        pool_size = min(len(routes), self.POOL_SIZE)
+        assert bool(self._num_routes), 'No routes available.'
+
+        pool_size = min(self._num_routes, self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.Pool(processes=pool_size)
-        # NOTE(damb): With pleasure I'd like to define the parameter
-        # maxtasksperchild=self.MAX_TASKS_PER_CHILD)
-        # However, using this parameter seems to lead to processes unexpectedly
-        # terminated. Hence some tasks never return a *ready* result.
 
-        for net, routes in routes.items():
-            # create subcontext
-            ctx = Context(root_only=True, payload=net)
-            self._ctx.append(ctx)
-
-            if len(routes) == 1:
-                self.logger.debug(
-                    'Creating StationXMLDownloadTask for net={!r} ...'.format(
-                        net))
-                t = StationXMLDownloadTask(
-                    BulkFdsnRequestHandler(
-                        routes[0].url, stream_epochs=routes[0].streams,
-                        query_params=self.query_params),
-                    name=net,
-                    context=ctx,
-                    keep_tempfiles=self._keep_tempfiles)
-
-            elif len(routes) > 1:
-                self.logger.debug(
-                    'Creating CombinerTask for net={!r} ...'.format(net))
-                t = StationXMLNetworkCombinerTask(
-                    routes, self.query_params, name=net, context=ctx,
-                    keep_tempfiles=self._keep_tempfiles)
-            else:
-                raise RoutingError('Missing routes.')
-
-            result = self._pool.apply_async(t)
-            self._results.append(result)
+        self._results = self._strategy.request(
+            self._pool, tasks={'default': StationXMLDownloadTask,
+                               'combining': StationXMLNetworkCombinerTask},
+            query_params=self.query_params,
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method,
+            pool_size=self.POOL_SIZE)
 
         self._pool.close()
 
@@ -798,13 +679,17 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
 class StationTextRequestProcessor(StationRequestProcessor):
     """
-    This processor implements fdsnws-station text  federation.
+    This processor implements fdsnws-station format=text data federation.
 
     Data is fetched multithreaded from endpoints by means of bulk requests.
 
-    Data from distributed physical networks (networks hosted at multiple
-    datacenters currently is not merged.)
+    Data from distributed physical networks (Networks hosted at multiple
+    datacenters currently is not merged.).
     """
+
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_REQUEST_STRATEGY = 'bulk'
+
     HEADER_NETWORK = '#Network|Description|StartTime|EndTime|TotalStations'
     HEADER_STATION = (
         '#Network|Station|Latitude|Longitude|'
@@ -814,41 +699,30 @@ class StationTextRequestProcessor(StationRequestProcessor):
         'Longitude|Elevation|Depth|Azimuth|Dip|SensorDescription|Scale|'
         'ScaleFreq|ScaleUnits|SampleRate|StartTime|EndTime')
 
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-text']
+    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
+                 **kwargs):
+        super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
+
+        self._level = query_params.get('level')
+        assert self._level, "Missing parameter: 'level'"
 
     def _request(self):
         """
-        Process a federated fdsnws-station text request
+        Process a federated fdsnws-station format=text request
         """
-        routes = self._route()
 
-        pool_size = min(len(routes), self.POOL_SIZE)
+        assert bool(self._num_routes), 'No routes available.'
+
+        pool_size = min(self._num_routes, self.POOL_SIZE)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
 
-        for net, bulk_routes in routes.items():
-            self.logger.debug(
-                'Creating DownloadTasks for network code {!r} ...'.format(
-                    net))
-
-            for bulk_route in bulk_routes:
-
-                self.logger.debug(
-                    'Creating DownloadTask for {!r} ...'.format(bulk_route))
-                ctx = Context(root_only=True)
-                self._ctx.append(ctx)
-                t = StationTextDownloadTask(
-                    BulkFdsnRequestHandler(
-                        bulk_route.url,
-                        stream_epochs=bulk_route.streams,
-                        query_params=self.query_params),
-                    context=ctx,
-                    keep_tempfiles=self._keep_tempfiles)
-                result = self._pool.apply_async(t)
-                self._results.append(result)
+        self._results = self._strategy.request(
+            self._pool, tasks={'default': StationTextDownloadTask},
+            query_params=self.query_params,
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
         self._pool.close()
 
@@ -926,7 +800,11 @@ class WFCatalogRequestProcessor(RequestProcessor):
     """
     Process a WFCatalog request.
     """
+
     LOGGER = "flask.app.federator.request_processor_wfcatalog"
+
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_REQUEST_STRATEGY = 'granular'
 
     CHUNK_SIZE = 1024
 
@@ -934,19 +812,14 @@ class WFCatalogRequestProcessor(RequestProcessor):
     JSON_LIST_END = ']'
     JSON_LIST_SEP = ','
 
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['eidaws-wfcatalog']
-
     def _request(self):
         """
-        Process a federated eidaws-wfcatalog request.
+        Issue concurrent eidaws-wfcatalog requests.
         """
 
-        routes = demux_routes(self._route())
+        assert bool(self._num_routes), 'No routes available.'
 
-        pool_size = min(len(routes), self.POOL_SIZE)
-
+        pool_size = min(self._num_routes, self.POOL_SIZE)
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
         # NOTE(damb): With pleasure I'd like to define the parameter
@@ -954,22 +827,11 @@ class WFCatalogRequestProcessor(RequestProcessor):
         # However, using this parameter seems to lead to processes unexpectedly
         # terminated. Hence some tasks never return a *ready* result.
 
-        for route in routes:
-            self.logger.debug(
-                'Creating DownloadTask for {!r} ...'.format(
-                    route))
-            ctx = Context(root_only=True)
-            self._ctx.append(ctx)
-
-            t = RawDownloadTask(
-                GranularFdsnRequestHandler(
-                    route.url,
-                    route.streams[0],
-                    query_params=self.query_params),
-                context=ctx,
-                keep_tempfiles=self._keep_tempfiles,)
-            result = self._pool.apply_async(t)
-            self._results.append(result)
+        self._results = self._strategy.request(
+            self._pool, tasks={'default': RawDownloadTask},
+            query_params=self.query_params,
+            keep_tempfiles=self._keep_tempfiles,
+            http_method=self._http_method)
 
     def _handle_413(self, result):
         self.logger.info(

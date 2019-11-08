@@ -50,6 +50,8 @@ class StationResource(Resource):
         args = s.dump(args)
         self.logger.debug('StationSchema (serialized): %s' % args)
 
+        resource_cfg = 'fdsnws-station-' + args['format']
+
         # process request
         return RequestProcessor.create(
             args['service'],
@@ -59,6 +61,7 @@ class StationResource(Resource):
             post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg]
         ).streamed_response
 
     @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
@@ -80,6 +83,7 @@ class StationResource(Resource):
         args = s.dump(args)
         self.logger.debug('StationSchema (serialized): %s' % args)
 
+        resource_cfg = 'fdsnws-station-' + args['format']
         # process request
         return RequestProcessor.create(
             args['service'],
@@ -89,6 +93,7 @@ class StationResource(Resource):
             post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg]
         ).streamed_response
 
     def _get_result_mimetype(self, args):

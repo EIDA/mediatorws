@@ -15,16 +15,25 @@ from eidangservices.utils.schema import StreamEpochSchema
 from eidangservices.federator import __version__
 
 
+def _query_params_from_stream_epochs(stream_epochs):
+    serializer = StreamEpochSchema(many=True, context={'request': _GET})
+
+    return utils.convert_sncl_dicts_to_query_params(
+        serializer.dump(stream_epochs))
+
+
+class _GET:
+    """
+    Utility class emulating a GET request.
+    """
+    method = 'GET'
+
+
+# -----------------------------------------------------------------------------
 class RequestHandlerBase:
     """
     RequestHandler base class implementation. Provides bulk request handling
     facilities.
-
-    :param str url: URL
-    :param dict query_params: Dictionary of query parameters
-    :param list stream_epochs: List of
-        :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
-
     """
 
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
@@ -32,7 +41,15 @@ class RequestHandlerBase:
                # handle this
                "Accept-Encoding": ""}
 
-    def __init__(self, url, query_params={}, stream_epochs=[]):
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        """
+        :param url: URL
+        :type url: str or bytes
+        :param list stream_epochs: List of
+            :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
+        :param dict query_params: Dictionary of query parameters
+        """
+
         if isinstance(url, bytes):
             url = url.decode('utf-8')
         url = urlparse(url)
@@ -93,12 +110,6 @@ class RequestHandlerBase:
 class RoutingRequestHandler(RequestHandlerBase):
     """
     Representation of a `eidaws-routing` request handler.
-
-    .. note::
-
-        Since both `eidaws-routing` and `eida-stationlite` implement the same
-        interface :py:class:`RoutingRequestHandler` may be used for both
-        webservices.
     """
 
     QUERY_PARAMS = set(('service',
@@ -108,14 +119,8 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    class GET:
-        """
-        Utility class emulating a GET request.
-        """
-        method = 'GET'
-
-    def __init__(self, url, query_params={}, stream_epochs=[]):
-        super().__init__(url, query_params, stream_epochs)
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        super().__init__(url, stream_epochs, query_params)
 
         self._query_params = dict(
             (p, v) for p, v in self._query_params.items()
@@ -125,11 +130,8 @@ class RoutingRequestHandler(RequestHandlerBase):
 
     @property
     def payload_get(self):
-        se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
-
         qp = deepcopy(self._query_params)
-        qp.update(utils.convert_sncl_dicts_to_query_params(
-                  se_schema.dump(self._stream_epochs)))
+        qp.update(_query_params_from_stream_epochs(self._stream_epochs))
         return qp
 
     def get(self):
@@ -149,9 +151,9 @@ class FdsnRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    def __init__(self, url, query_params={}, stream_epochs=[]):
-        super().__init__(url, query_params=query_params,
-                         stream_epochs=stream_epochs)
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        super().__init__(url, stream_epochs=stream_epochs,
+                         query_params=query_params)
         self._query_params = dict((p, v)
                                   for p, v in self._query_params.items()
                                   if p not in self.QUERY_PARAMS)
@@ -164,13 +166,24 @@ class GranularFdsnRequestHandler(FdsnRequestHandler):
     """
 
     def __init__(self, url, stream_epoch, query_params={}):
-        super().__init__(url, query_params, [stream_epoch])
+        super().__init__(url, stream_epochs=[stream_epoch],
+                         query_params=query_params)
 
     @property
     def payload_post(self):
         data = '\n'.join('{}={}'.format(p, v)
                          for p, v in self._query_params.items())
         return '{}\n{}'.format(data, self.stream_epochs[0])
+
+    @property
+    def payload_get(self):
+        qp = deepcopy(self._query_params)
+        qp.update(_query_params_from_stream_epochs(self._stream_epochs))
+        return qp
+
+    def get(self):
+        return functools.partial(requests.get, self.url,
+                                 params=self.payload_get, headers=self.HEADERS)
 
 
 BulkFdsnRequestHandler = FdsnRequestHandler

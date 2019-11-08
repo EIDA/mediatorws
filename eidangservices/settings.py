@@ -560,15 +560,43 @@ EIDA_FEDERATOR_THREADS_STATION_TEXT = 10
 # number of federator-WFCatalog download threads
 EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 
-EIDA_FEDERATOR_THREAD_CONFIG = {
-    "fdsnws-dataselect": EIDA_FEDERATOR_THREADS_DATASELECT,
-    "fdsnws-station-xml": EIDA_FEDERATOR_THREADS_STATION_XML,
-    "fdsnws-station-text": EIDA_FEDERATOR_THREADS_STATION_TEXT,
-    "eidaws-wfcatalog": EIDA_FEDERATOR_THREADS_WFCATALOG}
+# default HTTP request method when issuing requests to endpoint datacenters
+EIDA_FEDERATOR_DEFAULT_HTTP_METHOD = 'POST'
+
+EIDA_FEDERATOR_RESOURCE_CONFIG = {
+    "fdsnws-dataselect": {
+        'num_threads': EIDA_FEDERATOR_THREADS_DATASELECT,
+        'request_strategy': 'granular',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "fdsnws-station-xml": {
+        'num_threads': EIDA_FEDERATOR_THREADS_STATION_XML,
+        'request_strategy': 'adaptive-bulk',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "fdsnws-station-text": {
+        'num_threads': EIDA_FEDERATOR_THREADS_STATION_TEXT,
+        'request_strategy': 'bulk',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "eidaws-wfcatalog": {
+        'num_threads': EIDA_FEDERATOR_THREADS_WFCATALOG,
+        'request_strategy': 'granular',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    }
+}
+
+EIDA_FEDERATOR_REQUEST_STRATEGIES = (
+    'granular',
+    'bulk',
+    'adaptive-bulk',
+    'combining')
+EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
 
 EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
 EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
+
 EIDA_FEDERATOR_HIDDEN_CTX_LOCKS = True
 
 # -----------------------------------------------------------------------------

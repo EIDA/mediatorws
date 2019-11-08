@@ -5,6 +5,7 @@ Launch EIDA NG Federator.
 """
 
 import argparse
+import collections
 import copy
 import json
 import os
@@ -30,28 +31,53 @@ from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 
 
-def thread_config(config_dict):
+def resource_config(config_dict):
     """
-    Parse a federator thread configuration dictionary.
+    Parse a federator resource configuration dictionary.
 
-    :param str config_dict: Configuration dictionary
-    :retval: dict
+    :param str config_dict: Serialized (JSON) configuration dictionary
+    :retval: Interpolated resource configuration dictionary
+    :rtype: dict
     """
+
+    def dict_merge(d1, d2, strict=True):
+        """
+        Recursively merge dictionaries. Performes an in-place merge of
+        `d2` into `d1`.
+
+        :param bool strict: Merge keys from `d2` only if available in `d1`.
+            Besides attribute validation is performed. Else an
+            :py:class:`~argparse.ArgumentTypeError` is raised.
+        """
+
+        for k, v in d2.items():
+            if (isinstance(d1.get(k), dict) and
+                    isinstance(v, collections.Mapping)):
+                dict_merge(d1[k], d2[k], strict=strict)
+            elif strict and k not in d1:
+                raise argparse.ArgumentTypeError(
+                    'Invalid resource config key: {!r}.'.format(k))
+            else:
+                d1[k] = d2[k]
+
+            if (strict and k == 'request_strategy' and
+                    v not in settings.EIDA_FEDERATOR_REQUEST_STRATEGIES):
+                raise argparse.ArgumentTypeError(
+                    'Invalid request strategy: {!r}'.format(v))
+
+            if (strict and k == 'request_method' and
+                    v not in settings.EIDA_FEDERATOR_REQUEST_METHODS):
+                raise argparse.ArgumentTypeError(
+                    'Invalid request method: {!r}'.format(v))
+
     try:
         config_dict = json.loads(config_dict)
     except Exception:
         raise argparse.ArgumentTypeError(
             'Invalid thread configuration dictionary syntax.')
-    retval = copy.deepcopy(settings.EIDA_FEDERATOR_THREAD_CONFIG)
-    try:
-        for k, v in config_dict.items():
-            if k not in settings.EIDA_FEDERATOR_THREAD_CONFIG:
-                raise ValueError(
-                    'Invalid thread configuration key {!r}.'.format(k))
-            retval[k] = int(v)
-    except ValueError as err:
-        raise argparse.ArgumentTypeError(err)
 
+    retval = copy.deepcopy(settings.EIDA_FEDERATOR_RESOURCE_CONFIG)
+    dict_merge(retval, config_dict)
     return retval
 
 
@@ -103,12 +129,13 @@ class FederatorWebserviceBase(App):
                                   'resources to be configured. '
                                   '(default: %(default)s) '
                                   '(choices: {%(choices)s})'))
-        parser.add_argument('-t', '--endpoint-threads', type=thread_config,
-                            metavar='DICT', dest='thread_config',
-                            default=settings.EIDA_FEDERATOR_THREAD_CONFIG,
-                            help=('Endpoint download thread configuration '
-                                  'dictionary (JSON syntax). '
-                                  '(default: %(default)s)'))
+        parser.add_argument('--resource-config', type=resource_config,
+                            metavar='DICT', dest='resource_config',
+                            default=settings.EIDA_FEDERATOR_RESOURCE_CONFIG,
+                            help=('Resource configuration dictionary '
+                                  '(JSON syntax). Note, that bulk request '
+                                  'strategies force the request method to '
+                                  '"POST". (default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
@@ -220,7 +247,7 @@ class FederatorWebserviceBase(App):
             # TODO(damb): Pass log_level to app.config!
             PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
-            FED_THREAD_CONFIG=self.args.thread_config,
+            FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
             TMPDIR=tempfile.gettempdir())
 

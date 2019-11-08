@@ -29,18 +29,29 @@
 # endpoint_resources = fdsnws-dataselect fdsnws-station eidaws-wfcatalog
 #
 # ----
-# Configure the number of download threads/request by means of a dictionary
-# (JSON syntax required). The default configuration is:
-# '{"fdsnws-dataselect": 10, "fdsnws-station-xml": 5,
-#   "fdsnws-station-text": 10, "eidaws-wfcatalog": 10}'
+# Configure federator resources (JSON syntax required). The default
+# configuration is:
 #
-# NOTE: For "fdsnws-station-xml" the number of download threads refers to the
-# number of download threads per network code.
-#
-# endpoint_threads = '{"fdsnws-dataselect": 10,
-#                      "fdsnws-station-xml": 5,
-#                      "fdsnws-station-text": 10,
-#                      "eidaws-wfcatalog": 10}'
+# resource_config='{
+#  "fdsnws-dataselect":
+#   {"num_threads": 10,
+#    "request_strategy": "granular",
+#    "request_method": "POST"},
+#  "fdsnws-station-xml":
+#   {"num_threads": 5,
+#    "request_strategy": "adaptive-bulk",
+#    "request_method": "POST"},
+#  "fdsnws-station-text": 
+#   {"num_threads": 10,
+#    "request_strategy": "bulk",
+#    "request_method": "POST"},
+#  "eidaws-wfcatalog":
+#   {"num_threads": 10,
+#    "request_strategy": "granular",
+#    "request_method": "POST"}}'
+# 
+# NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
+# scales squared.
 #
 # ----
 # Configure where temporary files will be located.

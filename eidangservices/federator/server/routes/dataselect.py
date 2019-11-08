@@ -59,6 +59,7 @@ class DataselectResource(Resource):
             post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG']['fdsnws-dataselect'],
         ).streamed_response
 
     @fdsnws.use_fdsnws_args(DataselectSchema(), locations=('form',))
@@ -90,4 +91,5 @@ class DataselectResource(Resource):
             post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            **current_app.config['FED_RESOURCE_CONFIG']['fdsnws-dataselect'],
         ).streamed_response
