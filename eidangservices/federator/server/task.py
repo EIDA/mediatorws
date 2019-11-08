@@ -14,7 +14,6 @@ from multiprocessing.pool import ThreadPool
 
 import ijson
 
-from flask import current_app
 from lxml import etree
 
 from eidangservices import settings
@@ -230,7 +229,7 @@ class CombinerTask(TaskBase):
 
         self._num_workers = min(
             len(routes),
-            kwargs.get('max_threads', self.MAX_THREADS_DOWNLOADING))
+            kwargs.get('pool_size', self.MAX_THREADS_DOWNLOADING))
         self._pool = None
 
         self._results = []
@@ -307,6 +306,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
 
+    POOL_SIZE = 5
+
     NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
     STATION_TAG = settings.STATIONXML_ELEMENT_STATION
     CHANNEL_TAG = settings.STATIONXML_ELEMENT_CHANNEL
@@ -326,10 +327,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         self._network_elements = []
         self.path_tempfile = None
-
-    @property
-    def MAX_THREADS_DOWNLOADING(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-xml']
 
     def _clean(self, result):
         self.logger.debug(

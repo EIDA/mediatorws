@@ -40,6 +40,10 @@ class RequestProcessorError(ErrorWithTraceback):
     """Base RequestProcessor error ({})."""
 
 
+class ConfigurationError(RequestProcessorError):
+    """Configuration error ({})."""
+
+
 class RoutingError(RequestProcessorError):
     """Error while routing ({})."""
 
@@ -55,7 +59,15 @@ class RequestProcessor:
     """
 
     LOGGER = "flask.app.federator.request_processor"
-    REQUEST_STRATEGY = None
+
+    _STRATEGY_MAP = {
+        'granular': GranularRequestStrategy,
+        'bulk': NetworkBulkRequestStrategy,
+        'adaptive-bulk': AdaptiveNetworkBulkRequestStrategy,
+        'combining': NetworkCombiningRequestStrategy}
+
+    ALLOWED_STRATEGIES = None
+    DEFAULT_REQUEST_STRATEGY = None
 
     POOL_SIZE = 5
     # MAX_TASKS_PER_CHILD = 4
@@ -106,16 +118,23 @@ class RequestProcessor:
         self._sizes = []
 
         self._default_endtime = datetime.datetime.utcnow()
-        self._strategy = kwargs.get('request_strategy', self.REQUEST_STRATEGY)
-        if not self._strategy:
-            raise RequestProcessorError('Missing request strategy.')
+
+        self._nodata = int(self.query_params.get(
+            'nodata', settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE))
+
+        # lookup resource configuration attributes
+        req_strategy = kwargs.get('request_strategy',
+                                  self.DEFAULT_REQUEST_STRATEGY)
+        if req_strategy not in self.ALLOWED_STRATEGIES:
+            raise ConfigurationError(
+                'Invalid strategy: {!r}'.format(req_strategy))
+        self._strategy = self._STRATEGY_MAP[req_strategy]
         self._strategy = self._strategy(
             context=self._ctx, default_endtime=self.DEFAULT_ENDTIME)
 
         self._http_method = kwargs.get(
-            'http_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
-        self._nodata = int(self.query_params.get(
-            'nodata', settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE))
+            'request_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+        self._num_threads = kwargs.get('num_threads', self.POOL_SIZE)
 
     @staticmethod
     def create(service, *args, **kwargs):
@@ -308,13 +327,11 @@ class RawRequestProcessor(RequestProcessor):
     """
 
     LOGGER = "flask.app.federator.request_processor_raw"
-    REQUEST_STRATEGY = GranularRequestStrategy
+
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_DEFAULT_REQUEST_STRATEGY = 'granular'
 
     CHUNK_SIZE = 1024
-
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-dataselect']
 
     def _request(self):
         """
@@ -484,7 +501,9 @@ class StationXMLRequestProcessor(StationRequestProcessor):
     """
 
     CHUNK_SIZE = 1024
-    REQUEST_STRATEGY = NetworkCombiningRequestStrategy
+
+    ALLOWED_STRATEGIES = ('combining', 'adaptive-bulk')
+    DEFAULT_REQUEST_STRATEGY = 'combining'
 
     SOURCE = 'EIDA'
     HEADER = ('<?xml version="1.0" encoding="UTF-8"?>'
@@ -572,7 +591,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
                                'combining': StationXMLNetworkCombinerTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            pool_size=self.POOL_SIZE)
 
         self._pool.close()
 
@@ -667,7 +687,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
     datacenters currently is not merged.).
     """
 
-    REQUEST_STRATEGY = NetworkBulkRequestStrategy
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_REQUEST_STRATEGY = 'bulk'
 
     HEADER_NETWORK = '#Network|Description|StartTime|EndTime|TotalStations'
     HEADER_STATION = (
@@ -684,10 +705,6 @@ class StationTextRequestProcessor(StationRequestProcessor):
 
         self._level = query_params.get('level')
         assert self._level, "Missing parameter: 'level'"
-
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['fdsnws-station-text']
 
     def _request(self):
         """
@@ -785,17 +802,15 @@ class WFCatalogRequestProcessor(RequestProcessor):
     """
 
     LOGGER = "flask.app.federator.request_processor_wfcatalog"
-    REQUEST_STRATEGY = GranularRequestStrategy
+
+    ALLOWED_STRATEGIES = ('granular', 'bulk')
+    DEFAULT_REQUEST_STRATEGY = 'granular'
 
     CHUNK_SIZE = 1024
 
     JSON_LIST_START = '['
     JSON_LIST_END = ']'
     JSON_LIST_SEP = ','
-
-    @property
-    def POOL_SIZE(self):
-        return current_app.config['FED_THREAD_CONFIG']['eidaws-wfcatalog']
 
     def _request(self):
         """
