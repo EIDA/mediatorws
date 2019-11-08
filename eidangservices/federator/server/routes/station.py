@@ -53,16 +53,17 @@ class StationResource(Resource):
         resource_cfg = 'fdsnws-station-' + args['format']
 
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             self._get_result_mimetype(args),
             query_params=args,
             stream_epochs=stream_epochs,
-            post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg]
-        ).streamed_response
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
+
+        processor.post = False
+        return processor.streamed_response
 
     @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
@@ -85,16 +86,17 @@ class StationResource(Resource):
 
         resource_cfg = 'fdsnws-station-' + args['format']
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             self._get_result_mimetype(args),
             query_params=args,
             stream_epochs=stream_epochs,
-            post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg]
-        ).streamed_response
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
+
+        processor.post = True
+        return processor.streamed_response
 
     def _get_result_mimetype(self, args):
         """Return result mimetype (either XML or plain text."""
