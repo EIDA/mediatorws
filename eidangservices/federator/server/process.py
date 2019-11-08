@@ -73,14 +73,12 @@ class RequestProcessor:
     # MAX_TASKS_PER_CHILD = 4
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
-    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
-                 **kwargs):
+    def __init__(self, mimetype, query_params={}, stream_epochs=[], **kwargs):
         """
         :param str mimetype: The response's mimetype
         :param dict query_params: Request query parameters
         :param stream_epochs: Stream epochs requested
         :type stream_epochs: List of :py:class:`StreamEpoch`
-        :param bool post: Issue a post request
 
         :param str logger: Logger name (optional)
         :param request_strategy: Request strategy applied (optional)
@@ -97,7 +95,6 @@ class RequestProcessor:
             if self.mimetype == settings.MIMETYPE_TEXT else self.mimetype)
         self.query_params = query_params
         self.stream_epochs = stream_epochs
-        self.post = post
 
         # TODO(damb): Pass as ctor arg.
         self._routing_service = current_app.config['ROUTING_SERVICE']
@@ -135,6 +132,7 @@ class RequestProcessor:
         self._http_method = kwargs.get(
             'request_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
         self._num_threads = kwargs.get('num_threads', self.POOL_SIZE)
+        self._post = True
 
     @staticmethod
     def create(service, *args, **kwargs):
@@ -156,6 +154,14 @@ class RequestProcessor:
             return WFCatalogRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
+
+    @property
+    def post(self):
+        return self._post
+
+    @post.setter
+    def post(self, val):
+        self._post = bool(val)
 
     @property
     def DEFAULT_ENDTIME(self):
@@ -679,9 +685,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
         'Longitude|Elevation|Depth|Azimuth|Dip|SensorDescription|Scale|'
         'ScaleFreq|ScaleUnits|SampleRate|StartTime|EndTime')
 
-    def __init__(self, mimetype, query_params={}, stream_epochs=[], post=True,
-                 **kwargs):
-        super().__init__(mimetype, query_params, stream_epochs, post, **kwargs)
+    def __init__(self, mimetype, query_params={}, stream_epochs=[], **kwargs):
+        super().__init__(mimetype, query_params, stream_epochs, **kwargs)
 
         self._level = query_params.get('level')
         assert self._level, "Missing parameter: 'level'"
