@@ -197,21 +197,15 @@ class StreamEpoch(namedtuple('StreamEpoch',
         """
         Creates a :py:class:StreamEpoch` from SNCL-like attributes.
         """
-        net = (kwargs.get('network') if kwargs.get('network') is not None else
-               kwargs.get('net', '*'))
-        sta = (kwargs.get('station') if kwargs.get('station') is not None else
-               kwargs.get('sta', '*'))
+        net = kwargs.get('network') or kwargs.get('net', '*')
+        sta = kwargs.get('station') or kwargs.get('sta', '*')
+        cha = kwargs.get('channel') or kwargs.get('cha', '*')
+        # location / loc might be equal to an empty string
         loc = (kwargs.get('location') if
                kwargs.get('location') is not None else
                kwargs.get('loc', '*'))
-        cha = (kwargs.get('channel') if kwargs.get('channel') is not None else
-               kwargs.get('cha', '*'))
-        start = (kwargs.get('starttime') if
-                 kwargs.get('starttime') is not None else
-                 kwargs.get('start', None))
-        end = (kwargs.get('endtime') if
-               kwargs.get('endtime') is not None else
-               kwargs.get('end', None))
+        start = kwargs.get('starttime') or kwargs.get('start', None)
+        end = kwargs.get('endtime') or kwargs.get('end', None)
 
         return cls(stream=Stream(network=net,
                                  station=sta,

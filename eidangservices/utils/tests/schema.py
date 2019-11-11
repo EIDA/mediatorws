@@ -300,6 +300,16 @@ class StreamEpochSchemaTestCase(unittest.TestCase):
         result = self._dump(s, test_dataset)
         self.assertEqual(result, reference_result)
 
+        test_dataset = {'location': '--'}
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
+        self.assertEqual(result, reference_result)
+
+        test_dataset = {'location': '--', 'loc': '*'}
+        test_dataset = self._load(s, test_dataset)
+        result = self._dump(s, test_dataset)
+        self.assertEqual(result, reference_result)
+
     @mock.patch('flask.Request')
     def test_sncl_get_valid_loc_space(self, mock_request):
         # request.method == 'GET'

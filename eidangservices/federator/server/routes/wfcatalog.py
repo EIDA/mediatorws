@@ -66,16 +66,17 @@ class WFCatalogResource(Resource):
         self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             settings.WFCATALOG_MIMETYPE,
             query_params=args,
             stream_epochs=stream_epochs,
-            post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],
-        ).streamed_response
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],)
+
+        processor.post = False
+        return processor.streamed_response
 
     @fdsnws.use_fdsnws_args(WFCatalogSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
@@ -102,13 +103,14 @@ class WFCatalogResource(Resource):
         self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             settings.WFCATALOG_MIMETYPE,
             query_params=args,
             stream_epochs=stream_epochs,
-            post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],
-        ).streamed_response
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],)
+
+        processor.post = True
+        return processor.streamed_response
