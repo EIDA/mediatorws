@@ -6,7 +6,7 @@ Implementation of a *StationLite* resource.
 import collections
 import logging
 
-from flask import request
+from flask import request, current_app
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
@@ -53,7 +53,10 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLiteSchema: %s' % args)
         self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, stream_epochs)
+        response = self._process_request(
+            args, stream_epochs,
+            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+
         if not response:
             self._handle_nodata(args)
 
@@ -77,7 +80,10 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLiteSchema: %s' % args)
         self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, stream_epochs)
+        response = self._process_request(
+            args, stream_epochs,
+            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+
         if not response:
             self._handle_nodata(args)
 
@@ -89,7 +95,9 @@ class StationLiteResource(Resource):
                 args.get('nodata',
                          settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
 
-    def _process_request(self, args, stream_epochs):
+    def _process_request(
+        self, args, stream_epochs,
+            netloc_proxy=settings.EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY):
         # resolve virtual network streamepochs
         vnet_stream_epochs = []
         for stream_epoch in stream_epochs:
@@ -149,5 +157,6 @@ class StationLiteResource(Resource):
         # sort additionally by url
         routes.sort()
 
-        ostream = OutputStream.create(args['format'], routes=routes)
+        ostream = OutputStream.create(
+            args['format'], routes=routes, netloc_proxy=netloc_proxy)
         return str(ostream)

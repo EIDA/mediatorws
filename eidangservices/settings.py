@@ -612,6 +612,9 @@ EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
 EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
                                           EIDA_STATIONLITE_SERVICE_ID,
                                           EIDA_STATIONLITE_SHARE_DIR)
+# default netloc prefixed to all URLs
+EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY = None
+
 EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----
