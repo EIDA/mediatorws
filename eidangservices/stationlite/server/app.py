@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 EIDA NG stationlite server.
-
-This file is part of the EIDA mediator/federator webservices.
-
 """
 
 # import logging
