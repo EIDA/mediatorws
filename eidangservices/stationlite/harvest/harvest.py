@@ -835,8 +835,8 @@ class StationLiteHarvestApp(App):
                             version='%(prog)s version ' + __version__)
         parser.add_argument('-P', '--pid-file', type=str,
                             metavar='PATH', dest='path_pidfile',
-                            default=\  # noqa
-                            settings.EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
+                            default=settings.
+                            EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
                             help=('Path to PID file. '
                                   '(default: {%(default)s})'))
         parser.add_argument('--nodes-exclude', nargs='+',
