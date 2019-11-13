@@ -88,6 +88,13 @@ path_logging_conf=/var/www/mediatorws/config/fed-logging.conf
 #   - https://docs.python.org/library/configparser.html
 #
 # -----------------------------------------------------------------------------
+# Prepend a constant network location to routed URLs. This option may be used
+# if requests are redirected e.g. when using a proxy. See also:
+# https://tools.ietf.org/html/rfc1738#section-3.1
+#
+# proxy_netloc = '//[user[:password]@]host[:port]
+#
+# ----
 # DB URL indicating the database dialect and connection arguments. For SQlite
 # only a absolute file path is supported.
 # See also:
