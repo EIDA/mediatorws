@@ -45,3 +45,4 @@ volumes:
   mediatorws_log:
   mediatorws_tmp:
   stationlite_pgdata:
+  federator_cache:
