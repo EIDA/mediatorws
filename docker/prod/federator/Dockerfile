@@ -79,6 +79,7 @@ RUN cp -v db/stationlite.db.empty db/stationlite.db
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
 
 # Enable the supplied WSGI modules
+RUN a2dissite 000-default.conf
 RUN a2ensite federator.conf
 
 # Add the apache2 service
