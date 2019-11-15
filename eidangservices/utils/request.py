@@ -9,6 +9,7 @@ import io
 import requests
 
 from eidangservices import settings
+from eidangservices.utils import logger
 from eidangservices.utils.error import Error
 
 
@@ -30,17 +31,22 @@ class NoContent(RequestsError):
 
 @contextlib.contextmanager
 def binary_request(request,
-                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
+                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
+                   logger=logger):
     """
     Make a request.
 
     :param request: Request object to be used
     :type request: :py:class:`requests.Request`
     :param float timeout: Timeout in seconds
+
     :rtype: io.BytesIO
     """
     try:
         with request(timeout=timeout) as r:
+
+            logger.debug('Request URL (absolute, encoded): {!r}'.format(r.url))
+            logger.debug('Response headers: {!r}'.format(r.headers))
 
             if r.status_code in settings.FDSN_NO_CONTENT_CODES:
                 raise NoContent(r.url, r.status_code, response=r)

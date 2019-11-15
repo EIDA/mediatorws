@@ -960,7 +960,7 @@ class StationTextDownloadTask(RawDownloadTask):
             with open(self.path_tempfile, 'wb') as ofd:
                 # NOTE(damb): For granular fdnsws-station-text request it seems
                 # ok buffering the entire response in memory.
-                with binary_request(req) as ifd:
+                with binary_request(req, logger=self.logger) as ifd:
                     for line in ifd:
                         self._size += len(line)
                         if line.startswith(b'#'):
