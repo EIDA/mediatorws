@@ -87,9 +87,9 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-COPY .env /var/www/mediatorws/docker/cron-env
-RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/cron-env
-RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
+COPY .env /var/www/mediatorws/docker/prod/federator/cron-env
+RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/prod/federator/cron-env
+RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
