@@ -19,6 +19,7 @@ versions of Windows) and on how to install Docker, please refer to the official
 * *federator* and *stationlite* are set up separately i.e. each
   service is installed into its own virtual environment
 * services use Python3
+* proxied :code:`fdsnws-station` requests
 * *stationlite* harvesting via :code:`cron` powered by `PostgreSQL
   <https://www.postgresql.org/>`_
 * logging (file based)
@@ -27,11 +28,11 @@ versions of Windows) and on how to install Docker, please refer to the official
 
 To construct a Docker image with the appropriate configuration it is
 recommended to build your image from a Dockerfile. After cloning the repository
-change into the :code:`docker/` directory and modify the configuration.
+change into the :code:`docker/prod/` directory and modify the configuration.
 
 .. code::
 
-  $ cd docker
+  $ cd docker/prod/
 
 **Configuration**:
 
@@ -43,11 +44,12 @@ write these down for later.
 **Building**:
 
 Once you environment variables are configured you are ready to build the
-container image.
+container images:
 
 .. code::
 
-  $ docker build -t eida-federator:1.0 .
+  $ docker build -t eida-federator:1.0 federator
+  $ docker build -t eida-federator-proxy:1.0 proxy
 
 **Compose Configuration**:
 
