@@ -50,6 +50,14 @@
 #    "request_strategy": "granular",
 #    "request_method": "POST"}}'
 # 
+resource_config = {
+ "fdsnws-station-xml":
+  {"request_strategy": "combining",
+   "request_method": "GET"},
+ "fdsnws-station-text":
+  {"request_strategy": "granular",
+   "request_method": "GET"}}
+
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.
 #
@@ -92,7 +100,10 @@ path_logging_conf=/var/www/mediatorws/config/fed-logging.conf
 # if requests are redirected e.g. when using a proxy. See also:
 # https://tools.ietf.org/html/rfc1738#section-3.1
 #
-# proxy_netloc = '//[user[:password]@]host[:port]
+# Make sure that the proxy configured is reachable by eida-federator.
+#
+# proxy_netloc = //[user[:password]@]host[:port]
+proxy_netloc = //federator-proxy
 #
 # ----
 # DB URL indicating the database dialect and connection arguments. For SQlite
