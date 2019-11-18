@@ -245,7 +245,7 @@ class GranularRequestStrategy(RequestStrategyBase):
                     route.url,
                     route.streams[0],
                     query_params=query_params),
-                context=self._ctx,
+                context=ctx,
                 **kwargs)
             result = pool.apply_async(t)
             retval.append(result)
