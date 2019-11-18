@@ -153,9 +153,13 @@ class RequestStrategyBase:
                         if not line:
                             break
                     else:
+                        # XXX(damb): Do not substitute an empty endtime when
+                        # performing HTTP GET requests in order to guarantee more
+                        # cache hits (if eida-federator is coupled to HTTP
+                        # caching proxy).
                         stream_epochs.append(
-                            StreamEpoch.from_snclline(
-                                line, default_endtime=self._default_endtime))
+                            StreamEpoch.from_snclline(line, default_endtime=(
+                                self._default_endtime if post else None)))
 
         except NoContent as err:
             self.logger.warning(err)
