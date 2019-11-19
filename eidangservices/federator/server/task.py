@@ -30,6 +30,7 @@ class ETask(enum.Enum):
     DOWNLOAD = 0
     COMBINER = 1
     SPLITALIGN = 2
+    DOWNLOAD_INMEM = 3
 
 
 # -----------------------------------------------------------------------------
@@ -1036,4 +1037,107 @@ class StationXMLDownloadTask(RawDownloadTask):
                     self._request_handler.stream_epochs))
 
         return Result.ok(data=self.path_tempfile, length=self._size,
+                         extras={'type_task': self._TYPE})
+
+
+# -----------------------------------------------------------------------------
+class InMemoryTask(TaskBase):
+    """
+    Base class for downloading tasks returning in-memory results.
+    """
+
+    LOGGER = 'flask.app.federator.task_in_memory'
+
+    _TYPE = ETask.DOWNLOAD_INMEM
+
+    def __init__(self, request_handler, **kwargs):
+        """
+        :param request_handler: Request handler to be used for downloading
+        :type request_handler: :py:class:`RequestHandlerBase`
+        """
+
+        super().__init__(self.LOGGER, **kwargs)
+
+        self._request_handler = request_handler
+        self._http_get = kwargs.get('http_get', False)
+
+        self._size = 0
+
+    @catch_default_task_exception
+    @with_ctx_guard
+    def __call__(self):
+        return self._run()
+
+    def _run(self):
+        """
+        Template method to be implemented by concrete implementations of
+        in-memory tasks.
+        """
+        raise NotImplementedError
+
+    def _handle_error(self, err):
+        try:
+            resp = err.response
+            try:
+                data = err.response.text
+            except AttributeError:
+                return Result.error('RequestsError',
+                                    status_code=503,
+                                    warning=type(err),
+                                    data=str(err),
+                                    extras={'type_task': self._TYPE,
+                                            'req_handler':
+                                            self._request_handler})
+
+        except Exception as err:
+            return Result.error('InternalServerError',
+                                status_code=500,
+                                warning='Unhandled exception.',
+                                data=str(err),
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
+        else:
+            if resp.status_code == 413:
+                data = self._request_handler
+
+            return Result.error(status='EndpointError',
+                                status_code=resp.status_code,
+                                warning=str(err), data=data,
+                                extras={'type_task': self._TYPE,
+                                        'req_handler': self._request_handler})
+
+
+class StationTextInMemoryDownloadTask(InMemoryTask):
+    """
+    Download task performing a :code:`fdsnws-station` download and returns the
+    result in-memory (i.e. without using intermediate data persistance).
+    """
+
+    def _run(self):
+        req = (self._request_handler.get()
+               if self._http_method == 'GET' else self._request_handler.post())
+
+        self.logger.debug(
+            'Downloading (url={}, stream_epochs={}, http_method={!r}) ...'.
+            format(self._request_handler.url,
+                   self._request_handler.stream_epochs,
+                   self._http_method))
+        try:
+            lines = []
+            with binary_request(req, logger=self.logger) as ifd:
+                for line in ifd:
+                    self._size += len(line)
+                    if line.startswith(b'#'):
+                        continue
+                    lines.append(line.strip() + b'\n')
+
+        except RequestsError as err:
+            return self._handle_error(err)
+        else:
+            self.logger.debug(
+                'Download (url={}, stream_epochs={}) finished.'.format(
+                    self._request_handler.url,
+                    self._request_handler.stream_epochs))
+
+        return Result.ok(data=''.join(lines), length=self._size,
                          extras={'type_task': self._TYPE})
