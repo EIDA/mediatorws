@@ -412,7 +412,9 @@ class StreamEpochs:
             self.epochs = Epochs.from_tuples(epochs)
         except TypeError:
             self.epochs = Epochs()
-        self.epochs.merge_overlaps()
+
+        # intervals are merged even if they are only end-to-end adjacent
+        self.epochs.merge_overlaps(strict=False)
 
     @classmethod
     def from_stream_epoch(cls, stream_epoch):
@@ -456,7 +458,8 @@ class StreamEpochs:
         for iv in epochs:
             self.epochs.addi(iv[0], iv[1])
 
-        self.epochs.merge_overlaps()
+        # intervals are merged even if they are only end-to-end adjacent
+        self.epochs.merge_overlaps(strict=False)
 
     def fdsnws_to_sql_wildcards(self, like_multiple='%', like_single='_',
                                 like_escape='/'):
@@ -646,8 +649,9 @@ class StreamEpochsHandler:
             # add new StreamEpochs object
             self.d[key] = epochs
 
-        # tree for key may be overlapping
-        self.d[key].merge_overlaps()
+        # tree for key may be overlapping; intervals are merged even if they
+        # are only end-to-end adjacent
+        self.d[key].merge_overlaps(strict=False)
 
     @property
     def streams(self):
