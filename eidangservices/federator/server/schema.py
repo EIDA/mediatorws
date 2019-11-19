@@ -70,6 +70,7 @@ class DataselectSchema(ServiceSchema):
     class Meta:
         service = 'dataselect'
         strict = True
+        ordered=True
 
 
 class StationSchema(ServiceSchema):
@@ -167,6 +168,7 @@ class StationSchema(ServiceSchema):
     class Meta:
         service = 'station'
         strict = True
+        ordered=True
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -551,3 +553,4 @@ class WFCatalogSchema(ServiceSchema):
     class Meta:
         service = 'wfcatalog'
         strict = True
+        ordered=True

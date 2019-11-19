@@ -74,7 +74,7 @@ def resource_config(config_dict):
         config_dict = json.loads(config_dict)
     except Exception:
         raise argparse.ArgumentTypeError(
-            'Invalid thread configuration dictionary syntax.')
+            'Invalid resource configuration dictionary syntax.')
 
     retval = copy.deepcopy(settings.EIDA_FEDERATOR_RESOURCE_CONFIG)
     dict_merge(retval, config_dict)

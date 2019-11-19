@@ -6,7 +6,7 @@ General purpose utils for EIDA NG webservices.
 import argparse
 import collections
 import datetime
-# import logging
+import logging
 import os
 import re
 
@@ -24,6 +24,10 @@ except ImportError:
     dateutil_available = False
 
 
+# module level logger
+logger = logging.getLogger('eidangservices.utils')
+
+
 # from marshmallow (originally from Django)
 _iso8601_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -31,16 +35,6 @@ _iso8601_re = re.compile(
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
     r'(?P<tzinfo>Z|(?![+-]\d{2}(?::?\d{2})?))?$'
 )
-
-# -----------------------------------------------------------------------------
-Route = collections.namedtuple('Route', ['url', 'streams'])
-"""
-Container for routes.
-
-:param str url: URL
-:param list streams: List of stream epoch like objects (see
-    :py:mod:`eidangservices.utils.sncl` module).
-"""
 
 
 # -----------------------------------------------------------------------------
@@ -125,11 +119,13 @@ def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
 
 def convert_sncl_dicts_to_query_params(stream_epochs_dict):
     """
-    Convert a list of :py:class:`sncl.StreamEpoch` objects to FDSNWS HTTP
-    **GET** query parameters.
+    Convert a list of :py:class:`~sncl.StreamEpoch` objects to FDSNWS HTTP
+    **GET** query parameters. Return values are ordered based on the order of
+    the keys of the first dictionary in the :code:`stream_epochs_dict` list.
 
-    :param list stream_epochs_dict: A list of :py:class:`sncl.StreamEpoch`
+    :param list stream_epochs_dict: A list of :py:class:`~sncl.StreamEpoch`
         dictionaries
+
     :return: StreamEpoch related FDSNWS conform HTTP **GET** query parameters
     :rtype: :py:class:`dict`
     :raises ValueError: If temporal constraints differ between stream epochs.
@@ -144,14 +140,16 @@ def convert_sncl_dicts_to_query_params(stream_epochs_dict):
 
     .. note::
 
-        :py:class:`sncl.StreamEpoch` objects are flattened.
+        :py:class:`~sncl.StreamEpoch` objects are flattened.
     """
-    retval = collections.defaultdict(set)
     _temporal_constraints_params = ('starttime', 'endtime')
+
+    retval = DefaultOrderedDict(set)
     if stream_epochs_dict:
         for stream_epoch in stream_epochs_dict:
             for key, value in stream_epoch.items():
                 retval[key].update([value])
+
     for key, values in retval.items():
         if key in _temporal_constraints_params:
             if len(values) != 1:
@@ -176,3 +174,61 @@ def get_version_response(version_string):
     response = make_response(version_string)
     response.headers['Content-Type'] = settings.VERSION_MIMETYPE
     return response
+
+
+# -----------------------------------------------------------------------------
+Route = collections.namedtuple('Route', ['url', 'streams'])
+"""
+Container for routes.
+
+:param str url: URL
+:param list streams: List of stream epoch like objects (see
+    :py:mod:`eidangservices.utils.sncl` module).
+"""
+
+
+class DefaultOrderedDict(collections.OrderedDict):
+    """
+    Returns a new ordered dictionary-like object.
+    :py:class:`DefaultOrderedDict` is a subclass of the built-in
+    :code:`OrderedDict` class. It overrides one method and adds one writable
+    instance variable. The remaining functionality is the same as for the
+    :code:`OrderedDict` class and is not documented here.
+    """
+    # Source: http://stackoverflow.com/a/6190500/562769
+    def __init__(self, default_factory=None, *args, **kwargs):
+        if default_factory is not None and not callable(default_factory):
+            raise TypeError('first argument must be callable')
+
+        super().__init__(*args, **kwargs)
+        self.default_factory = default_factory
+
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return self.__missing__(key)
+
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        self[key] = value = self.default_factory()
+        return value
+
+    def __reduce__(self):
+        if self.default_factory is None:
+            args = tuple()
+        else:
+            args = self.default_factory,
+        return type(self), args, None, None, self.items()
+
+    def copy(self):
+        return self.__copy__()
+
+    def __copy__(self):
+        return type(self)(self.default_factory, self)
+
+    def __deepcopy__(self, memo):
+        import copy
+        return type(self)(self.default_factory,
+                          copy.deepcopy(self.items()))

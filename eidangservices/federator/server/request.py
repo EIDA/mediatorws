@@ -5,6 +5,7 @@ EIDA federator request handling facilities
 
 import functools
 
+from collections import OrderedDict
 from copy import deepcopy
 from urllib.parse import urlparse, urlunparse
 
@@ -154,7 +155,7 @@ class FdsnRequestHandler(RequestHandlerBase):
     def __init__(self, url, stream_epochs=[], query_params={}):
         super().__init__(url, stream_epochs=stream_epochs,
                          query_params=query_params)
-        self._query_params = dict((p, v)
+        self._query_params = OrderedDict((p, v)
                                   for p, v in self._query_params.items()
                                   if p not in self.QUERY_PARAMS)
 

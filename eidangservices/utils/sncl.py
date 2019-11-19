@@ -222,8 +222,8 @@ class StreamEpoch(namedtuple('StreamEpoch',
         :param str line: SNCL line in FDSN POST format i.e.
             :code:`NET STA LOC CHA START END`
         :param default_endtime: Substitute an empty endtime with the datetime
-            passed.
-        :type default_endtime: :py:class:`datetime.datetime`
+            passed. If :code:`None` no substitution is performed.
+        :type default_endtime: :py:class:`datetime.datetime` or None
         """
         if isinstance(line, bytes):
             line = line.decode('utf-8')
@@ -232,7 +232,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
         end = None
         if len(args) == 6:
             end = utils.from_fdsnws_datetime(args[5])
-        elif len(args) == 5 and default_endtime is not None:
+        elif len(args) == 5:
             end = default_endtime
 
         return cls(stream=Stream(network=args[0],

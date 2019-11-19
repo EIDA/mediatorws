@@ -705,7 +705,8 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
                     for chunk in stream_request(
-                            req, hunk_size=self.CHUNK_SIZE, method='raw'):
+                        req, hunk_size=self.CHUNK_SIZE, method='raw',
+                            logger=self.logger):
                         if last_chunk is not None and last_chunk == chunk:
                             continue
                         self._size += len(chunk)
@@ -780,7 +781,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                     self.path_tempfile))
             try:
                 with open(self.path_tempfile, 'ab') as ofd:
-                    with raw_request(req) as ifd:
+                    with raw_request(req, logger=self.logger) as ifd:
 
                         if self._last_obj is None:
                             ofd.write(self.JSON_LIST_START)
@@ -879,7 +880,8 @@ class RawDownloadTask(TaskBase):
                         req,
                         chunk_size=self.chunk_size,
                         method='raw',
-                        decode_unicode=self.decode_unicode):
+                        decode_unicode=self.decode_unicode,
+                        logger=self.logger):
                     self._size += len(chunk)
                     ofd.write(chunk)
 
@@ -960,7 +962,7 @@ class StationTextDownloadTask(RawDownloadTask):
             with open(self.path_tempfile, 'wb') as ofd:
                 # NOTE(damb): For granular fdnsws-station-text request it seems
                 # ok buffering the entire response in memory.
-                with binary_request(req) as ifd:
+                with binary_request(req, logger=self.logger) as ifd:
                     for line in ifd:
                         self._size += len(line)
                         if line.startswith(b'#'):
@@ -1025,7 +1027,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 # XXX(damb): Load the entire result into memory.
-                with binary_request(req) as ifd:
+                with binary_request(req, logger=self.logger) as ifd:
                     for event, net_element in etree.iterparse(
                             ifd, tag=network_tags):
                         if event == 'end':

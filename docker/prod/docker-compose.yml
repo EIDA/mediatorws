@@ -25,6 +25,24 @@ services:
     ports:
       - "8080:80"
 
+
+  # For federator HTTP caching proxy
+  federator-proxy:
+    container_name: federator-proxy
+    image: eida-federator-proxy:1.0 
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - type: volume
+        source: federator_cache_proxy
+        target: /var/cache/apache2/mod_cache_disk
+        volume:
+          nocopy: false
+    ports:
+      - "8090:80"
+
+
   # For the stationlite psql database
   psql:
     container_name: stationlite-psql
@@ -45,3 +63,4 @@ volumes:
   mediatorws_log:
   mediatorws_tmp:
   stationlite_pgdata:
+  federator_cache_proxy:

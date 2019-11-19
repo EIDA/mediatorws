@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 EIDA NG stationlite server.
-
-This file is part of the EIDA mediator/federator webservices.
-
 """
 
 # import logging
@@ -11,6 +8,8 @@ import argparse
 import os
 import sys
 import traceback
+
+from urllib.parse import urlsplit
 
 from flask_restful import Api
 
@@ -42,6 +41,28 @@ def url(url):
     return url
 
 
+def proxy_netloc(netloc):
+    """
+    Validate a proxy network location.
+
+    :param netloc: Network location
+    :type netloc: str or None
+    """
+    if netloc is None:
+        return netloc
+
+    try:
+        r = urlsplit(netloc)
+        if not r.netloc or r.scheme or r.path or r.query or r.fragment:
+            raise ValueError(
+                'Invalid network location. (Format: '
+                '//[user[:password]@]host[:port])')
+    except Exception as err:
+        raise argparse.ArgumentTypeError(str(err))
+    else:
+        return r.netloc
+
+
 # ----------------------------------------------------------------------------
 class StationLiteWebserviceBase(App):
     """
@@ -65,6 +86,15 @@ class StationLiteWebserviceBase(App):
         # optional arguments
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
+        parser.add_argument('--proxy-netloc', type=proxy_netloc,
+                            default=settings.
+                            EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY,
+                            dest='proxy_netloc', metavar='NETLOC',
+                            help=('Prefix routed URLs with a network '
+                                  'location. May be used if requests are '
+                                  'redirected e.g. when using a proxy. '
+                                  'See also: https://tools.ietf.org/html/'
+                                  'rfc1738#section-3.1'))
 
         # positional arguments
         parser.add_argument('db_url', type=url, metavar='URL',
@@ -124,7 +154,8 @@ class StationLiteWebserviceBase(App):
         app_config = {
             'PROPAGATE_EXCEPTIONS': True,
             'SQLALCHEMY_DATABASE_URI': self.args.db_url,
-            'SQLALCHEMY_TRACK_MODIFICATIONS': False
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+            'STL_PROXY_NETLOC': self.args.proxy_netloc,
         }
         # query method
         api.add_resource(
