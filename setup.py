@@ -77,7 +77,8 @@ _deps_all = [
     'webargs==5.5.2', ]
 _deps_federator = _deps_all + [
     'Flask-Cors>=3.0.7',
-    'ijson>=2.3', ]
+    'ijson>=2.3',
+    'flask-redis>=0.4.0', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
