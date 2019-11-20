@@ -4,6 +4,7 @@ import datetime
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
+from flask_redis import FlaskRedis
 
 # from werkzeug.contrib.profiler import ProfilerMiddleware
 
@@ -14,6 +15,9 @@ from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
                                          register_keywordparser_errorhandler)
+
+
+redis_client = FlaskRedis()
 
 
 def create_app(config_dict={}, service_version=__version__):
@@ -28,6 +32,8 @@ def create_app(config_dict={}, service_version=__version__):
     app.config.update(config_dict)
     # allows CORS for all domains for all routes
     CORS(app)
+
+    redis_client.init_app(app)
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
