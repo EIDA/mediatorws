@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import uuid
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
@@ -33,7 +34,7 @@ def create_app(config_dict={}, service_version=__version__):
     # allows CORS for all domains for all routes
     CORS(app)
 
-    redis_client.init_app(app)
+    redis_client.init_app(app, socket_timeout=5)
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
@@ -42,10 +43,9 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-        g.ctx = Context(root_only=True)
-        g.request_id = g.ctx._get_current_object()
-        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'],
-                      hidden=settings.EIDA_FEDERATOR_HIDDEN_CTX_LOCKS)
+        g.request_id = uuid.uuid4()
+        g.ctx = Context(ctx=g.request_id)
+        g.ctx.acquire(payload={'starttime': g.request_start_time})
 
     @app.teardown_request
     def teardown_request(exception):
