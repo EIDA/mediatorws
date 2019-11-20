@@ -351,7 +351,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
-            ctx = Context(root_only=True)
+            ctx = Context()
             self._ctx.append(ctx)
 
             t = RawDownloadTask(

@@ -242,7 +242,7 @@ class GranularRequestStrategy(RequestStrategyBase):
         for route in self._routes:
             self.logger.debug(
                 'Creating {!r} for {!r} ...'.format(default_task, route))
-            ctx = Context(root_only=True)
+            ctx = Context()
             self._ctx.append(ctx)
             t = default_task(
                 GranularFdsnRequestHandler(
@@ -300,7 +300,7 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
                     'Creating {!r} for {!r} ...'.format(
                         default_task, bulk_route))
 
-                ctx = Context(root_only=True)
+                ctx = Context()
                 self._ctx.append(ctx)
 
                 # NOTE(damb): For bulk requests there's only http_method='POST'
@@ -360,7 +360,7 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
 
         for net, routes in self._routes.items():
             # create subcontext
-            ctx = Context(root_only=True, payload=net)
+            ctx = Context()
             self._ctx.append(ctx)
 
             if len(routes) == 1:
@@ -416,7 +416,7 @@ class NetworkCombiningRequestStrategy(RequestStrategyBase):
 
         retval = []
         for net, routes in self._routes.items():
-            ctx = Context(root_only=True, payload=net)
+            ctx = Context()
             self._ctx.append(ctx)
             self.logger.debug(
                 'Creating {!r} for net={!r} ...'.format(combining_task, net))
