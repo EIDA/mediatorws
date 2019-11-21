@@ -42,6 +42,11 @@ services:
     ports:
       - "8090:80"
 
+  # For federator Redis storage
+  federator-redis:
+    container_name: federator-redis
+    image: redis:5
+    restart: always
 
   # For the stationlite psql database
   psql:

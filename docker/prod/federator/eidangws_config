@@ -22,6 +22,12 @@
 # routing=SERVICE_URL/IDENTIFIER
 #
 # ----
+# Set the storage URL or Unix Socket (Redis) (default:
+# redis://localhost:6379/0)
+#
+storage=redis://federator-redis:6379/0
+#
+# ----
 # Enable/disable federator endpoint resources. Choices are: 
 # {fdsnws-dataselect, fdsnws-station, eidaws-wfcatalog}. By default all
 # endpoint resources are enabled.
