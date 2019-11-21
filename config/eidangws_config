@@ -24,6 +24,7 @@
 # ----
 # Set the storage URL or Unix Socket (Redis) (default:
 # redis://localhost:6379/0)
+# See also: https://redis-py.readthedocs.io/en/latest/
 #
 # storage=REDIS STORAGE URL
 #
