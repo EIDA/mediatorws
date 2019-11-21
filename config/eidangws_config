@@ -22,7 +22,8 @@
 # routing=SERVICE_URL/IDENTIFIER
 #
 # ----
-# Set the storage URL (Redis) (default: redis://localhost:6379/0)
+# Set the storage URL or Unix Socket (Redis) (default:
+# redis://localhost:6379/0)
 #
 # storage=REDIS STORAGE URL
 #
