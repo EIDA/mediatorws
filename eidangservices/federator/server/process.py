@@ -369,7 +369,7 @@ class RawRequestProcessor(RequestProcessor):
             'Creating SAATask for (url={}, '
             'stream_epochs={}) ...'.format(result.data.url,
                                            result.data.stream_epochs))
-        ctx = Context(root_only=True)
+        ctx = Context()
         self._ctx.append(ctx)
 
         t = RawSplitAndAlignTask(
@@ -827,7 +827,7 @@ class WFCatalogRequestProcessor(RequestProcessor):
             'Creating SAATask for (url={}, '
             'stream_epochs={}) ...'.format(result.data.url,
                                            result.data.stream_epochs))
-        ctx = Context(root_only=True)
+        ctx = Context()
         self._ctx.append(ctx)
 
         t = WFCatalogSplitAndAlignTask(

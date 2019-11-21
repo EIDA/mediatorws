@@ -65,7 +65,16 @@ def with_ctx_guard(func):
     """
     def decorator(self, *args, **kwargs):
         try:
-            return func(self, *args, **kwargs)
+            if self._has_inactive_ctx():
+                raise self.MissingContextLock
+
+            retval = func(self, *args, **kwargs)
+
+            if self._has_inactive_ctx():
+                raise self.MissingContextLock
+
+            return retval
+
         except TaskBase.MissingContextLock:
             try:
                 self.logger.debug(
@@ -76,7 +85,8 @@ def with_ctx_guard(func):
                 self.logger.debug(
                     '{}: Teardown (type={}) ...'.format(
                         type(self).__name__, self._TYPE))
-            self._teardown(self.path_tempfile)
+            else:
+                self._teardown(self.path_tempfile)
 
             return Result.teardown(data=self._ctx,
                                    extras={'type_task': self._TYPE})
@@ -273,9 +283,6 @@ class CombinerTask(TaskBase):
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
-        if self._has_inactive_ctx():
-            raise self.MissingContextLock
-
         return self._run()
 
     def __repr__(self):
@@ -351,7 +358,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         for route in self._routes:
             self.logger.debug(
                 'Creating DownloadTask for route {!r} ...'.format(route))
-            ctx = Context(root_only=True)
+            ctx = Context()
             self._ctx.append(ctx)
 
             t = RawDownloadTask(
@@ -728,9 +735,6 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
-            if self._has_inactive_ctx():
-                raise self.MissingContextLock
-
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
                 return Result.ok(data=self.path_tempfile, length=self._size,
                                  extras={'type_task': self._TYPE})
@@ -823,9 +827,6 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                         request_handler.url,
                         request_handler.stream_epochs))
 
-            if self._has_inactive_ctx():
-                raise self.MissingContextLock
-
             if stream_epoch.endtime == self.stream_epochs[-1].endtime:
 
                 with open(self.path_tempfile, 'ab') as ofd:
@@ -892,9 +893,6 @@ class RawDownloadTask(TaskBase):
                 'Download (url={}, stream_epochs={}) finished.'.format(
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
-
-        if self._has_inactive_ctx():
-            raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
@@ -977,9 +975,6 @@ class StationTextDownloadTask(RawDownloadTask):
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
 
-        if self._has_inactive_ctx():
-            raise self.MissingContextLock
-
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
 
@@ -1006,9 +1001,6 @@ class StationXMLDownloadTask(RawDownloadTask):
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
-
-        if self._has_inactive_ctx():
-            raise self.MissingContextLock
 
         req = (self._request_handler.get()
                if self._http_method == 'GET' else self._request_handler.post())
@@ -1042,9 +1034,6 @@ class StationXMLDownloadTask(RawDownloadTask):
                 'Download (url={}, stream_epochs={}) finished.'.format(
                     self._request_handler.url,
                     self._request_handler.stream_epochs))
-
-        if self._has_inactive_ctx():
-            raise self.MissingContextLock
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})

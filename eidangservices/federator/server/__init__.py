@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import uuid
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
+from flask_redis import FlaskRedis
 
 # from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from eidangservices import settings
 from eidangservices.federator import __version__
-from eidangservices.federator.server.misc import Context
 from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
                                          register_keywordparser_errorhandler)
+
+
+redis_client = FlaskRedis()
 
 
 def create_app(config_dict={}, service_version=__version__):
@@ -24,10 +28,15 @@ def create_app(config_dict={}, service_version=__version__):
     :type config_dict: :py:class:`flask.Config`
     :param str service_version: Version string
     """
+    # prevent from errors due to circular dependencies
+    # XXX(damb): Consider refactoring
+    from eidangservices.federator.server.misc import Context
     app = Flask(__name__)
     app.config.update(config_dict)
     # allows CORS for all domains for all routes
     CORS(app)
+
+    redis_client.init_app(app, socket_timeout=5)
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
@@ -36,10 +45,9 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-        g.ctx = Context(root_only=True)
-        g.request_id = g.ctx._get_current_object()
-        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'],
-                      hidden=settings.EIDA_FEDERATOR_HIDDEN_CTX_LOCKS)
+        g.request_id = uuid.uuid4()
+        g.ctx = Context(ctx=g.request_id)
+        g.ctx.acquire()
 
     @app.teardown_request
     def teardown_request(exception):

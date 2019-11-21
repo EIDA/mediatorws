@@ -539,6 +539,9 @@ EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
 # default StationLite service URL
 EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
     'http://localhost/eidaws/routing/1/'
+# default storage (Redis) URL
+EIDA_FEDERATOR_DEFAULT_STORAGE_URL = \
+    'redis://localhost:6379/0'
 # default federator endpoint resources
 EIDA_FEDERATOR_DEFAULT_RESOURCES = (
     'fdsnws-dataselect', 'fdsnws-station', 'eidaws-wfcatalog')
