@@ -732,26 +732,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
                                 elif self._level == 'channel':
                                     yield '{}\n'.format(self.HEADER_CHANNEL)
 
-                            self._sizes.append(_result.length)
-                            self.logger.debug(
-                                'Streaming from file {!r}.'.format(
-                                    _result.data))
-                            try:
-                                with open(_result.data, 'r',
-                                          encoding='utf-8') as fd:
-                                    for line in fd:
-                                        yield line
-                            except Exception as err:
-                                raise StreamingError(err)
-
-                            if self._keep_tempfiles != KeepTempfiles.ALL:
-                                self.logger.debug(
-                                    'Removing temporary file {!r} ...'.format(
-                                        _result.data))
-                                try:
-                                    os.remove(_result.data)
-                                except OSError as err:
-                                    RequestProcessorError(err)
+                            # return data from a temporary file
+                            yield from self._generate_from_file(_result.data)
 
                         elif _result.status_code == 413:
                             self._handle_413(_result)
@@ -779,6 +761,26 @@ class StationTextRequestProcessor(StationRequestProcessor):
         except GeneratorExit:
             self.logger.debug('GeneratorExit: Terminate ...')
             self._terminate()
+
+    def _generate_from_file(self, path):
+        """
+        Generator returning data line-by-line from a temporary file.
+        """
+        self.logger.debug('Streaming from file {!r}.'.format(path))
+        try:
+            with open(path, 'r', encoding='utf-8') as fd:
+                for line in fd:
+                    print(line)
+                    yield line
+        except Exception as err:
+            raise StreamingError(err)
+
+        if self._keep_tempfiles != KeepTempfiles.ALL:
+            self.logger.debug('Removing temporary file {!r} ...'.format(path))
+            try:
+                os.remove(path)
+            except OSError as err:
+                RequestProcessorError(err)
 
 
 class WFCatalogRequestProcessor(RequestProcessor):
