@@ -16,7 +16,7 @@
 #   - https://docs.python.org/library/configparser.html
 #
 # -----------------------------------------------------------------------------
-# Set the eida-stationlite routing service url and identifier. (default:
+# Set the eida-stationlite routing service URL and identifier. (default:
 # http://localhost/eidaws/routing/1/)
 #
 # routing=SERVICE_URL/IDENTIFIER
