@@ -119,6 +119,11 @@ class FederatorWebserviceBase(App):
                             help=("stationlite routing service url "
                                   "(including identifier) "
                                   "(default: %(default)s)"))
+        parser.add_argument('-S', '--storage-url', type=str,
+                            dest='storage', metavar='URL',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_STORAGE_URL,
+                            help="Storage URL (Redis) (default: %(default)s)")
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -247,6 +252,7 @@ class FederatorWebserviceBase(App):
             # TODO(damb): Pass log_level to app.config!
             PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
+            REDIS_URL=self.args.storage,
             FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
             TMPDIR=tempfile.gettempdir())
