@@ -346,7 +346,7 @@ class RawRequestProcessor(RequestProcessor):
 
         assert bool(self._num_routes), 'No routes available.'
 
-        pool_size = min(self._num_routes, self.POOL_SIZE)
+        pool_size = min(self._num_routes, self._num_threads)
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
         # NOTE(damb): With pleasure I'd like to define the parameter
@@ -572,7 +572,7 @@ class StationXMLRequestProcessor(StationRequestProcessor):
 
         assert bool(self._num_routes), 'No routes available.'
 
-        pool_size = min(self._num_routes, self.POOL_SIZE)
+        pool_size = min(self._num_routes, self._num_threads)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.Pool(processes=pool_size)
@@ -698,7 +698,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
 
         assert bool(self._num_routes), 'No routes available.'
 
-        pool_size = min(self._num_routes, self.POOL_SIZE)
+        pool_size = min(self._num_routes, self._num_threads)
 
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
@@ -804,7 +804,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
         assert bool(self._num_routes), 'No routes available.'
 
-        pool_size = min(self._num_routes, self.POOL_SIZE)
+        pool_size = min(self._num_routes, self._num_threads)
+
         self.logger.debug('Init worker pool (size={}).'.format(pool_size))
         self._pool = mp.pool.ThreadPool(processes=pool_size)
         # NOTE(damb): With pleasure I'd like to define the parameter
