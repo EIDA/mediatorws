@@ -164,7 +164,7 @@ EIDA_NODES = {
             'eida': {
                 'routing': {
                     'service': True,
-                    'server': ' http://eida.ingv.it',
+                    'server': ' http://webservices.ingv.it',
                     'uri_path_config': '/eidaws/routing/1/localconfig',
                     'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
