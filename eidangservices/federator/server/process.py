@@ -22,9 +22,9 @@ from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
     NetworkCombiningRequestStrategy, AdaptiveNetworkBulkRequestStrategy)
 from eidangservices.federator.server.task import (
-    RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
+    ETask, RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLDownloadTask, StationXMLNetworkCombinerTask,
-    WFCatalogSplitAndAlignTask)
+    StationTextInMemoryDownloadTask, WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
 from eidangservices.utils.httperrors import FDSNHTTPError
 
@@ -704,7 +704,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
         self._pool = mp.pool.ThreadPool(processes=pool_size)
 
         self._results = self._strategy.request(
-            self._pool, tasks={'default': StationTextDownloadTask},
+            self._pool, tasks={'default': StationTextInMemoryDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
             http_method=self._http_method)
@@ -732,8 +732,22 @@ class StationTextRequestProcessor(StationRequestProcessor):
                                 elif self._level == 'channel':
                                     yield '{}\n'.format(self.HEADER_CHANNEL)
 
-                            # return data from a temporary file
-                            yield from self._generate_from_file(_result.data)
+                            self._sizes.append(_result.length)
+                            try:
+                                type_task = _result.extras['type_task']
+                            except KeyError as err:
+                                raise StreamingError(err)
+
+                            if type_task == ETask.DOWNLOAD:
+                                # return data from a temporary file
+                                yield from self._generate_from_file(
+                                    _result.data)
+                            elif type_task == ETask.DOWNLOAD_INMEM:
+                                yield from self._generate_from_str(
+                                    _result.data)
+                            else:
+                                raise StreamingError(
+                                    'Invalid task type: {}'.format(type_task))
 
                         elif _result.status_code == 413:
                             self._handle_413(_result)
@@ -770,7 +784,6 @@ class StationTextRequestProcessor(StationRequestProcessor):
         try:
             with open(path, 'r', encoding='utf-8') as fd:
                 for line in fd:
-                    print(line)
                     yield line
         except Exception as err:
             raise StreamingError(err)
@@ -781,6 +794,10 @@ class StationTextRequestProcessor(StationRequestProcessor):
                 os.remove(path)
             except OSError as err:
                 RequestProcessorError(err)
+
+    def _generate_from_str(self, lst):
+        for line in lst:
+            yield line
 
 
 class WFCatalogRequestProcessor(RequestProcessor):

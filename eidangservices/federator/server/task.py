@@ -1129,7 +1129,7 @@ class StationTextInMemoryDownloadTask(InMemoryTask):
                     self._size += len(line)
                     if line.startswith(b'#'):
                         continue
-                    lines.append(line.strip() + b'\n')
+                    lines.append(line.decode('utf-8').strip() + '\n')
 
         except RequestsError as err:
             return self._handle_error(err)
