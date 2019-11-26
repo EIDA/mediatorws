@@ -22,9 +22,9 @@ from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
     NetworkCombiningRequestStrategy, AdaptiveNetworkBulkRequestStrategy)
 from eidangservices.federator.server.task import (
-    RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
+    ETask, RawDownloadTask, RawSplitAndAlignTask, StationTextDownloadTask,
     StationXMLDownloadTask, StationXMLNetworkCombinerTask,
-    WFCatalogSplitAndAlignTask)
+    StationTextInMemoryDownloadTask, WFCatalogSplitAndAlignTask)
 from eidangservices.utils.error import ErrorWithTraceback
 from eidangservices.utils.httperrors import FDSNHTTPError
 
@@ -704,7 +704,7 @@ class StationTextRequestProcessor(StationRequestProcessor):
         self._pool = mp.pool.ThreadPool(processes=pool_size)
 
         self._results = self._strategy.request(
-            self._pool, tasks={'default': StationTextDownloadTask},
+            self._pool, tasks={'default': StationTextInMemoryDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
             http_method=self._http_method)
@@ -733,25 +733,21 @@ class StationTextRequestProcessor(StationRequestProcessor):
                                     yield '{}\n'.format(self.HEADER_CHANNEL)
 
                             self._sizes.append(_result.length)
-                            self.logger.debug(
-                                'Streaming from file {!r}.'.format(
-                                    _result.data))
                             try:
-                                with open(_result.data, 'r',
-                                          encoding='utf-8') as fd:
-                                    for line in fd:
-                                        yield line
-                            except Exception as err:
+                                type_task = _result.extras['type_task']
+                            except KeyError as err:
                                 raise StreamingError(err)
 
-                            if self._keep_tempfiles != KeepTempfiles.ALL:
-                                self.logger.debug(
-                                    'Removing temporary file {!r} ...'.format(
-                                        _result.data))
-                                try:
-                                    os.remove(_result.data)
-                                except OSError as err:
-                                    RequestProcessorError(err)
+                            if type_task == ETask.DOWNLOAD:
+                                # return data from a temporary file
+                                yield from self._generate_from_file(
+                                    _result.data)
+                            elif type_task == ETask.DOWNLOAD_INMEM:
+                                yield from self._generate_from_str(
+                                    _result.data)
+                            else:
+                                raise StreamingError(
+                                    'Invalid task type: {}'.format(type_task))
 
                         elif _result.status_code == 413:
                             self._handle_413(_result)
@@ -779,6 +775,29 @@ class StationTextRequestProcessor(StationRequestProcessor):
         except GeneratorExit:
             self.logger.debug('GeneratorExit: Terminate ...')
             self._terminate()
+
+    def _generate_from_file(self, path):
+        """
+        Generator returning data line-by-line from a temporary file.
+        """
+        self.logger.debug('Streaming from file {!r}.'.format(path))
+        try:
+            with open(path, 'r', encoding='utf-8') as fd:
+                for line in fd:
+                    yield line
+        except Exception as err:
+            raise StreamingError(err)
+
+        if self._keep_tempfiles != KeepTempfiles.ALL:
+            self.logger.debug('Removing temporary file {!r} ...'.format(path))
+            try:
+                os.remove(path)
+            except OSError as err:
+                RequestProcessorError(err)
+
+    def _generate_from_str(self, lst):
+        for line in lst:
+            yield line
 
 
 class WFCatalogRequestProcessor(RequestProcessor):
