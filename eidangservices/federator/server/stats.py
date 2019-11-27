@@ -1,0 +1,201 @@
+"""
+Facilities related with statistics.
+"""
+
+import abc
+import os
+import time
+import uuid
+
+from eidangservices.utils.error import ErrorWithTraceback
+
+
+class StatsError(ErrorWithTraceback):
+    """Base Stats error ({})."""
+
+
+class RedisCollection(metaclass=abc.ABCMeta):
+    """
+    Abstract class providing backend functionality for Redis collections.
+    """
+
+    ENCODING = 'utf-8'
+
+    def __init__(self, redis, key=None, **kwargs):
+        self.redis = redis
+
+        self.key = key or self._create_key()
+
+    def _transaction(self, fn, *extra_keys):
+        """
+        Helper simplifying code within a watched transaction.
+
+        Takes *fn*, function treated as a transaction. Returns whatever
+        *fn* returns. :code:`self.key` is watched. *fn* takes *pipe* as the
+        only argument.
+
+        :param fn: Closure treated as a transaction.
+        :type fn: function *fn(pipe)*
+        :param extra_keys: Optional list of additional keys to watch.
+        :type extra_keys: list
+        :rtype: whatever *fn* returns
+        """
+        results = []
+
+        def trans(pipe):
+            results.append(fn(pipe))
+
+        self.redis.transaction(trans, self.key, *extra_keys)
+        return results[0]
+
+    @abc.abstractmethod
+    def _data(self, pipe=None, **kwargs):
+        """
+        Helper for getting the time series data within a transaction.
+
+        :param pipe: Redis pipe in case creation is performed as a part
+                     of transaction.
+        :type pipe: :py:class:`redis.client.StrictPipeline` or
+                    :py:class:`redis.client.StrictRedis`
+        """
+
+    def _clear(self, pipe=None):
+        """
+        Helper for clear operations.
+
+        :param pipe: Redis pipe in case creation is performed as a part
+                     of transaction.
+        :type pipe: :py:class:`redis.client.StrictPipeline` or
+                    :py:class:`redis.client.StrictRedis`
+        """
+
+        redis = pipe or self.redis
+        redis.delete(self.key)
+
+    @staticmethod
+    def _create_key():
+        """
+        Creates a random Redis key for storing this collection's data.
+
+        :rtype: string
+
+        .. note::
+            :py:func:`uuid.uuid4` is used. If you are not satisfied with its
+            `collision probability
+            <http://stackoverflow.com/a/786541/325365>`_, make your own
+            implementation by subclassing and overriding this method.
+        """
+        return uuid.uuid4().hex
+
+
+class ResponseCodeTimeSeries(RedisCollection):
+    """
+    Distributed collection implementing a response code time series. The
+    timeseries is implemented based on Redis' `sorted set
+    <https://redis.io/topics/data-types>`_ following the pattern described at
+    `redislabs.com
+    <https://redislabs.com/redis-best-practices/time-series/sorted-set-time-series/>`_.
+
+    ..warning::
+        The ``window_size`` of the collection can't be enforced when multiple
+        processes are accessing its Redis collection.
+    """
+
+    _DELIMITER = b':'
+    _DEFAULT_TTL = 3600  # seconds
+    _DEFAULT_WINDOW_SIZE = 10000
+
+    ERROR_CODES = (500, 503)
+
+    def __init__(self, redis, key=None, **kwargs):
+        super().__init__(redis, key, **kwargs)
+
+        self.ttl = kwargs.get('ttl', self._DEFAULT_TTL)
+        self.window_size = kwargs.get('window_size', self._DEFAULT_WINDOW_SIZE)
+
+    @property
+    def error_ratio(self):
+        data = self._data(ttl=self.ttl)
+        num_errors = len(
+            [code for code, t in data if int(code) in self.ERROR_CODES])
+
+        return num_errors / len(data)
+
+    def __len__(self, pipe=None, **kwargs):
+        return len(self._data(pipe, **kwargs))
+
+    def __iter__(self, pipe=None):
+        return iter(self._data(pipe=pipe, ttl=self.ttl))
+
+    def discard_deprecated(self, pipe=None, **kwargs):
+        redis = pipe or self.redis
+
+        ttl = kwargs.get('ttl') or self.ttl
+        thres = time.time() - ttl
+
+        redis.zremrangebyscore(self.key, '-inf', thres)
+
+    def clear(self, pipe=None, **kwargs):
+        self._clear(pipe=pipe)
+
+    def append(self, value):
+        """
+        Append *value* to the time series.
+
+        :param int value: Response code to be appended
+        """
+        hash(value)
+
+        def append_trans(pipe):
+            self._append_helper(value, pipe)
+
+        self._transaction(append_trans)
+
+    def _append_helper(self, value, pipe, **kwargs):
+
+        score = time.time()
+        member = self._serialize(value, score)
+
+        pipe.zadd(self.key, {member: score})
+
+        num_items = pipe.zcount(self.key, '-inf', '+inf')
+
+        # check window size restriction
+        if (self.window_size is None) or (num_items <= self.window_size):
+            return
+
+        pipe.zremrangebyrank(self.key, 0, 0)
+
+    def _data(self, pipe=None, **kwargs):
+        """
+        Helper for getting the time series data within a transaction.
+
+        :param pipe: Redis pipe in case creation is performed as a part
+                     of transaction.
+        :type pipe: :py:class:`redis.client.StrictPipeline` or
+                    :py:class:`redis.client.StrictRedis`
+        """
+        redis = pipe or self.redis
+        ttl = kwargs.get('ttl') or self.ttl
+
+        now = time.time()
+        items = redis.zrevrangebyscore(self.key, now, now - ttl,
+                                       withscores=True)
+
+        if not items:
+            return []
+
+        return [(self._deserialize(member), score)
+                for member, score in items]
+
+    def _deserialize(self, value, **kwargs):
+        retval = value.split(self._DELIMITER)[0]
+        return retval.decode(self.ENCODING)
+
+    def _serialize(self, value, score, **kwargs):
+        return (str(value).encode(self.ENCODING) +
+                self._DELIMITER +
+                str(score).encode(self.ENCODING) +
+                # add 8 random bytes
+                os.urandom(8))
+
