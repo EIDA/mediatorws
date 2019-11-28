@@ -7,6 +7,9 @@ import os
 import time
 import uuid
 
+from copy import deepcopy
+from urllib.parse import urlsplit
+
 from eidangservices.utils.error import ErrorWithTraceback
 
 
@@ -98,10 +101,10 @@ class ResponseCodeTimeSeries(RedisCollection):
 
     ..warning::
         The ``window_size`` of the collection can't be enforced when multiple
-        processes are accessing its Redis collection.
+        processes are accessing its corresponding Redis collection.
     """
 
-    _DELIMITER = b':'
+    KEY_DELIMITER = b':'
     _DEFAULT_TTL = 3600  # seconds
     _DEFAULT_WINDOW_SIZE = 10000
 
@@ -189,13 +192,94 @@ class ResponseCodeTimeSeries(RedisCollection):
                 for member, score in items]
 
     def _deserialize(self, value, **kwargs):
-        retval = value.split(self._DELIMITER)[0]
+        retval = value.split(self.KEY_DELIMITER)[0]
         return retval.decode(self.ENCODING)
 
     def _serialize(self, value, score, **kwargs):
         return (str(value).encode(self.ENCODING) +
-                self._DELIMITER +
+                self.KEY_DELIMITER +
                 str(score).encode(self.ENCODING) +
                 # add 8 random bytes
                 os.urandom(8))
 
+
+class ResponseCodeStats:
+    """
+    Container for datacenter response code statistics handling.
+    """
+
+    DEFAULT_PREFIX = 'stats:response-codes'
+
+    def __init__(self, redis, prefix=None, **kwargs):
+
+        self.redis = redis
+        self._prefix = prefix or self.DEFAULT_PREFIX
+        self._kwargs_series = kwargs
+
+        self._map = {}
+
+    def add(self, url, code, **kwargs):
+        """
+        Add ``code`` to a response code time series specified by ``url``.
+        """
+        kwargs_series = deepcopy(self._kwargs_series)
+        kwargs_series.update(kwargs)
+
+        key = self._create_key_from_url(url, prefix=self._prefix)
+
+        if key not in self._map:
+            self._map[key] = ResponseCodeTimeSeries(
+                redis=self.redis, key=key, **kwargs_series)
+
+        self._map[key].append(code)
+
+    def discard_deprecated(self, url, lazy_load=True):
+        """
+        Discard deprecated values from a response code time series specified by
+        ``url``.
+        """
+        key = self._create_key_from_url(url, prefix=self._prefix)
+
+        if lazy_load and key not in self._map:
+            # lazy loading
+            self._map[key] = ResponseCodeTimeSeries(
+                redis=self.redis, key=key, **self._kwargs_series)
+
+        self._map[key].discard_deprecated()
+
+    def clear(self, url):
+        key = self._create_key_from_url(url, prefix=self._prefix)
+
+        try:
+            self._map[key].clear()
+        except KeyError as err:
+            raise StatsError(err)
+
+    def get_error_ratio(self, url, lazy_load=True):
+        key = self._create_key_from_url(url, prefix=self._prefix)
+
+        if lazy_load and key not in self._map:
+            # lazy loading
+            self._map[key] = ResponseCodeTimeSeries(
+                redis=self.redis, key=key, **self._kwargs_series)
+
+        return self._map[key].error_ratio
+
+    def __contains__(self, url):
+        return self._create_key_from_url(url) in self._map
+
+    def __getitem__(self, key):
+        return self._map[key]
+
+    @staticmethod
+    def _create_key_from_url(url, prefix=None):
+        delimiter = ResponseCodeTimeSeries.KEY_DELIMITER.decode(
+            ResponseCodeTimeSeries.ENCODING)
+
+        split_result = urlsplit(url)
+
+        if prefix:
+            return (prefix + delimiter + split_result.path + delimiter +
+                    split_result.netloc)
+
+        return split_result.path + delimiter + split_result.netloc
