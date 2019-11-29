@@ -123,6 +123,9 @@ class ResponseCodeTimeSeries(RedisCollection):
         num_errors = len(
             [code for code, t in data if int(code) in self.ERROR_CODES])
 
+        if not data:
+            return 0
+
         return num_errors / len(data)
 
     def __len__(self, pipe=None, **kwargs):
