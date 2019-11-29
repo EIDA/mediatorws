@@ -441,9 +441,10 @@ class NetworkCombiningRequestStrategy(RequestStrategyBase):
     Request strategy implementing data merging on a network level granularity.
     """
 
-    def route(self, req, **kwargs):
-        self._routes = group_routes_by(super()._route(req, **kwargs),
-                                       key='network')
+    def route(self, req, retry_budget_client=100, **kwargs):
+        routing_table = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routes = group_routes_by(routing_table, key='network')
 
         return len(self._routes)
 
