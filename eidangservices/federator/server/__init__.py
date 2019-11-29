@@ -19,6 +19,7 @@ from eidangservices.utils.fdsnws import (register_parser_errorhandler,
 
 
 redis_client = FlaskRedis()
+# TODO(damb): Allow stats to be initialized dynamically
 response_code_stats = ResponseCodeStats(redis=redis_client)
 
 
