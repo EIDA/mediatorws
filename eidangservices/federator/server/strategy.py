@@ -257,6 +257,9 @@ class GranularRequestStrategy(RequestStrategyBase):
     """
 
     def route(self, req, retry_budget_client=100, **kwargs):
+        """
+        Implements fully demultiplexed routing.
+        """
 
         routing_table = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
@@ -302,9 +305,6 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
         Multiplexed routing i.e. one route contains multiple stream epochs
         (for a unique network code). Implements bulk request routing based on
         network codes.
-
-        :param float retry_budget_client: Per client retry-budget the
-            ``routing_table`` is filtered with
         """
 
         # NOTE(damb): We firstly group routes by network code. Afterwards,
