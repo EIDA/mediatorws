@@ -294,16 +294,27 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
     Strategy executing bulk endpoint requests on network code granularity.
     """
 
-    def route(self, req, **kwargs):
+    def route(self, req, retry_budget_client=100, **kwargs):
         """
         Multiplexed routing i.e. one route contains multiple stream epochs
         (for a unique network code). Implements bulk request routing based on
         network codes.
+
+        :param float retry_budget_client: Per client retry-budget the
+            ``routing_table`` is filtered with
         """
+
         # NOTE(damb): We firstly group routes by network code. Afterwards,
         # grouped routes are multiplexed by network code, again.
+        routing_table = super()._route(req, **kwargs)
 
-        self._routes = _mux_routes(super()._route(req, **kwargs))
+        if retry_budget_client == 100:
+            self._routes = _mux_routes(routing_table)
+            return len(self._routes)
+
+        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routes = _mux_routes(routing_table)
+
         return len(self._routes)
 
     def request(self, pool, tasks, query_params={}, **kwargs):
