@@ -177,7 +177,7 @@ class RequestStrategyBase:
 
         return routing_table
 
-    def route(self, req, **kwargs):
+    def route(self, req, retry_budget_client=100, **kwargs):
         """
         Route a request and create a routing table. Routing is performed by
         means of the routing service provided. Since the
@@ -187,6 +187,9 @@ class RequestStrategyBase:
 
         :param req: Routing service request handler
         :type req: :py:class:`RoutingRequestHandler`
+        :param float retry_budget_client: Per client retry-budget the
+            ``routing_table`` is filtered with
+
         :param bool post: Request data by means of HTTP POST.
 
         :returns: Number of routes
