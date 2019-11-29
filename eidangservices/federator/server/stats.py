@@ -113,8 +113,9 @@ class ResponseCodeTimeSeries(RedisCollection):
     def __init__(self, redis, key=None, **kwargs):
         super().__init__(redis, key, **kwargs)
 
-        self.ttl = kwargs.get('ttl', self._DEFAULT_TTL)
-        self.window_size = kwargs.get('window_size', self._DEFAULT_WINDOW_SIZE)
+        self.ttl, self.window_size = self._validate_ctor_args(
+            kwargs.get('ttl', self._DEFAULT_TTL),
+            kwargs.get('window_size', self._DEFAULT_WINDOW_SIZE))
 
     @property
     def error_ratio(self):
@@ -201,6 +202,12 @@ class ResponseCodeTimeSeries(RedisCollection):
                 str(score).encode(self.ENCODING) +
                 # add 8 random bytes
                 os.urandom(8))
+
+    @staticmethod
+    def _validate_ctor_args(ttl, window_size):
+        if ttl < 0 or window_size < 0:
+            raise ValueError('Negative value specified.')
+        return ttl, window_size
 
 
 class ResponseCodeStats:
