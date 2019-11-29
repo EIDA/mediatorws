@@ -364,14 +364,15 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
     requests is delegated to a secondary task.
     """
 
-    def route(self, req, **kwargs):
+    def route(self, req, retry_budget_client=100, **kwargs):
         """
         Demultiplex routes for distributed physical networks.
         """
-        self._routes = {}
+        routing_table = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
 
-        for net, _routes in _mux_routes(
-                super()._route(req, **kwargs)).items():
+        self._routes = {}
+        for net, _routes in _mux_routes(routing_table).items():
             if len(_routes) > 1:
                 # demux routes
                 self._routes[net] = [utils.Route(route.url, streams=[se])
