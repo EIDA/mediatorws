@@ -248,8 +248,17 @@ class GranularRequestStrategy(RequestStrategyBase):
     Fetch data using a granular endpoint request strategy.
     """
 
-    def route(self, req, **kwargs):
-        self._routes = demux_routes(super()._route(req, **kwargs))
+    def route(self, req, retry_budget_client=100, **kwargs):
+
+        routing_table = super()._route(req, **kwargs)
+
+        if retry_budget_client == 100:
+            self._routes = demux_routes(routing_table)
+            return len(self._routes)
+
+        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routes = demux_routes(routing_table)
+
         return len(self._routes)
 
     def request(self, pool, tasks, query_params={}, **kwargs):
