@@ -231,8 +231,13 @@ class RequestStrategyBase:
         :param dict routing_table: Routing table to be filtered and modified
             in-place
         :param float retry_budget_client: Per client retry-budget the
-            ``routing_table`` is filtered with
+            ``routing_table`` is filtered with. If the budget is equal to 100
+            percent, then no filtering is performed at all.
         """
+
+        if retry_budget_client == 100:
+            return
+
         routed_urls = list(routing_table.keys())
         error_ratios = {url: response_code_stats.get_error_ratio(url)
                         for url in routed_urls}
@@ -254,11 +259,6 @@ class GranularRequestStrategy(RequestStrategyBase):
     def route(self, req, retry_budget_client=100, **kwargs):
 
         routing_table = super()._route(req, **kwargs)
-
-        if retry_budget_client == 100:
-            self._routes = demux_routes(routing_table)
-            return len(self._routes)
-
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
         self._routes = demux_routes(routing_table)
 
@@ -310,11 +310,6 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
         # NOTE(damb): We firstly group routes by network code. Afterwards,
         # grouped routes are multiplexed by network code, again.
         routing_table = super()._route(req, **kwargs)
-
-        if retry_budget_client == 100:
-            self._routes = _mux_routes(routing_table)
-            return len(self._routes)
-
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
         self._routes = _mux_routes(routing_table)
 
