@@ -112,6 +112,17 @@ class RequestStrategyBase:
         self._default_endtime = kwargs.get('default_endtime',
                                            datetime.datetime.utcnow())
 
+        self._routing_table_raw = {}
+
+    @property
+    def routing_table(self):
+        """
+        Returns the strategy's *raw* routing table.
+
+        :rtype: dict
+        """
+        return self._routing_table_raw
+
     def _route(self, req, post=True, **kwargs):
         """
         Route a request and create a routing table. Routing is performed by
@@ -263,6 +274,8 @@ class GranularRequestStrategy(RequestStrategyBase):
 
         routing_table = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routing_table_raw = routing_table
+
         self._routes = demux_routes(routing_table)
 
         return len(self._routes)
@@ -311,6 +324,8 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
         # grouped routes are multiplexed by network code, again.
         routing_table = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routing_table_raw = routing_table
+
         self._routes = _mux_routes(routing_table)
 
         return len(self._routes)
@@ -370,6 +385,7 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
         """
         routing_table = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routing_table_raw = routing_table
 
         self._routes = {}
         for net, _routes in _mux_routes(routing_table).items():
@@ -444,6 +460,8 @@ class NetworkCombiningRequestStrategy(RequestStrategyBase):
     def route(self, req, retry_budget_client=100, **kwargs):
         routing_table = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        self._routing_table_raw = routing_table
+
         self._routes = group_routes_by(routing_table, key='network')
 
         return len(self._routes)
