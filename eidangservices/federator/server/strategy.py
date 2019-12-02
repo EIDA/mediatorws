@@ -204,7 +204,7 @@ class RequestStrategyBase:
 
         :param pool: Worker pool tasks are applied to
         :param dict tasks: Mapping of concrete tasks.
-        :param dict query_params: Q
+        :param dict query_params: Query parameters
 
         :returns: Asynchronous task results
         """
