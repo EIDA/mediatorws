@@ -11,7 +11,7 @@ from flask_redis import FlaskRedis
 
 from eidangservices import settings
 from eidangservices.federator import __version__
-from eidangservices.federator.server import ResponseCodeStats
+from eidangservices.federator.server.stats import ResponseCodeStats
 from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
