@@ -134,7 +134,10 @@ class ResponseCodeTimeSeries(RedisCollection):
     def __iter__(self, pipe=None):
         return iter(self._data(pipe=pipe, ttl=self.ttl))
 
-    def discard_deprecated(self, pipe=None, **kwargs):
+    def gc(self, pipe=None, **kwargs):
+        """
+        Discard deprecated values from the time series.
+        """
         redis = pipe or self.redis
 
         ttl = kwargs.get('ttl') or self.ttl
@@ -243,7 +246,7 @@ class ResponseCodeStats:
 
         self._map[key].append(code)
 
-    def discard_deprecated(self, url, lazy_load=True):
+    def gc(self, url, lazy_load=True):
         """
         Discard deprecated values from a response code time series specified by
         ``url``.
@@ -255,7 +258,7 @@ class ResponseCodeStats:
             self._map[key] = ResponseCodeTimeSeries(
                 redis=self.redis, key=key, **self._kwargs_series)
 
-        self._map[key].discard_deprecated()
+        self._map[key].gc()
 
     def clear(self, url):
         key = self._create_key_from_url(url, prefix=self._prefix)
