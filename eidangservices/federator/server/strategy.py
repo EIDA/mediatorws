@@ -9,9 +9,9 @@ import logging
 
 from eidangservices import utils, settings
 from eidangservices.federator import __version__
-from eidangservices.federator.server import response_code_stats
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter)
+from eidangservices.federator.server.mixin import ResponseCodeStatsMixin
 from eidangservices.federator.server.request import (
     GranularFdsnRequestHandler, BulkFdsnRequestHandler)
 from eidangservices.utils.httperrors import FDSNHTTPError
@@ -85,7 +85,7 @@ class RoutingError(RequestStrategyError):
 
 
 # -----------------------------------------------------------------------------
-class RequestStrategyBase:
+class RequestStrategyBase(ResponseCodeStatsMixin):
     """
     Request strategy encapsulating routing and requesting.
     """
@@ -250,7 +250,7 @@ class RequestStrategyBase:
             return
 
         routed_urls = list(routing_table.keys())
-        error_ratios = {url: response_code_stats.get_error_ratio(url)
+        error_ratios = {url: self.response_code_stats.get_error_ratio(url)
                         for url in routed_urls}
 
         for url in routed_urls:
