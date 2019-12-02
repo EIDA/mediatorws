@@ -857,8 +857,6 @@ class RawDownloadTask(TaskBase):
         self.chunk_size = kwargs.get('chunk_size', self.CHUNK_SIZE)
         self.decode_unicode = kwargs.get('decode_unicode', self.DECODE_UNICODE)
 
-        self._http_get = kwargs.get('http_get', False)
-
         self.path_tempfile = get_temp_filepath()
         self._size = 0
 
