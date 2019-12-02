@@ -250,6 +250,9 @@ class ResponseCodeStats:
         """
         Discard deprecated values from a response code time series specified by
         ``url``.
+
+        :param bool lazy_load: Lazily load the response code time series to be
+            garbage collected
         """
         key = self._create_key_from_url(url, prefix=self._prefix)
 
@@ -269,6 +272,14 @@ class ResponseCodeStats:
             raise StatsError(err)
 
     def get_error_ratio(self, url, lazy_load=True):
+        """
+        Return the error ratio of a response code time series specified by
+        ``url``.
+
+        :param bool lazy_load: Lazily load the response code time series the
+            error ratio is computed from
+        """
+
         key = self._create_key_from_url(url, prefix=self._prefix)
 
         if lazy_load and key not in self._map:
