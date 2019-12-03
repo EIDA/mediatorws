@@ -212,7 +212,7 @@ class RequestProcessor(ResponseCodeStatsMixin):
                                         KeepTempfiles.ON_ERRORS):
             try:
                 os.remove(err.data)
-            except OSError:
+            except (OSError, TypeError):
                 pass
 
     def _handle_413(self, result):
