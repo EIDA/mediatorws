@@ -254,7 +254,7 @@ class RequestStrategyBase(ResponseCodeStatsMixin):
                         for url in routed_urls}
 
         for url in routed_urls:
-            if error_ratios[url] > retry_budget_client:
+            if 100 * error_ratios[url] > retry_budget_client:
                 self.logger.debug(
                     'Removing route (URL={}) due to past client retry budget: '
                     '({} > {})'.format(url, error_ratios[url],
