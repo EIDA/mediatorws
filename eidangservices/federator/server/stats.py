@@ -120,6 +120,10 @@ class ResponseCodeTimeSeries(RedisCollection):
 
     @property
     def error_ratio(self):
+        """
+        Returns the error ratio of the response code time series. Values are
+        between ``0`` (no errors) and ``1`` (errors only).
+        """
         data = self._data(ttl=self.ttl)
         num_errors = len(
             [code for code, t in data if int(code) in self.ERROR_CODES])
