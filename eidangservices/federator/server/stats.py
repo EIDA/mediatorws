@@ -303,6 +303,9 @@ class ResponseCodeStats:
     def _create_key_from_url(url, prefix=None):
         delimiter = ResponseCodeTimeSeries.KEY_DELIMITER
 
+        if isinstance(url, str):
+            url = url.encode(RedisCollection.ENCODING)
+
         split_result = urlsplit(url)
         args = [split_result.path, split_result.netloc]
 
