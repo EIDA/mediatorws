@@ -222,12 +222,15 @@ class ResponseCodeStats:
     Container for datacenter response code statistics handling.
     """
 
-    DEFAULT_PREFIX = 'stats:response-codes'
+    DEFAULT_PREFIX = b'stats:response-codes'
 
     def __init__(self, redis, prefix=None, **kwargs):
 
         self.redis = redis
         self._prefix = prefix or self.DEFAULT_PREFIX
+        if isinstance(self._prefix, str):
+            self._prefix = self._prefix.encode(RedisCollection.ENCODING)
+
         self._kwargs_series = kwargs
 
         self._map = {}
@@ -298,13 +301,12 @@ class ResponseCodeStats:
 
     @staticmethod
     def _create_key_from_url(url, prefix=None):
-        delimiter = ResponseCodeTimeSeries.KEY_DELIMITER.decode(
-            ResponseCodeTimeSeries.ENCODING)
+        delimiter = ResponseCodeTimeSeries.KEY_DELIMITER
 
         split_result = urlsplit(url)
+        args = [split_result.path, split_result.netloc]
 
         if prefix:
-            return (prefix + delimiter + split_result.path + delimiter +
-                    split_result.netloc)
+            args.insert(0, prefix)
 
-        return split_result.path + delimiter + split_result.netloc
+        return delimiter.join(args)
