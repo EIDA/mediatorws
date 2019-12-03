@@ -1007,12 +1007,16 @@ class StationTextDownloadTask(RawDownloadTask):
                         ofd.write(line.strip() + b'\n')
 
         except RequestsError as err:
+            code = err.response.status_code
             return self._handle_error(err)
         else:
+            code = 200
             self.logger.debug(
                 'Download (url={}, stream_epochs={}) finished.'.format(
                     self.url,
                     self._request_handler.stream_epochs))
+        finally:
+            self.update_stats(self.url, code)
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
