@@ -20,6 +20,7 @@ from eidangservices import settings
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
     elements_equal)
+from eidangservices.federator.server.mixin import ResponseCodeStatsMixin
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -94,6 +95,31 @@ def with_ctx_guard(func):
     return decorator
 
 
+def with_client_retry_budget_validation(func):
+    """
+    Method decorator allowing tasks to perform a *per-client retry budget*
+    validation.
+    """
+
+    def decorator(self, *args, **kwargs):
+
+        e_ratio = self.response_code_stats.get_error_ratio(self.url)
+        if (100 * e_ratio > self._retry_budget_client):
+
+            self.logger.debug(
+                '{}: Teardown (type={}, error_ratio) ...'.format(
+                    type(self).__name__, self._TYPE, e_ratio))
+            self._teardown(self.path_tempfile)
+
+            return Result.teardown(
+                warning='Exceeded per client retry-budget: {}'.format(e_ratio),
+                extras={'type_task': self._TYPE})
+
+        return func(self, *args, **kwargs)
+
+    return decorator
+
+
 # -----------------------------------------------------------------------------
 class Result(collections.namedtuple('Result', ['status',
                                                'status_code',
@@ -161,6 +187,9 @@ class TaskBase:
 
         self._http_method = kwargs.get(
             'http_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+        self._retry_budget_client = kwargs.get(
+            'retry_budget_client',
+            settings.EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT)
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
@@ -844,7 +873,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
 
 
 # -----------------------------------------------------------------------------
-class RawDownloadTask(TaskBase):
+class RawDownloadTask(TaskBase, ResponseCodeStatsMixin):
     """
     Task downloading the data for a single StreamEpoch by means of streaming.
 
@@ -871,6 +900,7 @@ class RawDownloadTask(TaskBase):
 
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
         req = (self._request_handler.get()
                if self._http_method == 'GET' else self._request_handler.post())
@@ -951,6 +981,7 @@ class StationTextDownloadTask(RawDownloadTask):
 
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
 
         req = (self._request_handler.get()
@@ -1008,6 +1039,7 @@ class StationXMLDownloadTask(RawDownloadTask):
 
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
 
         req = (self._request_handler.get()
