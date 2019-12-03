@@ -616,6 +616,12 @@ class SplitAndAlignTask(TaskBase):
 
         self._size = 0
 
+        # TODO(damb): Validate retry budget
+
+    @property
+    def url(self):
+        return self._url
+
     @property
     def stream_epochs(self):
         return self._stream_epochs
@@ -859,6 +865,10 @@ class RawDownloadTask(TaskBase):
         self.path_tempfile = get_temp_filepath()
         self._size = 0
 
+    @property
+    def url(self):
+        return self._request_handler.url
+
     @catch_default_task_exception
     @with_ctx_guard
     def __call__(self):
@@ -868,7 +878,7 @@ class RawDownloadTask(TaskBase):
         self.logger.debug(
             ('Downloading (url={}, stream_epochs={}, method={!r}) '
              'to tempfile {!r}...').
-            format(self._request_handler.url,
+            format(self.url,
                    self._request_handler.stream_epochs,
                    self._http_method,
                    self.path_tempfile))
@@ -888,7 +898,7 @@ class RawDownloadTask(TaskBase):
         else:
             self.logger.debug(
                 'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
+                    self.url,
                     self._request_handler.stream_epochs))
 
         return Result.ok(data=self.path_tempfile, length=self._size,
@@ -949,10 +959,11 @@ class StationTextDownloadTask(RawDownloadTask):
         self.logger.debug(
             ('Downloading (url={}, stream_epochs={}, http_method={!r}) '
              'to tempfile {!r}...').
-            format(self._request_handler.url,
+            format(self.url,
                    self._request_handler.stream_epochs,
                    self._http_method,
                    self.path_tempfile))
+
         try:
             with open(self.path_tempfile, 'wb') as ofd:
                 # NOTE(damb): For granular fdnsws-station-text request it seems
@@ -969,7 +980,7 @@ class StationTextDownloadTask(RawDownloadTask):
         else:
             self.logger.debug(
                 'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
+                    self.url,
                     self._request_handler.stream_epochs))
 
         return Result.ok(data=self.path_tempfile, length=self._size,
@@ -1005,7 +1016,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         self.logger.debug(
             ('Downloading (url={}, stream_epochs={}, method={!r}) '
              'to tempfile {!r}...').
-            format(self._request_handler.url,
+            format(self.url,
                    self._request_handler.stream_epochs,
                    self._http_method,
                    self.path_tempfile))
@@ -1029,7 +1040,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         else:
             self.logger.debug(
                 'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
+                    self.url,
                     self._request_handler.stream_epochs))
 
         return Result.ok(data=self.path_tempfile, length=self._size,
