@@ -173,6 +173,10 @@ class RequestProcessor(ResponseCodeStatsMixin):
         Return a streamed :py:class:`flask.Response`.
         """
         self._route()
+
+        if not self._num_routes:
+            raise FDSNHTTPError.create(self._nodata)
+
         self._request()
 
         # XXX(damb): Only return a streamed response as soon as valid data
