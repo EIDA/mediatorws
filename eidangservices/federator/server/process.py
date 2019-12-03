@@ -442,7 +442,6 @@ class RawRequestProcessor(RequestProcessor):
                                     RequestProcessorError(err)
 
                         elif _result.status_code == 413:
-                            # TODO TODO TODO
                             # Check if file has to be removed
                             self._handle_413(_result)
 
