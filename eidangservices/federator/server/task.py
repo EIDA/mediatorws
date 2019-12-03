@@ -853,7 +853,6 @@ class RawDownloadTask(TaskBase):
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
-        # TODO TODO TODO
         self.chunk_size = kwargs.get('chunk_size', self.CHUNK_SIZE)
         self.decode_unicode = kwargs.get('decode_unicode', self.DECODE_UNICODE)
 
