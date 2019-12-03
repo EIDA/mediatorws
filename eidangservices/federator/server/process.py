@@ -68,6 +68,8 @@ class RequestProcessor(ResponseCodeStatsMixin):
 
     ALLOWED_STRATEGIES = None
     DEFAULT_REQUEST_STRATEGY = None
+    DEFAULT_RETRY_BUDGET_CLIENT = \
+        settings.EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT  # percent
 
     POOL_SIZE = 5
     # MAX_TASKS_PER_CHILD = 4
@@ -87,6 +89,7 @@ class RequestProcessor(ResponseCodeStatsMixin):
         :type keep_tempfiles: :py:class:`KeepTempfiles`
         :param str http_method: HTTP method used when issuing requests to
             endpoints
+        :param float retry_budget_client: Per client retry-budget in percent
         """
 
         self.mimetype = mimetype
@@ -108,6 +111,9 @@ class RequestProcessor(ResponseCodeStatsMixin):
         self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
 
         self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
+
+        self._retry_budget_client = kwargs.get(
+            'retry_budget_client', self.DEFAULT_RETRY_BUDGET_CLIENT)
 
         self._num_routes = 0
         self._pool = None
@@ -202,8 +208,8 @@ class RequestProcessor(ResponseCodeStatsMixin):
             self.query_params)
 
         self._num_routes = self._strategy.route(
-            routing_req, post=self.post, nodata=self._nodata)
-        return self._num_routes
+            routing_req, post=self.post, nodata=self._nodata,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_error(self, err):
         self.logger.warning(str(err))
@@ -366,7 +372,8 @@ class RawRequestProcessor(RequestProcessor):
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_413(self, result):
         self.logger.info(
@@ -591,7 +598,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
             http_method=self._http_method,
-            pool_size=self.POOL_SIZE)
+            pool_size=self.POOL_SIZE,
+            retry_budget_client=self._retry_budget_client)
 
         self._pool.close()
 
@@ -715,7 +723,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
             self._pool, tasks={'default': StationTextDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
         self._pool.close()
 
@@ -825,7 +834,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_413(self, result):
         self.logger.info(
