@@ -88,6 +88,18 @@ def keeptempfile_config(arg):
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
 
 
+def pos_int(arg):
+    try:
+        arg = int(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg <= 0:
+        raise argparse.ArgumentTypeError(
+            'Only positive integer values allowed.')
+    return arg
+
+
 # -----------------------------------------------------------------------------
 class FederatorWebserviceBase(App):
     """
@@ -124,6 +136,13 @@ class FederatorWebserviceBase(App):
                             default=settings.
                             EIDA_FEDERATOR_DEFAULT_STORAGE_URL,
                             help="Storage URL (Redis) (default: %(default)s)")
+        parser.add_argument('-w', '--cretry-budget-window-size', type=pos_int,
+                            dest='cretry_budget_window_size', metavar='SIZE',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_WSIZE,
+                            help=('Rolling window size for the per client '
+                                  'retry-budget related response code time '
+                                  'series. (default: %(default)s)'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -255,6 +274,7 @@ class FederatorWebserviceBase(App):
             REDIS_URL=self.args.storage,
             FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
+            FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

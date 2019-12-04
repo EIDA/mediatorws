@@ -19,7 +19,7 @@ from eidangservices.utils.fdsnws import (register_parser_errorhandler,
 
 
 redis_client = FlaskRedis()
-# TODO(damb): Allow stats to be initialized dynamically
+
 response_code_stats = ResponseCodeStats(redis=redis_client)
 
 
@@ -40,6 +40,10 @@ def create_app(config_dict={}, service_version=__version__):
     CORS(app)
 
     redis_client.init_app(app, socket_timeout=5)
+    # configure response code time series
+    response_code_stats.kwargs_series = {
+        'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE']
+    }
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
