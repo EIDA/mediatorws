@@ -88,16 +88,24 @@ def keeptempfile_config(arg):
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
 
 
-def pos_int(arg):
+def _pos_number(arg, vtype):
     try:
-        arg = int(arg)
+        arg = vtype(arg)
     except ValueError as err:
         raise argparse.ArgumentTypeError(err)
 
     if arg <= 0:
         raise argparse.ArgumentTypeError(
-            'Only positive integer values allowed.')
+            'Only positive numbers allowed.')
     return arg
+
+
+def pos_int(arg):
+    return _pos_number(arg, int)
+
+
+def pos_float(arg):
+    return _pos_number(arg, float)
 
 
 def percent(arg):
@@ -154,7 +162,7 @@ class FederatorWebserviceBase(App):
                             help=('Rolling window size for the per client '
                                   'retry-budget related response code time '
                                   'series. (default: %(default)s)'))
-        parser.add_argument('-t', '--cretry-budget-ttl', type=pos_int,
+        parser.add_argument('-t', '--cretry-budget-ttl', type=pos_float,
                             dest='cretry_budget_ttl', metavar='TTL',
                             default=settings.
                             EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL,
