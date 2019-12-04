@@ -12,6 +12,18 @@ class ResponseCodeStatsMixin:
     def response_code_stats(self):
         return response_code_stats
 
+    def get_stats_error_ratio(self, url):
+        """
+        Return the error ratio of a response code time series referenced by
+        ``url``.
+
+        :param str url: URL indicating the response code time series to be
+            garbage collected
+
+        :returns: Error ratio in percent
+        :rtype: float
+        """
+        return 100 * self.response_code_stats.get_error_ratio(url)
 
     def update_stats(self, url, code):
         """

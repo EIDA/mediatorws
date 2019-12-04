@@ -250,11 +250,11 @@ class RequestStrategyBase(ResponseCodeStatsMixin):
             return
 
         routed_urls = list(routing_table.keys())
-        error_ratios = {url: self.response_code_stats.get_error_ratio(url)
+        error_ratios = {url: self.get_stats_error_ratio(url)
                         for url in routed_urls}
 
         for url in routed_urls:
-            if 100 * error_ratios[url] > retry_budget_client:
+            if error_ratios[url] > retry_budget_client:
                 self.logger.debug(
                     'Removing route (URL={}) due to past client retry budget: '
                     '({} > {})'.format(url, error_ratios[url],

@@ -103,8 +103,8 @@ def with_client_retry_budget_validation(func):
 
     def decorator(self, *args, **kwargs):
 
-        e_ratio = self.response_code_stats.get_error_ratio(self.url)
-        if (100 * e_ratio > self._retry_budget_client):
+        e_ratio = self.get_stats_error_ratio(self.url)
+        if (e_ratio > self._retry_budget_client):
 
             self.logger.debug(
                 '{}: Teardown (type={}, error_ratio) ...'.format(
