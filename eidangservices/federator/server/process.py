@@ -16,7 +16,7 @@ from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles)
-from eidangservices.federator.server.mixin import ResponseCodeStatsMixin
+from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
 from eidangservices.federator.server.request import RoutingRequestHandler
 from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
@@ -53,7 +53,7 @@ class StreamingError(RequestProcessorError):
 
 
 # -----------------------------------------------------------------------------
-class RequestProcessor(ResponseCodeStatsMixin):
+class RequestProcessor(ClientRetryBudgetMixin):
     """
     Abstract base class for request processors.
     """
@@ -326,7 +326,7 @@ class RequestProcessor(ResponseCodeStatsMixin):
 
         self.logger.debug("Garbage collect response code stats ...")
         for url in self._strategy.routing_table.keys():
-            self.gc_stats(url)
+            self.gc_cretry_budget(url)
 
         try:
             self._pool.terminate()

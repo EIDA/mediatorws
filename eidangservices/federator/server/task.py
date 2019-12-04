@@ -20,7 +20,7 @@ from eidangservices import settings
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
     elements_equal)
-from eidangservices.federator.server.mixin import ResponseCodeStatsMixin
+from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -103,7 +103,7 @@ def with_client_retry_budget_validation(func):
 
     def decorator(self, *args, **kwargs):
 
-        e_ratio = self.get_stats_error_ratio(self.url)
+        e_ratio = self.get_cretry_budget_error_ratio(self.url)
         if (e_ratio > self._retry_budget_client):
 
             self.logger.debug(
@@ -620,7 +620,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
 
 # -----------------------------------------------------------------------------
-class SplitAndAlignTask(TaskBase, ResponseCodeStatsMixin):
+class SplitAndAlignTask(TaskBase, ClientRetryBudgetMixin):
     """
     Base class for splitting and aligning (SAA) tasks.
 
@@ -760,14 +760,14 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         'Download failed (url={}, stream_epoch={}).'.format(
                             request_handler.url,
                             request_handler.stream_epochs))
-                    self.update_stats(self.url, code)
+                    self.update_cretry_budget(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
             else:
                 code = 200
             finally:
-                self.update_stats(self.url, code)
+                self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -859,14 +859,14 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                             request_handler.url,
                             request_handler.stream_epochs))
 
-                    self.update_stats(self.url, code)
+                    self.update_cretry_budget(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
             else:
                 code = 200
             finally:
-                self.update_stats(self.url, code)
+                self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -885,7 +885,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
 
 
 # -----------------------------------------------------------------------------
-class RawDownloadTask(TaskBase, ResponseCodeStatsMixin):
+class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
     """
     Task downloading the data for a single StreamEpoch by means of streaming.
 
@@ -936,7 +936,7 @@ class RawDownloadTask(TaskBase, ResponseCodeStatsMixin):
                     self.url,
                     self._request_handler.stream_epochs))
         finally:
-            self.update_stats(self.url, code)
+            self.update_cretry_budget(self.url, code)
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
