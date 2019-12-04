@@ -100,6 +100,17 @@ def pos_int(arg):
     return arg
 
 
+def percent(arg):
+    try:
+        arg = float(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg < 0 or arg > 100:
+        raise argparse.ArgumentTypeError('Invalid percentage.')
+    return arg
+
+
 # -----------------------------------------------------------------------------
 class FederatorWebserviceBase(App):
     """
@@ -152,6 +163,15 @@ class FederatorWebserviceBase(App):
                                   'ralated response code time series. The '
                                   'value defines when request should be '
                                   'forwarded to endpoints, again. '
+                                  '(default: %(default)s)'))
+        parser.add_argument('-e', '--cretry-budget-error-ratio',
+                            type=percent, dest='cretry_budget_eratio',
+                            metavar='PERCENT',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT,
+                            help=('Per client retry-budget error ratio in '
+                                  'percent. Defines the error ratio above '
+                                  'requests to datacenters (DC) are dropped. '
                                   '(default: %(default)s)'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
@@ -286,6 +306,7 @@ class FederatorWebserviceBase(App):
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
             FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
+            FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)
