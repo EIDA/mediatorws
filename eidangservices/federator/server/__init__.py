@@ -42,7 +42,8 @@ def create_app(config_dict={}, service_version=__version__):
     redis_client.init_app(app, socket_timeout=5)
     # configure response code time series
     response_code_stats.kwargs_series = {
-        'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE']
+        'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE'],
+        'ttl': config_dict['FED_CRETRY_BUDGET_TTL'],
     }
 
     # app.config['PROFILE'] = True

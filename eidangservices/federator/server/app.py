@@ -143,6 +143,16 @@ class FederatorWebserviceBase(App):
                             help=('Rolling window size for the per client '
                                   'retry-budget related response code time '
                                   'series. (default: %(default)s)'))
+        parser.add_argument('-t', '--cretry-budget-ttl', type=pos_int,
+                            dest='cretry_budget_ttl', metavar='TTL',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL,
+                            help=('TTL in seconds for response codes with '
+                                  'respect to the per client retry-budget '
+                                  'ralated response code time series. The '
+                                  'value defines when request should be '
+                                  'forwarded to endpoints, again. '
+                                  '(default: %(default)s)'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -275,6 +285,7 @@ class FederatorWebserviceBase(App):
             FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
             FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
+            FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)
