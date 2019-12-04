@@ -913,7 +913,7 @@ class RawDownloadTask(TaskBase, ResponseCodeStatsMixin):
                    self._http_method,
                    self.path_tempfile))
         try:
-            self._download(req)
+            self._run(req)
         except RequestsError as err:
             code = err.response.status_code
             return self._handle_error(err)
@@ -967,7 +967,7 @@ class RawDownloadTask(TaskBase, ResponseCodeStatsMixin):
                                 extras={'type_task': self._TYPE,
                                         'req_handler': self._request_handler})
 
-    def _download(self, req):
+    def _run(self, req):
         """
         Template method performing the endpoint requests and dumping the result
         into a temporary file. The default implementation performs a *raw*
@@ -991,7 +991,7 @@ class StationTextDownloadTask(RawDownloadTask):
     information from the response.
     """
 
-    def _download(self, req):
+    def _run(self, req):
         """
         Removes ``fdsnws-station`` ``format=text`` headers while downloading.
         """
@@ -1028,7 +1028,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         self._network_tags = ['{}{}'.format(ns, network_tag)
                               for ns in settings.STATIONXML_NAMESPACES]
 
-    def _download(self, req):
+    def _run(self, req):
         """
         Extracts ``Network`` elements from StationXML.
         """
