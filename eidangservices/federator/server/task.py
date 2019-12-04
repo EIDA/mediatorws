@@ -659,8 +659,8 @@ class SplitAndAlignTask(TaskBase):
         """
         Split a stream epoch's epoch into `num` epochs.
 
-        :param :py:class:`eidangservices.utils.sncl.StreamEpoch` stream_epoch:
-        Stream epoch object to split
+        :param stream_epoch: Stream epoch object to split
+        :type stream_epoch: :py:class:`~eidangservices.utils.sncl.StreamEpoch`  
         :param int num: Number of resulting stream epoch objects
         :return: List of split stream epochs
         """
