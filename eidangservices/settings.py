@@ -595,8 +595,8 @@ EIDA_FEDERATOR_REQUEST_STRATEGIES = (
     'adaptive-bulk',
     'combining')
 EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
-# Per client retry-budget in percent
-EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1
+# Per client retry-budget cut-off error ratio in percent
+EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1.0
 # default TTL of response codes used for stats
 EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL = 1800
 # default rolling window size with respect to response code time series

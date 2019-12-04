@@ -89,7 +89,9 @@ class RequestProcessor(ClientRetryBudgetMixin):
         :type keep_tempfiles: :py:class:`KeepTempfiles`
         :param str http_method: HTTP method used when issuing requests to
             endpoints
-        :param float retry_budget_client: Per client retry-budget in percent
+        :param float retry_budget_client: Per client retry-budget in percent.
+            The value defines the cut-off error ratio above requests to
+            datacenters (DC) are dropped.
         """
 
         self.mimetype = mimetype
