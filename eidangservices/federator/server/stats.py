@@ -231,11 +231,11 @@ class ResponseCodeStats:
     def __init__(self, redis, prefix=None, **kwargs):
 
         self.redis = redis
+        self.kwargs_series = kwargs
+
         self._prefix = prefix or self.DEFAULT_PREFIX
         if isinstance(self._prefix, str):
             self._prefix = self._prefix.encode(RedisCollection.ENCODING)
-
-        self._kwargs_series = kwargs
 
         self._map = {}
 
@@ -243,7 +243,7 @@ class ResponseCodeStats:
         """
         Add ``code`` to a response code time series specified by ``url``.
         """
-        kwargs_series = deepcopy(self._kwargs_series)
+        kwargs_series = deepcopy(self.kwargs_series)
         kwargs_series.update(kwargs)
 
         key = self._create_key_from_url(url, prefix=self._prefix)
@@ -267,7 +267,7 @@ class ResponseCodeStats:
         if lazy_load and key not in self._map:
             # lazy loading
             self._map[key] = ResponseCodeTimeSeries(
-                redis=self.redis, key=key, **self._kwargs_series)
+                redis=self.redis, key=key, **self.kwargs_series)
 
         self._map[key].gc()
 
@@ -293,7 +293,7 @@ class ResponseCodeStats:
         if lazy_load and key not in self._map:
             # lazy loading
             self._map[key] = ResponseCodeTimeSeries(
-                redis=self.redis, key=key, **self._kwargs_series)
+                redis=self.redis, key=key, **self.kwargs_series)
 
         return self._map[key].error_ratio
 
