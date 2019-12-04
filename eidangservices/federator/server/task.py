@@ -620,7 +620,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
 
 # -----------------------------------------------------------------------------
-class SplitAndAlignTask(TaskBase):
+class SplitAndAlignTask(TaskBase, ResponseCodeStatsMixin):
     """
     Base class for splitting and aligning (SAA) tasks.
 
@@ -644,8 +644,6 @@ class SplitAndAlignTask(TaskBase):
         self._stream_epochs = []
 
         self._size = 0
-
-        # TODO(damb): Validate retry budget
 
     @property
     def url(self):
@@ -697,6 +695,7 @@ class SplitAndAlignTask(TaskBase):
 
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
         return self._run(self._stream_epoch_orig)
 
@@ -755,14 +754,20 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         ofd.write(chunk)
 
             except RequestsError as err:
-                if err.response.status_code == 413:
+                code = err.response.status_code
+                if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
                             request_handler.url,
                             request_handler.stream_epochs))
+                    self.update_stats(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
+            else:
+                code = 200
+            finally:
+                self.update_stats(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -847,14 +852,21 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                             ofd.write(obj)
 
             except RequestsError as err:
-                if err.response.status_code == 413:
+                code = err.response.status_code
+                if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
                             request_handler.url,
                             request_handler.stream_epochs))
+
+                    self.update_stats(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
+            else:
+                code = 200
+            finally:
+                self.update_stats(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
