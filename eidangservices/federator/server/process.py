@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 federator processing facilities
 """
@@ -17,6 +16,7 @@ from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles)
+from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
 from eidangservices.federator.server.request import RoutingRequestHandler
 from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
@@ -53,7 +53,7 @@ class StreamingError(RequestProcessorError):
 
 
 # -----------------------------------------------------------------------------
-class RequestProcessor:
+class RequestProcessor(ClientRetryBudgetMixin):
     """
     Abstract base class for request processors.
     """
@@ -68,6 +68,8 @@ class RequestProcessor:
 
     ALLOWED_STRATEGIES = None
     DEFAULT_REQUEST_STRATEGY = None
+    DEFAULT_RETRY_BUDGET_CLIENT = \
+        settings.EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT  # percent
 
     POOL_SIZE = 5
     # MAX_TASKS_PER_CHILD = 4
@@ -87,6 +89,9 @@ class RequestProcessor:
         :type keep_tempfiles: :py:class:`KeepTempfiles`
         :param str http_method: HTTP method used when issuing requests to
             endpoints
+        :param float retry_budget_client: Per client retry-budget in percent.
+            The value defines the cut-off error ratio above requests to
+            datacenters (DC) are dropped.
         """
 
         self.mimetype = mimetype
@@ -108,6 +113,9 @@ class RequestProcessor:
         self.logger = ContextLoggerAdapter(self._logger, {'ctx': self._ctx})
 
         self._keep_tempfiles = kwargs.get('keep_tempfiles', KeepTempfiles.NONE)
+
+        self._retry_budget_client = kwargs.get(
+            'retry_budget_client', self.DEFAULT_RETRY_BUDGET_CLIENT)
 
         self._num_routes = 0
         self._pool = None
@@ -173,6 +181,10 @@ class RequestProcessor:
         Return a streamed :py:class:`flask.Response`.
         """
         self._route()
+
+        if not self._num_routes:
+            raise FDSNHTTPError.create(self._nodata)
+
         self._request()
 
         # XXX(damb): Only return a streamed response as soon as valid data
@@ -198,8 +210,8 @@ class RequestProcessor:
             self.query_params)
 
         self._num_routes = self._strategy.route(
-            routing_req, post=self.post, nodata=self._nodata)
-        return self._num_routes
+            routing_req, post=self.post, nodata=self._nodata,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_error(self, err):
         self.logger.warning(str(err))
@@ -208,7 +220,7 @@ class RequestProcessor:
                                         KeepTempfiles.ON_ERRORS):
             try:
                 os.remove(err.data)
-            except OSError:
+            except (OSError, TypeError):
                 pass
 
     def _handle_413(self, result):
@@ -308,11 +320,15 @@ class RequestProcessor:
         method is called either in case the request successfully was responded
         or an exception occurred while sending the response. `Graham Dumpleton
         <https://github.com/GrahamDumpleton>`_ describes the situation in this
-        `thread post:
+        `thread post
         <https://groups.google.com/forum/#!topic/modwsgi/jr2ayp0xesk>`_ very
         detailed.
         """
         self.logger.debug("Finalize response (closing) ...")
+
+        self.logger.debug("Garbage collect response code stats ...")
+        for url in self._strategy.routing_table.keys():
+            self.gc_cretry_budget(url)
 
         try:
             self._pool.terminate()
@@ -358,7 +374,8 @@ class RawRequestProcessor(RequestProcessor):
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_413(self, result):
         self.logger.info(
@@ -427,7 +444,6 @@ class RawRequestProcessor(RequestProcessor):
                                     RequestProcessorError(err)
 
                         elif _result.status_code == 413:
-                            # TODO TODO TODO
                             # Check if file has to be removed
                             self._handle_413(_result)
 
@@ -583,7 +599,8 @@ class StationXMLRequestProcessor(StationRequestProcessor):
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
             http_method=self._http_method,
-            pool_size=self.POOL_SIZE)
+            pool_size=self.POOL_SIZE,
+            retry_budget_client=self._retry_budget_client)
 
         self._pool.close()
 
@@ -707,7 +724,8 @@ class StationTextRequestProcessor(StationRequestProcessor):
             self._pool, tasks={'default': StationTextDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
         self._pool.close()
 
@@ -817,7 +835,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
             self._pool, tasks={'default': RawDownloadTask},
             query_params=self.query_params,
             keep_tempfiles=self._keep_tempfiles,
-            http_method=self._http_method)
+            http_method=self._http_method,
+            retry_budget_client=self._retry_budget_client)
 
     def _handle_413(self, result):
         self.logger.info(

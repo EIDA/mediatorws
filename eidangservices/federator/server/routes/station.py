@@ -60,6 +60,7 @@ class StationResource(Resource):
             stream_epochs=stream_epochs,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
             **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
         processor.post = False
@@ -93,6 +94,7 @@ class StationResource(Resource):
             stream_epochs=stream_epochs,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
             **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
         processor.post = True

@@ -88,6 +88,37 @@ def keeptempfile_config(arg):
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
 
 
+def _pos_number(arg, vtype):
+    try:
+        arg = vtype(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg <= 0:
+        raise argparse.ArgumentTypeError(
+            'Only positive numbers allowed.')
+    return arg
+
+
+def pos_int(arg):
+    return _pos_number(arg, int)
+
+
+def pos_float(arg):
+    return _pos_number(arg, float)
+
+
+def percent(arg):
+    try:
+        arg = float(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg < 0 or arg > 100:
+        raise argparse.ArgumentTypeError('Invalid percentage.')
+    return arg
+
+
 # -----------------------------------------------------------------------------
 class FederatorWebserviceBase(App):
     """
@@ -124,6 +155,32 @@ class FederatorWebserviceBase(App):
                             default=settings.
                             EIDA_FEDERATOR_DEFAULT_STORAGE_URL,
                             help="Storage URL (Redis) (default: %(default)s)")
+        parser.add_argument('-w', '--cretry-budget-window-size', type=pos_int,
+                            dest='cretry_budget_window_size', metavar='SIZE',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_WSIZE,
+                            help=('Rolling window size for the per client '
+                                  'retry-budget related response code time '
+                                  'series. (default: %(default)s)'))
+        parser.add_argument('-t', '--cretry-budget-ttl', type=pos_float,
+                            dest='cretry_budget_ttl', metavar='TTL',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL,
+                            help=('TTL in seconds for response codes with '
+                                  'respect to the per client retry-budget '
+                                  'ralated response code time series. The '
+                                  'value defines when request should be '
+                                  'forwarded to endpoints, again. '
+                                  '(default: %(default)s)'))
+        parser.add_argument('-e', '--cretry-budget-error-ratio',
+                            type=percent, dest='cretry_budget_eratio',
+                            metavar='PERCENT',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT,
+                            help=('Per client retry-budget error ratio in '
+                                  'percent. Defines the error ratio above '
+                                  'requests to datacenters (DC) are dropped. '
+                                  '(default: %(default)s)'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -255,6 +312,9 @@ class FederatorWebserviceBase(App):
             REDIS_URL=self.args.storage,
             FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
+            FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
+            FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
+            FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

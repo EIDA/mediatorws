@@ -20,6 +20,7 @@ from eidangservices import settings
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
     elements_equal)
+from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -94,6 +95,31 @@ def with_ctx_guard(func):
     return decorator
 
 
+def with_client_retry_budget_validation(func):
+    """
+    Method decorator allowing tasks to perform a *per-client retry budget*
+    validation.
+    """
+
+    def decorator(self, *args, **kwargs):
+
+        e_ratio = self.get_cretry_budget_error_ratio(self.url)
+        if (e_ratio > self._retry_budget_client):
+
+            self.logger.debug(
+                '{}: Teardown (type={}, error_ratio) ...'.format(
+                    type(self).__name__, self._TYPE, e_ratio))
+            self._teardown(self.path_tempfile)
+
+            return Result.teardown(
+                warning='Exceeded per client retry-budget: {}'.format(e_ratio),
+                extras={'type_task': self._TYPE})
+
+        return func(self, *args, **kwargs)
+
+    return decorator
+
+
 # -----------------------------------------------------------------------------
 class Result(collections.namedtuple('Result', ['status',
                                                'status_code',
@@ -161,6 +187,9 @@ class TaskBase:
 
         self._http_method = kwargs.get(
             'http_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
+        self._retry_budget_client = kwargs.get(
+            'retry_budget_client',
+            settings.EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT)
         self._keep_tempfiles = kwargs.get(
             'keep_tempfiles', KeepTempfiles.NONE)
 
@@ -591,7 +620,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
 
 # -----------------------------------------------------------------------------
-class SplitAndAlignTask(TaskBase):
+class SplitAndAlignTask(TaskBase, ClientRetryBudgetMixin):
     """
     Base class for splitting and aligning (SAA) tasks.
 
@@ -617,6 +646,10 @@ class SplitAndAlignTask(TaskBase):
         self._size = 0
 
     @property
+    def url(self):
+        return self._url
+
+    @property
     def stream_epochs(self):
         return self._stream_epochs
 
@@ -624,8 +657,8 @@ class SplitAndAlignTask(TaskBase):
         """
         Split a stream epoch's epoch into `num` epochs.
 
-        :param :py:class:`eidangservices.utils.sncl.StreamEpoch` stream_epoch:
-        Stream epoch object to split
+        :param stream_epoch: Stream epoch object to split
+        :type stream_epoch: :py:class:`~eidangservices.utils.sncl.StreamEpoch`
         :param int num: Number of resulting stream epoch objects
         :return: List of split stream epochs
         """
@@ -662,6 +695,7 @@ class SplitAndAlignTask(TaskBase):
 
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
         return self._run(self._stream_epoch_orig)
 
@@ -720,14 +754,20 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         ofd.write(chunk)
 
             except RequestsError as err:
-                if err.response.status_code == 413:
+                code = err.response.status_code
+                if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
                             request_handler.url,
                             request_handler.stream_epochs))
+                    self.update_cretry_budget(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
+            else:
+                code = 200
+            finally:
+                self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -812,14 +852,21 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                             ofd.write(obj)
 
             except RequestsError as err:
-                if err.response.status_code == 413:
+                code = err.response.status_code
+                if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
                             request_handler.url,
                             request_handler.stream_epochs))
+
+                    self.update_cretry_budget(self.url, code)
                     self._run(stream_epoch)
                 else:
                     return self._handle_error(err)
+            else:
+                code = 200
+            finally:
+                self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -838,7 +885,7 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
 
 
 # -----------------------------------------------------------------------------
-class RawDownloadTask(TaskBase):
+class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
     """
     Task downloading the data for a single StreamEpoch by means of streaming.
 
@@ -853,15 +900,19 @@ class RawDownloadTask(TaskBase):
     def __init__(self, request_handler, **kwargs):
         super().__init__(self.LOGGER, **kwargs)
         self._request_handler = request_handler
-        # TODO TODO TODO
         self.chunk_size = kwargs.get('chunk_size', self.CHUNK_SIZE)
         self.decode_unicode = kwargs.get('decode_unicode', self.DECODE_UNICODE)
 
         self.path_tempfile = get_temp_filepath()
         self._size = 0
 
+    @property
+    def url(self):
+        return self._request_handler.url
+
     @catch_default_task_exception
     @with_ctx_guard
+    @with_client_retry_budget_validation
     def __call__(self):
         req = (self._request_handler.get()
                if self._http_method == 'GET' else self._request_handler.post())
@@ -869,28 +920,23 @@ class RawDownloadTask(TaskBase):
         self.logger.debug(
             ('Downloading (url={}, stream_epochs={}, method={!r}) '
              'to tempfile {!r}...').
-            format(self._request_handler.url,
+            format(self.url,
                    self._request_handler.stream_epochs,
                    self._http_method,
                    self.path_tempfile))
         try:
-            with open(self.path_tempfile, 'wb') as ofd:
-                for chunk in stream_request(
-                        req,
-                        chunk_size=self.chunk_size,
-                        method='raw',
-                        decode_unicode=self.decode_unicode,
-                        logger=self.logger):
-                    self._size += len(chunk)
-                    ofd.write(chunk)
-
+            self._run(req)
         except RequestsError as err:
+            code = err.response.status_code
             return self._handle_error(err)
         else:
+            code = 200
             self.logger.debug(
                 'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
+                    self.url,
                     self._request_handler.stream_epochs))
+        finally:
+            self.update_cretry_budget(self.url, code)
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
@@ -933,6 +979,23 @@ class RawDownloadTask(TaskBase):
                                 extras={'type_task': self._TYPE,
                                         'req_handler': self._request_handler})
 
+    def _run(self, req):
+        """
+        Template method performing the endpoint requests and dumping the result
+        into a temporary file. The default implementation performs a *raw*
+        download without any additional preprocessing.
+        """
+
+        with open(self.path_tempfile, 'wb') as ofd:
+            for chunk in stream_request(
+                    req,
+                    chunk_size=self.chunk_size,
+                    method='raw',
+                    decode_unicode=self.decode_unicode,
+                    logger=self.logger):
+                self._size += len(chunk)
+                ofd.write(chunk)
+
 
 class StationTextDownloadTask(RawDownloadTask):
     """
@@ -940,41 +1003,20 @@ class StationTextDownloadTask(RawDownloadTask):
     information from the response.
     """
 
-    @catch_default_task_exception
-    @with_ctx_guard
-    def __call__(self):
+    def _run(self, req):
+        """
+        Removes ``fdsnws-station`` ``format=text`` headers while downloading.
+        """
 
-        req = (self._request_handler.get()
-               if self._http_method == 'GET' else self._request_handler.post())
-
-        self.logger.debug(
-            ('Downloading (url={}, stream_epochs={}, http_method={!r}) '
-             'to tempfile {!r}...').
-            format(self._request_handler.url,
-                   self._request_handler.stream_epochs,
-                   self._http_method,
-                   self.path_tempfile))
-        try:
-            with open(self.path_tempfile, 'wb') as ofd:
-                # NOTE(damb): For granular fdnsws-station-text request it seems
-                # ok buffering the entire response in memory.
-                with binary_request(req, logger=self.logger) as ifd:
-                    for line in ifd:
-                        self._size += len(line)
-                        if line.startswith(b'#'):
-                            continue
-                        ofd.write(line.strip() + b'\n')
-
-        except RequestsError as err:
-            return self._handle_error(err)
-        else:
-            self.logger.debug(
-                'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
-                    self._request_handler.stream_epochs))
-
-        return Result.ok(data=self.path_tempfile, length=self._size,
-                         extras={'type_task': self._TYPE})
+        with open(self.path_tempfile, 'wb') as ofd:
+            # NOTE(damb): For granular fdnsws-station-text request it seems
+            # ok buffering the entire response in memory.
+            with binary_request(req, logger=self.logger) as ifd:
+                for line in ifd:
+                    self._size += len(line)
+                    if line.startswith(b'#'):
+                        continue
+                    ofd.write(line.strip() + b'\n')
 
 
 class StationXMLDownloadTask(RawDownloadTask):
@@ -992,46 +1034,22 @@ class StationXMLDownloadTask(RawDownloadTask):
 
     def __init__(self, request_handler, **kwargs):
         super().__init__(request_handler, **kwargs)
-        self.network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
         self.name = '{}-{}'.format(type(self).__name__,
                                    kwargs.get('name', 'UNKOWN'))
+        network_tag = kwargs.get('network_tag', self.NETWORK_TAG)
+        self._network_tags = ['{}{}'.format(ns, network_tag)
+                              for ns in settings.STATIONXML_NAMESPACES]
 
-    @catch_default_task_exception
-    @with_ctx_guard
-    def __call__(self):
-
-        req = (self._request_handler.get()
-               if self._http_method == 'GET' else self._request_handler.post())
-
-        self.logger.debug(
-            ('Downloading (url={}, stream_epochs={}, method={!r}) '
-             'to tempfile {!r}...').
-            format(self._request_handler.url,
-                   self._request_handler.stream_epochs,
-                   self._http_method,
-                   self.path_tempfile))
-
-        network_tags = ['{}{}'.format(ns, self.network_tag)
-                        for ns in settings.STATIONXML_NAMESPACES]
-
-        try:
-            with open(self.path_tempfile, 'wb') as ofd:
-                # XXX(damb): Load the entire result into memory.
-                with binary_request(req, logger=self.logger) as ifd:
-                    for event, net_element in etree.iterparse(
-                            ifd, tag=network_tags):
-                        if event == 'end':
-                            s = etree.tostring(net_element)
-                            self._size += len(s)
-                            ofd.write(s)
-
-        except RequestsError as err:
-            return self._handle_error(err)
-        else:
-            self.logger.debug(
-                'Download (url={}, stream_epochs={}) finished.'.format(
-                    self._request_handler.url,
-                    self._request_handler.stream_epochs))
-
-        return Result.ok(data=self.path_tempfile, length=self._size,
-                         extras={'type_task': self._TYPE})
+    def _run(self, req):
+        """
+        Extracts ``Network`` elements from StationXML.
+        """
+        with open(self.path_tempfile, 'wb') as ofd:
+            # XXX(damb): Load the entire result into memory.
+            with binary_request(req, logger=self.logger) as ifd:
+                for event, net_element in etree.iterparse(
+                        ifd, tag=self._network_tags):
+                    if event == 'end':
+                        s = etree.tostring(net_element)
+                        self._size += len(s)
+                        ofd.write(s)

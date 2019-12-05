@@ -61,6 +61,27 @@
 # scales squared.
 #
 # ----
+# Per client retry-budget cut-off error ratio in percent. Requests to remote
+# datacenters (DC) are dropped above this value. The default configuration is:
+# 1.0
+#
+# cretry_budget_eratio=1.0
+#
+# ----
+# TTL in seconds for response codes with respect to the per client retry-budget
+# related response code time series. The value defines when requests to
+# DCs should be forwarded, again, after the error ratio had been exceeded. The
+# default configuration is: 1800.0
+#
+# cretry_budget_ttl=1800.0
+#
+# ----
+# Rolling window size for the per client retry-budget related response code
+# time series. The default value is: 4096
+#
+# cretry_budget_window_size=4096
+#
+# ----
 # Configure where temporary files will be located.
 # 
 # tmpdir=/path/to/tmpdir

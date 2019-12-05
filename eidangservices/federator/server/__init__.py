@@ -11,6 +11,7 @@ from flask_redis import FlaskRedis
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.stats import ResponseCodeStats
 from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
@@ -18,6 +19,8 @@ from eidangservices.utils.fdsnws import (register_parser_errorhandler,
 
 
 redis_client = FlaskRedis()
+
+response_code_stats = ResponseCodeStats(redis=redis_client)
 
 
 def create_app(config_dict={}, service_version=__version__):
@@ -37,6 +40,11 @@ def create_app(config_dict={}, service_version=__version__):
     CORS(app)
 
     redis_client.init_app(app, socket_timeout=5)
+    # configure response code time series
+    response_code_stats.kwargs_series = {
+        'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE'],
+        'ttl': config_dict['FED_CRETRY_BUDGET_TTL'],
+    }
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])

@@ -64,6 +64,9 @@ class RequestHandlerBase:
 
     @property
     def url(self):
+        """
+        Returns request URL without query parameters.
+        """
         return urlunparse(
             (self._scheme,
              self._netloc,
