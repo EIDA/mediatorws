@@ -55,7 +55,8 @@ class StationLiteResource(Resource):
 
         response = self._process_request(
             args, stream_epochs,
-            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+            netloc_proxy=(args['proxynetloc'] or
+                          current_app.config['STL_PROXY_NETLOC']))
 
         if not response:
             self._handle_nodata(args)
@@ -82,7 +83,8 @@ class StationLiteResource(Resource):
 
         response = self._process_request(
             args, stream_epochs,
-            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+            netloc_proxy=(args['proxynetloc'] or
+                          current_app.config['STL_PROXY_NETLOC']))
 
         if not response:
             self._handle_nodata(args)
