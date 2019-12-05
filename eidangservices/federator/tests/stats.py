@@ -19,9 +19,13 @@ class RedisTestCase(unittest.TestCase):
         # requires a Redis instance serving at redis://localhost:6379/
         self.redis = redis.StrictRedis(db=self.db)
 
-        if self.redis.dbsize():
-            raise EnvironmentError('Redis database number %d is not empty, '
-                                   'tests could harm your data.' % self.db)
+        try:
+            if self.redis.dbsize():
+                raise EnvironmentError(
+                    'Redis database number %d is not empty, tests could harm '
+                    'your data.' % self.db)
+        except redis.exceptions.ConnectionError as err:
+            raise unittest.SkipTest(err)
 
     def tearDown(self):
         self.redis.flushdb()
