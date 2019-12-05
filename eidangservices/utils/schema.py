@@ -1,37 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <schema.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/12        V0.1    Daniel Armbruster
-# =============================================================================
 """
 General marshmallow schema definitions for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import functools
@@ -95,8 +65,6 @@ class JSONBool(fields.Bool):
 
         return bool(value)
 
-# class JSONBool
-
 
 FDSNWSBool = JSONBool
 
@@ -118,7 +86,6 @@ class FDSNWSDateTime(fields.DateTime):
     SERIALIZATION_FUNCS['fdsnws'] = utils.fdsnws_isoformat
     DESERIALIZATION_FUNCS['fdsnws'] = utils.from_fdsnws_datetime
 
-# class FDSNWSDateTime
 
 # -----------------------------------------------------------------------------
 class StreamEpochSchema(Schema):
@@ -151,7 +118,7 @@ class StreamEpochSchema(Schema):
     end = fields.Str(load_only=True)
 
     @pre_load
-    def merge_keys(self, data):
+    def merge_keys(self, data, **kwargs):
         """
         Merge alternative field parameter values.
 
@@ -176,10 +143,8 @@ class StreamEpochSchema(Schema):
 
         return data
 
-    # merge_keys ()
-
     @post_load
-    def make_stream_epoch(self, data):
+    def make_stream_epoch(self, data, **kwargs):
         """
         Factory method generating
         :py:class:`eidangservices.utils.sncl.StreamEpoch` objects.
@@ -189,7 +154,7 @@ class StreamEpochSchema(Schema):
         return sncl.StreamEpoch.from_sncl(**data)
 
     @post_dump
-    def skip_empty_datetimes(self, data):
+    def skip_empty_datetimes(self, data, **kwargs):
         """
         Provides context dependend skipping of *empty* datetimes when
         serializing.
@@ -209,7 +174,7 @@ class StreamEpochSchema(Schema):
         return data
 
     @post_dump
-    def replace_empty_location(self, data):
+    def replace_empty_location(self, data, **kwargs):
         """
         Replaces empty location identifiers when serializing.
         """
@@ -218,7 +183,7 @@ class StreamEpochSchema(Schema):
         return data
 
     @validates_schema
-    def validate_temporal_constraints(self, data):
+    def validate_temporal_constraints(self, data, **kwargs):
         """
         Validation of temporal constraints.
         """
@@ -249,13 +214,9 @@ class StreamEpochSchema(Schema):
                     raise ValidationError(
                         'endtime must be greater than starttime')
 
-    # validate_temporal_constraints ()
-
     class Meta:
         strict = True
         ordered = True
-
-# class StreamEpochSchema
 
 
 class ManyStreamEpochSchema(Schema):
@@ -268,18 +229,14 @@ class ManyStreamEpochSchema(Schema):
     stream_epochs = fields.List(fields.Nested('StreamEpochSchema'))
 
     @validates_schema
-    def validate_schema(self, data):
+    def validate_schema(self, data, **kwargs):
         # at least one SNCL must be defined for request.method == 'POST'
         if (self.context.get('request') and
                 self.context.get('request').method == 'POST'):
             if 'stream_epochs' not in data or not data['stream_epochs']:
                 raise ValidationError('No StreamEpoch defined.')
-            if [v for v in data['stream_epochs'] if v is None]:
+            if not all(data['stream_epochs']):
                 raise ValidationError('Invalid StreamEpoch defined.')
 
     class Meta:
         strict = True
-
-# class ManyStreamEpochSchema
-
-# ---- END OF <schema.py> ----

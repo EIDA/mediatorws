@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <strict.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EDIA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Sven Marti (ETH), Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/06/05        V0.1    Sven Marti
-# =============================================================================
 """
 Keywordparser facilities for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import functools
 import inspect
@@ -60,10 +31,9 @@ def _callable_or_raise(obj):
         raise ValueError("{0!r} is not callable.".format(obj))
     return obj
 
-# _callable_or_raise ()
 
 # -----------------------------------------------------------------------------
-class KeywordParser(object):
+class KeywordParser:
     """
     Base class for keyword parsers.
     """
@@ -78,8 +48,6 @@ class KeywordParser(object):
         self.error_callback = _callable_or_raise(error_handler)
         self.logger = logging.getLogger(self.LOGGER)
 
-    # __init__ ()
-
     @staticmethod
     def _parse_arg_keys(arg_dict):
         """
@@ -90,8 +58,6 @@ class KeywordParser(object):
         """
 
         return tuple(arg_dict.keys())
-
-    # _parse_arg_keys ()
 
     @staticmethod
     def _parse_postfile(postfile):
@@ -118,8 +84,6 @@ class KeywordParser(object):
 
         return tuple(argmap.keys())
 
-    # _parse_postfile ()
-
     def parse_querystring(self, req):
         """
         Parse argument keys from :code:`req.args`.
@@ -129,8 +93,6 @@ class KeywordParser(object):
         """
 
         return self._parse_arg_keys(req.args)
-
-    # parse_querystring ()
 
     def parse_form(self, req):
         """
@@ -147,16 +109,12 @@ class KeywordParser(object):
 
         return parsed_list
 
-    # parse_form ()
-
     def get_default_request(self):
         """
         Template function for getting the default request.
         """
 
         raise NotImplementedError
-
-    # get_default_request ()
 
     def parse(self, func, schemas, locations):
         """
@@ -215,11 +173,7 @@ class KeywordParser(object):
 
             return func(*args, **kwargs)
 
-        # decorator ()
-
         return decorator
-
-    # parse ()
 
     def with_strict_args(self, schemas, locations=None):
         """
@@ -228,8 +182,6 @@ class KeywordParser(object):
         return functools.partial(self.parse,
                                  schemas=schemas,
                                  locations=locations)
-
-    # with_strict_args ()
 
     def _get_data(self, req, as_text=True,
                   max_content_length=settings.MAX_POST_CONTENT_LENGTH):
@@ -257,8 +209,6 @@ class KeywordParser(object):
 
         return req.get_data(cache=True, as_text=as_text)
 
-    # _get_data ()
-
     def handle_error(self, error, req):
         """
         Called if an error occurs while parsing strict args.
@@ -272,8 +222,6 @@ class KeywordParser(object):
         """
         self.logger.error(error)
         raise error
-
-    # handle_error ()
 
     def error_handler(self, func):
         """
@@ -299,8 +247,6 @@ class KeywordParser(object):
         self.error_callback = func
         return func
 
-# class KeywordParser
-
 
 # -----------------------------------------------------------------------------
 class FlaskKeywordParser(KeywordParser):
@@ -317,13 +263,6 @@ class FlaskKeywordParser(KeywordParser):
 
         return flaskparser.get_default_request()
 
-    # get_default_request ()
-
-# class FlaskKeywordParser
-
 
 flask_keywordparser = FlaskKeywordParser()
 with_strict_args = flask_keywordparser.with_strict_args
-
-
-# ---- END OF <strict.py> ----

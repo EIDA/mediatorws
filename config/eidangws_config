@@ -10,60 +10,100 @@
 # You obtain additional information as well as default configuration values
 # when entering:
 #
-# $ eida-federator -h
+# $ eida-federator-test -h
 # 
 # See also the Python configparser module documentation:
 #   - https://docs.python.org/library/configparser.html
 #
 # -----------------------------------------------------------------------------
-# Start the application by means of the local Flask WSGI server. 
-# (default: False)
-#
-# start_local={True,False}
-# ----
-# Set the port number the local Flask WSGI server is serving. Note, that this
-# parameter is taken only into consideration if start_local=True.
-# 
-# port=PORT
-# ----
-# Set the eida-stationlite routing service url and identifier. (default:
+# Set the eida-stationlite routing service URL and identifier. (default:
 # http://localhost/eidaws/routing/1/)
 #
 # routing=SERVICE_URL/IDENTIFIER
+#
+# ----
+# Set the storage URL or Unix Socket (Redis) (default:
+# redis://localhost:6379/0)
+# See also: https://redis-py.readthedocs.io/en/latest/
+#
+# storage=REDIS STORAGE URL
+#
 # ----
 # Enable/disable federator endpoint resources. Choices are: 
 # {fdsnws-dataselect, fdsnws-station, eidaws-wfcatalog}. By default all
 # endpoint resources are enabled.
 #
 # endpoint_resources = fdsnws-dataselect fdsnws-station eidaws-wfcatalog
+#
 # ----
-# Configure the number of download threads/request by means of a dictionary
-# (JSON syntax required). The default configuration is:
-# '{"fdsnws-dataselect": 10, "fdsnws-station-xml": 5,
-#   "fdsnws-station-text": 10, "eidaws-wfcatalog": 10}'
+# Configure federator resources (JSON syntax required). The default
+# configuration is:
 #
-# NOTE: For "fdsnws-station-xml" the number of download threads refers to the
-# number of download threads per network code.
+# resource_config='{
+#  "fdsnws-dataselect":
+#   {"num_threads": 10,
+#    "request_strategy": "granular",
+#    "request_method": "POST"},
+#  "fdsnws-station-xml":
+#   {"num_threads": 5,
+#    "request_strategy": "adaptive-bulk",
+#    "request_method": "POST"},
+#  "fdsnws-station-text": 
+#   {"num_threads": 10,
+#    "request_strategy": "bulk",
+#    "request_method": "POST"},
+#  "eidaws-wfcatalog":
+#   {"num_threads": 10,
+#    "request_strategy": "granular",
+#    "request_method": "POST"}}'
+# 
+# NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
+# scales squared.
 #
-# endpoint_threads = '{"fdsnws-dataselect": 10,
-#                      "fdsnws-station-xml": 5,
-#                      "fdsnws-station-text": 10,
-#                      "eidaws-wfcatalog": 10}'
+# ----
+# Per client retry-budget cut-off error ratio in percent. Requests to remote
+# datacenters (DC) are dropped above this value. The default configuration is:
+# 1.0
+#
+# cretry_budget_eratio=1.0
+#
+# ----
+# TTL in seconds for response codes with respect to the per client retry-budget
+# related response code time series. The value defines when requests to
+# DCs should be forwarded, again, after the error ratio had been exceeded. The
+# default configuration is: 1800.0
+#
+# cretry_budget_ttl=1800.0
+#
+# ----
+# Rolling window size for the per client retry-budget related response code
+# time series. The default value is: 4096
+#
+# cretry_budget_window_size=4096
+#
 # ----
 # Configure where temporary files will be located.
 # 
 # tmpdir=/path/to/tmpdir
+#
 # ----
 # Keep temporary files the service is generating. Choices are: {all, none,
 # on-errors}; The default configuration is: none
 #
 # keep_tempfiles = none
+#
 # ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
 # path_logging_conf=/path/to/logging.conf
+#
+# ----
+# Set the port number the local Flask WSGI server is serving
+# (eida-federator-test only)
+# 
+# port=PORT
 #
 # ----------------------------------------------------------------------------
 [CONFIG_STATIONLITE]
@@ -76,21 +116,18 @@
 # You obtain additional information as well as default configuration values
 # when entering:
 #
-# $ eida-stationlite --help
+# $ eida-stationlite-test --help
 #
 # See also the Python configparser module documentation:
 #   - https://docs.python.org/library/configparser.html
 #
 # -----------------------------------------------------------------------------
-# Start the application by means of the local Flask WSGI server.
-# (default: False)
+# Prepend a constant network location to routed URLs. This option may be used
+# if requests are redirected e.g. when using a proxy. See also:
+# https://tools.ietf.org/html/rfc1738#section-3.1
 #
-# start_local={True,False}
-# ----
-# Set the port number the local Flask WSGI server is serving. Note, that this
-# parameter is taken only into consideration if start_local=True.
+# proxy_netloc = '//[user[:password]@]host[:port]
 #
-# port=PORT
 # ----
 # DB URL indicating the database dialect and connection arguments. For SQlite
 # only a absolute file path is supported.
@@ -105,6 +142,12 @@
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
 # path_logging_conf=/path/to/logging.conf
+#
+# ----
+# Set the port number the local Flask WSGI server is serving
+# (eida-stationlite-test only).
+#
+# port=PORT
 #
 # ----------------------------------------------------------------------------
 [CONFIG_STATIONLITE_HARVEST]
@@ -133,16 +176,19 @@
 # odc, resif}.
 #
 # nodes_exclude = bgr eth gfz
+#
 # ----
 # Do not harvest <route></route> information while harvesting.
 # (default: False)
 #
 # no_routes={True,False}
+#
 # ----
 # Do not harvest <vnetwork></vnetwork> information while harvesting.
 # (default: False)
 #
 # no_vnetworks={True,False}
+#
 # ----
 # Truncate DB i.e. delete outdated information. The TIMESTAMP format must agree
 # with formats supported by obspy.UTCDateTime.
@@ -150,12 +196,14 @@
 # https://docs.obspy.org/packages/autogen/obspy.core.utcdatetime.UTCDateTime.html
 #
 # truncate=2017-01-01T00:00:00
+#
 # ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
 #
 # path_logging_conf=/path/to/logging.conf
+#
 # ----
 # DB URL indicating the database dialect and the connection arguments.
 # See also:

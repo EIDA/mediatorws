@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <fdsnws.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EDIA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/06/05        V0.1    Daniel Armbruster
-# =============================================================================
 """
 General purpose utils for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import functools
 import itertools
@@ -48,7 +19,7 @@ from eidangservices.utils.httperrors import FDSNHTTPError
 
 
 # -----------------------------------------------------------------------------
-class FDSNWSParserMixin(object):
+class FDSNWSParserMixin:
     """
     Mixin providing additional FDSNWS specific parsing facilities for `webargs
     https://webargs.readthedocs.io/en/latest/`_ parsers.
@@ -87,8 +58,6 @@ class FDSNWSParserMixin(object):
                     return val
             return None
 
-        # _get_values ()
-
         # preprocess the req.args multidict regarding SNCL parameters
         networks = _get_values(('net', 'network')) or ['*']
         stations = _get_values(('sta', 'station')) or ['*']
@@ -112,8 +81,6 @@ class FDSNWSParserMixin(object):
                 stream_epoch_dict['end'] = endtime
 
         return {'stream_epochs': stream_epochs}
-
-    # _parse_streamepochs_from_argdict ()
 
     @staticmethod
     def _parse_postfile(postfile):
@@ -154,10 +121,6 @@ class FDSNWSParserMixin(object):
 
         return retval
 
-    # _parse_postfile ()
-
-# class FDSNWSParserMixin
-
 
 class FDSNWSFlaskParser(FDSNWSParserMixin, FlaskParser):
     """
@@ -176,8 +139,6 @@ class FDSNWSFlaskParser(FDSNWSParserMixin, FlaskParser):
         return webargs.core.get_value(
             self._parse_streamepochs_from_argdict(req.args), name, field)
 
-    # parse_querystring ()
-
     def parse_form(self, req, name, field):
         """
         Intended to emulate parsing SNCL arguments from FDSNWS formatted
@@ -191,8 +152,6 @@ class FDSNWSFlaskParser(FDSNWSParserMixin, FlaskParser):
         """
         return webargs.core.get_value(
             self._parse_postfile(self._get_data(req)), name, field)
-
-    # parse_form ()
 
     def _get_data(self, req, as_text=True,
                   max_content_length=settings.MAX_POST_CONTENT_LENGTH):
@@ -219,10 +178,6 @@ class FDSNWSFlaskParser(FDSNWSParserMixin, FlaskParser):
                 self.handle_error(err, req)
 
         return req.get_data(cache=True, as_text=as_text)
-
-    # _get_data ()
-
-# class FDSNWSFlaskParser
 
 
 fdsnws_parser = FDSNWSFlaskParser()
@@ -254,8 +209,6 @@ def with_exception_handling(func, service_version):
 
     return decorator
 
-# with_exception_handling ()
-
 
 def with_fdsnws_exception_handling(service_version):
     """
@@ -263,8 +216,6 @@ def with_fdsnws_exception_handling(service_version):
     """
     return functools.partial(with_exception_handling,
                              service_version=service_version)
-
-# with_fdsnws_exception_handling ()
 
 
 def register_parser_errorhandler(service_version):
@@ -274,7 +225,8 @@ def register_parser_errorhandler(service_version):
     """
     @fdsnws_parser.error_handler
     @flaskparser.error_handler
-    def handle_parser_error(err, req, schema):
+    def handle_parser_error(
+            err, req, schema, error_status_code, error_headers):
         """
         configure webargs error handler
         """
@@ -283,7 +235,6 @@ def register_parser_errorhandler(service_version):
 
     return handle_parser_error
 
-# register_parser_errorhandler ()
 
 def register_keywordparser_errorhandler(service_version):
     """
@@ -298,7 +249,3 @@ def register_keywordparser_errorhandler(service_version):
                                    error_desc_long=str(err))
 
     return handle_parser_error
-
-# register_keywordparser_errorhandler ()
-
-# ---- END OF <fdsnws.py> ----

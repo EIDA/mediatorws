@@ -1,49 +1,27 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <__init__.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2018/03/14        V0.1    Daniel Armbruster
-# =============================================================================
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
+import uuid
 
 from flask import Flask, make_response, g
 from flask_cors import CORS
+from flask_redis import FlaskRedis
 
 # from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from eidangservices import settings
 from eidangservices.federator import __version__
-from eidangservices.federator.server.misc import Context
+from eidangservices.federator.server.stats import ResponseCodeStats
 from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
                                          register_keywordparser_errorhandler)
+
+
+redis_client = FlaskRedis()
+
+response_code_stats = ResponseCodeStats(redis=redis_client)
+
 
 def create_app(config_dict={}, service_version=__version__):
     """
@@ -53,10 +31,20 @@ def create_app(config_dict={}, service_version=__version__):
     :type config_dict: :py:class:`flask.Config`
     :param str service_version: Version string
     """
+    # prevent from errors due to circular dependencies
+    # XXX(damb): Consider refactoring
+    from eidangservices.federator.server.misc import Context
     app = Flask(__name__)
     app.config.update(config_dict)
     # allows CORS for all domains for all routes
     CORS(app)
+
+    redis_client.init_app(app, socket_timeout=5)
+    # configure response code time series
+    response_code_stats.kwargs_series = {
+        'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE'],
+        'ttl': config_dict['FED_CRETRY_BUDGET_TTL'],
+    }
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
@@ -65,12 +53,9 @@ def create_app(config_dict={}, service_version=__version__):
     @app.before_request
     def before_request():
         g.request_start_time = datetime.datetime.utcnow()
-        g.ctx = Context(root_only=True)
-        g.request_id = g.ctx._get_current_object()
-        g.ctx.acquire(path_tempdir=config_dict['TMPDIR'],
-                      hidden=settings.EIDA_FEDERATOR_HIDDEN_CTX_LOCKS)
-
-    # before_request ()
+        g.request_id = uuid.uuid4()
+        g.ctx = Context(ctx=g.request_id)
+        g.ctx.acquire()
 
     @app.teardown_request
     def teardown_request(exception):
@@ -87,8 +72,6 @@ def create_app(config_dict={}, service_version=__version__):
                 {'Content-Type': '{}; {}'.format(settings.ERROR_MIMETYPE,
                                                  settings.CHARSET_TEXT)})
 
-    # register_error ()
-
     errors_to_register = (
         httperrors.NoDataError,
         httperrors.BadRequestError,
@@ -104,7 +87,3 @@ def create_app(config_dict={}, service_version=__version__):
     register_keywordparser_errorhandler(service_version=service_version)
 
     return app
-
-# create_app ()
-
-# ---- END OF <__init__.py> ----

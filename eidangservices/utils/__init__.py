@@ -1,41 +1,12 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <utils.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EDIA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2017/12/12        V0.1    Daniel Armbruster
-# =============================================================================
 """
 General purpose utils for EIDA NG webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import argparse
 import collections
 import datetime
-#import logging
+import logging
 import os
 import re
 
@@ -53,31 +24,22 @@ except ImportError:
     dateutil_available = False
 
 
+# module level logger
+logger = logging.getLogger('eidangservices.utils')
+
+
 # from marshmallow (originally from Django)
 _iso8601_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
     r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
-    # tzinfo must not be available
     r'(?P<tzinfo>Z|(?![+-]\d{2}(?::?\d{2})?))?$'
 )
-
-# -----------------------------------------------------------------------------
-Route = collections.namedtuple('Route', ['url', 'streams'])
-"""
-Container for routes.
-
-:param str url: URL
-:param list streams: List of stream epoch like objects (see
-    :py:mod:`eidangservices.utils.sncl` module).
-"""
 
 
 # -----------------------------------------------------------------------------
 def realpath(p):
     return os.path.realpath(os.path.expanduser(p))
-
-# realpath ()
 
 
 def real_file_path(path):
@@ -94,8 +56,6 @@ def real_file_path(path):
         raise argparse.ArgumentTypeError
     return path
 
-# real_file_path ()
-
 
 def real_dir_path(path):
     """
@@ -110,8 +70,6 @@ def real_dir_path(path):
     if not os.path.isdir(path):
         raise argparse.ArgumentTypeError
     return path
-
-# real_dir_path ()
 
 
 def from_fdsnws_datetime(datestring, use_dateutil=True):
@@ -131,8 +89,8 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
 
     if len(datestring) == 10:
         # only YYYY-mm-dd is defined
-        return datetime.datetime.combine(ma.utils.from_iso_date(datestring,
-                                         use_dateutil), datetime.time())
+        return datetime.datetime.combine(ma.utils.from_iso_date(datestring),
+                                         datetime.time())
     else:
         # from marshmallow
         if not _iso8601_re.match(datestring):
@@ -144,8 +102,6 @@ def from_fdsnws_datetime(datestring, use_dateutil=True):
             # Strip off microseconds and timezone info.
             return datetime.datetime.strptime(datestring[:19],
                                               '%Y-%m-%dT%H:%M:%S')
-
-# from_fdsnws_datetime ()
 
 
 def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
@@ -163,11 +119,13 @@ def fdsnws_isoformat(dt, localtime=False, *args, **kwargs):
 
 def convert_sncl_dicts_to_query_params(stream_epochs_dict):
     """
-    Convert a list of :py:class:`sncl.StreamEpoch` objects to FDSNWS HTTP
-    **GET** query parameters.
+    Convert a list of :py:class:`~sncl.StreamEpoch` objects to FDSNWS HTTP
+    **GET** query parameters. Return values are ordered based on the order of
+    the keys of the first dictionary in the :code:`stream_epochs_dict` list.
 
-    :param list stream_epochs_dict: A list of :py:class:`sncl.StreamEpoch`
+    :param list stream_epochs_dict: A list of :py:class:`~sncl.StreamEpoch`
         dictionaries
+
     :return: StreamEpoch related FDSNWS conform HTTP **GET** query parameters
     :rtype: :py:class:`dict`
     :raises ValueError: If temporal constraints differ between stream epochs.
@@ -182,14 +140,16 @@ def convert_sncl_dicts_to_query_params(stream_epochs_dict):
 
     .. note::
 
-        :py:class:`sncl.StreamEpoch` objects are flattened.
+        :py:class:`~sncl.StreamEpoch` objects are flattened.
     """
-    retval = collections.defaultdict(set)
     _temporal_constraints_params = ('starttime', 'endtime')
+
+    retval = DefaultOrderedDict(set)
     if stream_epochs_dict:
         for stream_epoch in stream_epochs_dict:
             for key, value in stream_epoch.items():
                 retval[key].update([value])
+
     for key, values in retval.items():
         if key in _temporal_constraints_params:
             if len(values) != 1:
@@ -201,7 +161,6 @@ def convert_sncl_dicts_to_query_params(stream_epochs_dict):
 
     return retval
 
-# convert_sncl_dicts_to_query_params ()
 
 def get_version_response(version_string):
     """
@@ -216,6 +175,60 @@ def get_version_response(version_string):
     response.headers['Content-Type'] = settings.VERSION_MIMETYPE
     return response
 
-# get_version_response ()
 
-# ---- END OF <utils.py> ----
+# -----------------------------------------------------------------------------
+Route = collections.namedtuple('Route', ['url', 'streams'])
+"""
+Container for routes.
+
+:param str url: URL
+:param list streams: List of stream epoch like objects (see
+    :py:mod:`eidangservices.utils.sncl` module).
+"""
+
+
+class DefaultOrderedDict(collections.OrderedDict):
+    """
+    Returns a new ordered dictionary-like object.
+    :py:class:`DefaultOrderedDict` is a subclass of the built-in
+    :code:`OrderedDict` class. It overrides one method and adds one writable
+    instance variable. The remaining functionality is the same as for the
+    :code:`OrderedDict` class and is not documented here.
+    """
+    # Source: http://stackoverflow.com/a/6190500/562769
+    def __init__(self, default_factory=None, *args, **kwargs):
+        if default_factory is not None and not callable(default_factory):
+            raise TypeError('first argument must be callable')
+
+        super().__init__(*args, **kwargs)
+        self.default_factory = default_factory
+
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return self.__missing__(key)
+
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        self[key] = value = self.default_factory()
+        return value
+
+    def __reduce__(self):
+        if self.default_factory is None:
+            args = tuple()
+        else:
+            args = self.default_factory,
+        return type(self), args, None, None, self.items()
+
+    def copy(self):
+        return self.__copy__()
+
+    def __copy__(self):
+        return type(self)(self.default_factory, self)
+
+    def __deepcopy__(self, memo):
+        import copy
+        return type(self)(self.default_factory,
+                          copy.deepcopy(self.items()))

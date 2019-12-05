@@ -1,33 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <station.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# -----------------------------------------------------------------------------
 """
 This file is part of the EIDA mediator/federator webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import logging
 
@@ -76,18 +50,21 @@ class StationResource(Resource):
         args = s.dump(args)
         self.logger.debug('StationSchema (serialized): %s' % args)
 
+        resource_cfg = 'fdsnws-station-' + args['format']
+
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             self._get_result_mimetype(args),
             query_params=args,
             stream_epochs=stream_epochs,
-            post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-        ).streamed_response
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
-    # get ()
+        processor.post = False
+        return processor.streamed_response
 
     @fdsnws.use_fdsnws_args(StationSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
@@ -108,18 +85,20 @@ class StationResource(Resource):
         args = s.dump(args)
         self.logger.debug('StationSchema (serialized): %s' % args)
 
+        resource_cfg = 'fdsnws-station-' + args['format']
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             self._get_result_mimetype(args),
             query_params=args,
             stream_epochs=stream_epochs,
-            post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-        ).streamed_response
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
+            **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
-    # post ()
+        processor.post = True
+        return processor.streamed_response
 
     def _get_result_mimetype(self, args):
         """Return result mimetype (either XML or plain text."""
@@ -127,9 +106,3 @@ class StationResource(Resource):
             return settings.STATION_MIMETYPE_TEXT
 
         return settings.STATION_MIMETYPE_XML
-
-    # _get_result_mimetype ()
-
-# class StationResource
-
-# ---- END OF <station.py> ----

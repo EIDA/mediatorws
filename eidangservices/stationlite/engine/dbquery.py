@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <dbquery.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Fabian Euchner (ETH), Daniel Armbruster (ETH)
-#
-# REVISION AND CHANGES
-# 2018/01/08        V0.1    Daniel Armbruster
-# =============================================================================
 """
 DB query tools for stationlite web service.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import collections
 import logging
@@ -41,7 +12,9 @@ from eidangservices.utils.sncl import (StreamEpochs, StreamEpochsHandler,
 
 from eidangservices.stationlite.engine import orm
 
+
 logger = logging.getLogger('flask.app.stationlite.dbquery')
+
 
 # ----------------------------------------------------------------------------
 def resolve_vnetwork(session, stream_epoch, like_escape='/'):
@@ -90,7 +63,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     # slice the stream epoch
     sliced_ses = []
     for s in query.all():
-        #print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
+        # print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
         with none_as_max(s.endtime) as end:
             se = StreamEpochs(
                 network=s.network.name,
@@ -109,7 +82,6 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
 
     return [se for ses in sliced_ses for se in ses]
 
-# resolve_vnetwork ()
 
 def find_streamepochs_and_routes(session, stream_epoch, service,
                                  level='channel',
@@ -183,7 +155,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     routes = collections.defaultdict(StreamEpochsHandler)
 
     for row in query.all():
-        #print('Query response: {0!r}'.format(row))
+        # print('Query response: {0!r}'.format(row))
         # NOTE(damb): Adjust epoch in case the ChannelEpoch is smaller than the
         # RoutingEpoch (regarding time constraints).
         starttime = max(row[2], row[6])
@@ -219,8 +191,3 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
 
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]
-
-# find_streamepochs_and_routes ()
-
-
-# ---- END OF <dbquery.py> ----

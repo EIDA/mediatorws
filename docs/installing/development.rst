@@ -6,8 +6,8 @@ Installing
 ==========
 
 In order to develop with the EIDA NG webservices an installation from source
-must be performed. The installation is performed by means of the `virtualenv
-<https://pypi.python.org/pypi/virtualenv>`_ package.
+must be performed. The installation is performed by means of the `venv
+<https://docs.python.org/3/library/venv.html>`_ package.
 
 .. note::
 
@@ -37,7 +37,7 @@ Debian/Ubuntu:
 
 .. code::
 
-  $ sudo apt-get install libxml2-dev libxslt-dev python-dev
+  $ sudo apt-get install libxml2-dev libxslt-dev python3-dev python3-venv
 
 Download
 --------
@@ -53,27 +53,12 @@ the *mediatorws* source code:
 Installing *virtualenv*
 -----------------------
 
-In case *virtualenv* is not available yet, install the package via pip:
-
-.. code::
-
-  # pip install virtualenv
-
-Test your *virtualenv* installation:
-
-.. code::
-
-  $ virtualenv --version
-
-Create a virtual environment for the EIDA NG webservices. Use the :code:`-p
-/path/to/python` to setup your virtual environment with the corresponding
-python interpreter. The EIDA NG webservices both run with Python 2.7 and Python
-3.4+.
+Create a virtual environment for the EIDA NG webservices:
 
 .. code::
 
   $ cd $PATH_INSTALLATION_DIRECTORY/mediatorws
-  $ virtualenv venv
+  $ python3 -m venv venv
 
 .. note::
 
@@ -140,7 +125,7 @@ webservice installation enter
 
 .. code::
 
-  (venv) $ eida-federator -V
+  (venv) $ eida-federator-test -V
 
 The version of your *federator* installation should be displayed. Now you are
 ready to launch the `Test WSGI servers
@@ -194,8 +179,12 @@ If you are using Ubuntu/Debian you can apt-get it and activate it as follows:
 
 .. code::
 
-  # apt-get install libapache2-mod-wsgi
+  # apt-get install libapache2-mod-wsgi-py3
   # service apache2 restart
+
+Make sure that the Python interpreter version `mod_wsgi` was compiled for
+matches with the default Python 3 interpreter version from your virtual
+environment.
 
 Setup a virtual host
 --------------------

@@ -1,35 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <misc.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/05/28        V0.1    Daniel Armbruster
-# -----------------------------------------------------------------------------
 """
 Miscellaneous utils.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import enum
 import os
@@ -39,6 +11,9 @@ import random
 import tempfile
 import uuid
 
+from redis.exceptions import RedisError
+
+from eidangservices.federator.server import redis_client
 from eidangservices.utils.error import Error, ErrorWithTraceback
 
 
@@ -50,25 +25,20 @@ class ContextLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return '[%s] %s' % (self.extra['ctx'], msg), kwargs
 
-# class ContextLoggerAdapter
-
 
 class KeepTempfiles(enum.Enum):
     ALL = 0
     ON_ERRORS = 1
     NONE = 2
 
-# class KeepTempfiles
 
-
-class Context(object):
+class Context:
     """
-    Utility implementation of a simple hierarchical context. Contexts are
-    pickable.
+    Utility implementation of a simple hierarchical request context. Request
+    contexts are pickable.
 
     :param ctx: Hashable to be used for context initialization.
-    :param bool root_only: The context relies on its root context when
-        handling with locks.
+    :t
     :param payload: Payload to be associated with the context.
     """
     SEP = '::'
@@ -76,29 +46,33 @@ class Context(object):
     class ContextError(ErrorWithTraceback):
         """Base context error ({})."""
 
-    # TODO(damb): Make it threadsafe!
+    def __init__(self, ctx=None, payload=None):
+        """
+        :param ctx: Context identifier
+        :type ctx: None or hashable
+        """
 
-    def __init__(self, ctx=None, root_only=True, payload=None):
-        self._ctx = ctx if ctx else uuid.uuid4()
+        self._ctx = ctx or uuid.uuid4()
         try:
             hash(self._ctx)
         except TypeError as err:
             raise self.ContextError('Context unhashable ({}).'.format(err))
-        self._parent_ctx = None
-        self._root_only = root_only
-        self._payload = payload
 
-        self._path_ctx = None
+        self._payload = payload or {}
+        self._parent_ctx = None
+
+        self._key = 'request:' + str(self._ctx)
         self._child_ctxs = []
 
     @property
     def locked(self):
-        if not self._root_only or self._is_root:
-            return bool(self._path_ctx) and os.path.isfile(self._path_ctx)
+        if self._is_root:
+            try:
+                return bool(redis_client.exists(self._key))
+            except RedisError as err:
+                raise self.ContextError(err)
         # check if the root context is still locked
         return self._get_root_ctx().locked
-
-    # locked ()
 
     @property
     def payload(self):
@@ -108,61 +82,62 @@ class Context(object):
     def _is_root(self):
         return self._parent_ctx is None
 
-    def acquire(self, path_tempdir=tempfile.gettempdir(), hidden=True):
+    def acquire(self):
         """
-        Acquire a temporary file for the context.
-
-        :param str path_tempdir: Path for temporary files the lock will be
-            located
-        :param bool hidden: Use hidden files when creating the lock.
+        Acquire a context lock.
         """
-        if not self._root_only or self._is_root:
-            self._path_ctx = os.path.join(
-                path_tempdir,
-                '{}{}'.format(('.' if hidden else ''), str(self._ctx)))
 
-            if os.path.isfile(self._path_ctx):
-                raise FileExistsError
+        if self._is_root:
+
+            assert not redis_client.exists(self._key), \
+                'Context lock already acquired.'
+
+            # acquire by means of creating a redis hash
+            resp = None
             try:
-                open(self._path_ctx, 'a').close()
-            except OSError as err:
-                raise self.ContextError('Cannot create lock ({}).'.format(err))
+                resp = redis_client.set(self._key, 'locked')
+            except RedisError as err:
+                raise self.ContextError(
+                    'Error while creating lock: {}'.format(err))
+            else:
+                if not resp:
+                    raise self.ContextError(
+                        'Error while creating lock '
+                        '(already existing): {}'.format(self._key))
+
         else:
             # acquire a lock for the root context
             root = self._get_root_ctx()
-            root.acquire(path_tempdir)
-            # broadcast
-            for c in root:
-                c._path_ctx = root._path_ctx
-
-    # acquire ()
+            root.acquire()
 
     def release(self):
         """
-        Remove a previously acquired temporary file.
+        Release a context lock.
         """
-        if not self._root_only or self._is_root:
-            if not self._path_ctx:
-                raise self.ContextError('Not acquired.')
+
+        if self._is_root:
             try:
-                os.remove(self._path_ctx)
-            except OSError as err:
+                resp = redis_client.delete(self._key)
+            except RedisError as err:
                 raise self.ContextError(
-                    'While removing context ({}).'.format(err))
-            self._path_ctx = None
+                    'Error while removing context lock: {}'.format(err))
+            else:
+                if not resp:
+                    raise self.ContextError(
+                        'Error while removing context lock: '
+                        '{}'.format(self._key))
+
         else:
             root = self._get_root_ctx()
             root.release()
-            # broadcast
-            for c in root:
-                c._path_ctx = None
-
-    # release ()
 
     def teardown(self):
         """
         Securely remove the context.
+
+        When a context is removed, all subcontexts are dropped, too.
         """
+
         if self._is_root:
             for c in self._child_ctxs:
                 self.__sub__(c)
@@ -171,9 +146,23 @@ class Context(object):
             except Error:
                 pass
         else:
-            self._get_root_ctx().teardown()
+            root = self._get_root_ctx()
+            root.teardown()
 
-    # teardown ()
+    def associate(self, payload, root_only=True):
+        """
+        Associate payload with a context.
+
+        :param dict payload: Payload to be associated
+        :param bool root_only: Associate payload with *root* context instead of
+            the context itself
+        """
+
+        if root_only:
+            root = self._get_root_ctx()
+            root._payload.update(payload)
+        else:
+            self._payload.update(payload)
 
     def append(self, ctx):
         self.__add__(ctx)
@@ -188,8 +177,6 @@ class Context(object):
             d['_ctx'] = str(d['_ctx'])
 
         return d
-
-    # __getstate__ ()
 
     def __setstate__(self, state):
         if '_ctx' in state.keys() and '_ctx_type' in state.keys():
@@ -206,32 +193,26 @@ class Context(object):
 
         self.__dict__.update(state)
 
-    # __setstate__ ()
-
     def __add__(self, ctx):
         """
         Add a sub-context to the current context.
 
         :param ctx: Context to be added.
         :type ctx: :py:class:`Context`
+
+        :returns: The context the sub-context was associated with
+        :rtype: :py:class:`Context`
         """
-        for c in ctx:
-            if c.locked and ctx._root_only:
-                raise self.ContextError(
-                    'Cannot add locked contexts. Please, release first.')
 
-        uuids = set([c._ctx for c in self])
-        other_uuids = set([c._ctx for c in ctx])
-        if uuids & other_uuids:
-            raise self.ContextError('Only unique UUIDs allowed.')
-
-        for c in ctx:
-            c._root_only = self._root_only
+        ctxs = set([c._ctx for c in self])
+        other_ctxs = set([c._ctx for c in ctx])
+        if ctxs & other_ctxs:
+            raise self.ContextError('Only unique contexts allowed.')
 
         ctx._parent_ctx = self
         self._child_ctxs.append(ctx)
 
-    # __add__ ()
+        return self
 
     def __sub__(self, ctx):
         """
@@ -239,16 +220,16 @@ class Context(object):
 
         :param ctx: Context to be removed.
         :type ctx: :py:class:`Context`
+
+        :returns: Sub-context removed
+        :rtype: :py:class:`Context` or None
         """
+
         if ctx in self:
-            if ctx._child_ctxs:
-                ctx.__sub__(ctx._child_ctxs.pop(0))
-
-            if ctx.locked:
-                ctx.release()
             self._child_ctxs.remove(ctx)
+            return ctx
 
-    # __sub__ ()
+        return None
 
     def __contains__(self, other):
         return other in self._child_ctxs
@@ -262,14 +243,14 @@ class Context(object):
         return hash(self._ctx)
 
     def __iter__(self):
+        """
+        Generator providing a recursive iterator implementation.
+        """
+
         yield self
 
         for c in self._child_ctxs:
-            # XXX(damb): Python3 only: yield from iter(c)
-            for _c in iter(c):
-                yield _c
-
-    # __iter__ ()
+            yield from iter(c)
 
     def __str__(self):
         stack = [self._ctx]
@@ -282,8 +263,6 @@ class Context(object):
             parent_ctx = parent_ctx._parent_ctx
 
         return self.SEP.join(str(e) for e in reversed(stack))
-
-    # __str__ ()
 
     def _get_root_ctx(self):
         if self._parent_ctx is None:
@@ -299,13 +278,6 @@ class Context(object):
 
         return ctx
 
-    # _get_root_ctx ()
-
-    def _get_current_object(self):
-        return self._ctx
-
-# class Context
-
 
 # -----------------------------------------------------------------------------
 def qualname(obj):
@@ -315,8 +287,6 @@ def qualname(obj):
             if m is None or m == type(str).__module__ else
             m + '.' + type(obj).__name__)
 
-# qualname ()
-
 
 def get_temp_filepath():
     """Return path of temporary file."""
@@ -324,13 +294,9 @@ def get_temp_filepath():
     return os.path.join(
         tempfile.gettempdir(), next(tempfile._get_candidate_names()))
 
-# get_temp_filepath ()
-
 
 def choices(seq, k=1):
     return ''.join(random.choice(seq) for i in range(k))
-
-# choices ()
 
 
 def elements_equal(e, e_other, exclude_tags=[], recursive=True):
@@ -380,8 +346,3 @@ def elements_equal(e, e_other, exclude_tags=[], recursive=True):
         return False
     return all(elements_equal(c, c_other)
                for c, c_other in zip(local_e, local_e_other))
-
-# elements_equal ()
-
-
-# ---- END OF <misc.py> ----

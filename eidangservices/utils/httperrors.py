@@ -1,38 +1,9 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <httperrors.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA webservices.
-#
-# EIDA webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/05/18        V0.1    Daniel Armbruster, Fabian Euchner
-#
-# -----------------------------------------------------------------------------
 """
 FDSNWS conform HTTP error definitions.
 
 See also: http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 from flask import request, g
 
@@ -76,11 +47,8 @@ def get_error_message(code, description_short, description_long,
                                      request_url, request_time,
                                      service_version)
 
-# get_error_message ()
 
 # -----------------------------------------------------------------------------
-
-
 class FDSNHTTPError(Exception):
     """
     General HTTP error class for 5xx and 4xx errors for FDSN web services,
@@ -114,8 +82,6 @@ class FDSNHTTPError(Exception):
         else:
             return InternalServerError(*args, **kwargs)
 
-    # create
-
     def __init__(self, documentation_uri=None, service_version=None,
                  error_desc_long=None):
         super().__init__()
@@ -133,18 +99,12 @@ class FDSNHTTPError(Exception):
             g.request_start_time.isoformat(),
             self.service_version)
 
-    # __init__ ()
-
-# class FDSNHTTPError
-
 
 class NoDataError(FDSNHTTPError):
     description = ''
 
     def __init__(self, status_code=204):
         self.code = status_code
-
-# class NoDataError
 
 
 class BadRequestError(FDSNHTTPError):
@@ -170,6 +130,3 @@ class InternalServerError(FDSNHTTPError):
 class TemporarilyUnavailableError(FDSNHTTPError):
     code = 503
     error_desc_short = 'Service temporarily unavailable'
-
-
-# ---- END OF <httperrors.py> ----

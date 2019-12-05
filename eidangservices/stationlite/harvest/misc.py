@@ -1,42 +1,13 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <misc.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/02/09        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA NG stationlite utils.
 
 Functions which might be used as *executables*:
     - :code:`db_init()` -- create and initialize a stationlite DB
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import argparse
-import logging # noqa
+# import logging
 import os
 import sys
 import traceback
@@ -58,7 +29,6 @@ def url(url):
         raise argparse.ArgumentTypeError('SQLite URL must be absolute.')
     return url
 
-# url ()
 
 # ----------------------------------------------------------------------------
 class StationLiteDBInitApp(App):
@@ -102,8 +72,6 @@ class StationLiteDBInitApp(App):
                                   'absolute file path is supported.'))
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -160,9 +128,6 @@ class StationLiteDBInitApp(App):
 
         sys.exit(exit_code)
 
-    # run ()
-
-# class StationLiteDBInitApp
 
 # ----------------------------------------------------------------------------
 def db_init():
@@ -183,11 +148,7 @@ def db_init():
 
     app.run()
 
-# db_init ()
-
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     db_init()
-
-# ---- END OF <misc.py> ----

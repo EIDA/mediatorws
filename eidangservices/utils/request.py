@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <request.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA webservices.
-#
-# EIDA webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/06/18        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA webservice request handling facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import contextlib
 import io
@@ -38,6 +9,7 @@ import io
 import requests
 
 from eidangservices import settings
+from eidangservices.utils import logger
 from eidangservices.utils.error import Error
 
 
@@ -48,27 +20,38 @@ class RequestsError(requests.exceptions.RequestException, Error):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class ClientError(RequestsError):
     """Response code not OK ({})."""
+
 
 class NoContent(RequestsError):
     """The request '{}' is returning no content ({})."""
 
 
+def _log_request(logger, req):
+    logger.debug('Request URL (absolute, encoded): {!r}'.format(req.url))
+    logger.debug('Response headers: {!r}'.format(req.headers))
+
+
 @contextlib.contextmanager
 def binary_request(request,
-                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
+                   timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
+                   logger=logger):
     """
     Make a request.
 
     :param request: Request object to be used
     :type request: :py:class:`requests.Request`
     :param float timeout: Timeout in seconds
+    :param logger: Logger instance to be used for logging
+
     :rtype: io.BytesIO
     """
     try:
         with request(timeout=timeout) as r:
 
+            _log_request(logger, r)
             if r.status_code in settings.FDSN_NO_CONTENT_CODES:
                 raise NoContent(r.url, r.status_code, response=r)
 
@@ -83,22 +66,25 @@ def binary_request(request,
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
 
-# binary_request ()
 
 @contextlib.contextmanager
 def raw_request(request,
-                timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT):
+                timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
+                logger=logger):
     """
     Make a request. Return the raw, streamed response.
 
     :param request: Request object to be used
     :type request: :py:class:`requests.Request`
     :param float timeout: Timeout in seconds
+    :param logger: Logger instance to be used for logging
+
     :rtype: io.BytesIO
     """
     try:
         with request(stream=True, timeout=timeout) as r:
 
+            _log_request(logger, r)
             if r.status_code in settings.FDSN_NO_CONTENT_CODES:
                 raise NoContent(r.url, r.status_code, response=r)
 
@@ -113,13 +99,13 @@ def raw_request(request,
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
 
-# raw_request ()
 
 def stream_request(request,
                    timeout=settings.EIDA_FEDERATOR_ENDPOINT_TIMEOUT,
                    chunk_size=1024,
                    decode_unicode=False,
-                   method='iter_content'):
+                   method='iter_content',
+                   logger=logger):
     """
     Generator function making a streamed request.
 
@@ -131,6 +117,7 @@ def stream_request(request,
         available encoding based on the response.
     :param string method: Streaming depending on method. Valid values are
         `iter_content` (default), `iter_lines`, `raw`
+    :param logger: Logger instance to be used for logging
 
     .. note::
 
@@ -145,6 +132,7 @@ def stream_request(request,
     try:
         with request(stream=True, timeout=timeout) as r:
 
+            _log_request(logger, r)
             if r.status_code in settings.FDSN_NO_CONTENT_CODES:
                 raise NoContent(r.url, r.status_code, response=r)
 
@@ -170,7 +158,3 @@ def stream_request(request,
         raise err
     except requests.exceptions.RequestException as err:
         raise RequestsError(err, response=err.response)
-
-# binary_stream_request ()
-
-# ---- END OF <request.py> ----

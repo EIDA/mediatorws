@@ -33,9 +33,6 @@ import sys
 from copy import deepcopy
 from setuptools import setup, find_packages
 
-if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 5):
-    raise RuntimeError("Python version 2.7 or >= 3.5 required.")
-
 
 def get_version(filename):
     from re import findall
@@ -52,11 +49,12 @@ _description = ("EIDA NG Mediator/Federator webservices")
 
 _entry_points_federator = {
     'console_scripts': [
-        'eida-federator = eidangservices.federator.server.app:main',
+        'eida-federator-test = eidangservices.federator.server.app:main_test',
     ]}
 _entry_points_stationlite = {
     'console_scripts': [
-        'eida-stationlite = eidangservices.stationlite.server.app:main',
+        ('eida-stationlite-test = '
+         'eidangservices.stationlite.server.app:main_test'),
         ('eida-stationlite-harvest = '
          'eidangservices.stationlite.harvest.harvest:main'),
         ('eida-stationlite-db-init = '
@@ -71,22 +69,20 @@ _includes = ('*')
 _deps_all = [
     'Flask>=0.12.2',
     'Flask-RESTful>=0.3.6',
-    # TODO(damb): Seems not to work for Python 2.7
-    # 'mock:python_version<"3.3"',
-    'future>=0.16.0',
     'intervaltree>=3.0.2',
     'lxml>=4.2.0',
-    'marshmallow==3.0.0rc1',
+    'marshmallow==3.2.1',
     'python-dateutil>=2.6.1',
     'requests>=2.18.4',
-    'webargs==4.1.3', ]
+    'webargs==5.5.2', ]
 _deps_federator = _deps_all + [
     'Flask-Cors>=3.0.7',
-    'ijson>=2.3', ]
+    'ijson>=2.3',
+    'flask-redis>=0.4.0', ]
 _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
-    'obspy==1.1.0',
+    'obspy==1.1.1',
     # matplotlib v3.x dropped python2.7 support; stick to the LTS version which
     # will support python2.7 until 01/01/2020; see https://matplotlib.org/
     # Note, that matplotlib is required by obspy.
@@ -96,13 +92,7 @@ _deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
 _deps = list(set(_deps))
 
-if sys.version_info[:2] < (3, 4):
-    # XXX(damb): actually federator only, but necessary for jenkins/tox
-    _deps.append('enum34>=1.1.6')
-
 _test_deps = ['pytest']
-if sys.version_info[:2] < (3, 3):
-    _test_deps.append('mock')
 
 _extras = {
     'test': _test_deps,
@@ -158,9 +148,6 @@ if 'federator' == subsys:
     _deps = _deps_federator
     _data_files = _data_files_federator
 
-    if sys.version_info[:2] < (3, 3):
-        _deps.append('mock')
-
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
 
 elif 'stationlite' == subsys:
@@ -180,8 +167,6 @@ elif 'stationlite' == subsys:
     _deps = _deps_stationlite
     _data_files = _data_files_stationlite
 
-    if sys.version_info[:2] < (3, 3):
-        _deps.append('mock')
     _test_suites.append(os.path.join('eidangservices', 'stationlite', 'tests'))
 
 elif 'mediator' == subsys:
@@ -200,7 +185,7 @@ if 'test' == sys.argv[1]:
     # remove testsuite duplicates
     try:
         idx = sys.argv.index('--addopts')
-        pytest_args = sys.argv[idx+1]
+        pytest_args = sys.argv[idx + 1]
         _test_suites = [suite for suite in _test_suites
                         if suite not in pytest_args.split(' ')]
     except IndexError:
@@ -234,8 +219,6 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
@@ -250,6 +233,7 @@ setup(
     setup_requires=['pytest-runner', ],
     tests_require=_test_deps,
     extras_require=_extras,
+    python_requires='~=3.5',
     # configure sphinx
     command_options={
         'build_sphinx': {

@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <harvest.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/02/09        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA NG stationlite harvesting facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import functools
@@ -67,18 +38,18 @@ CACHED_SERVICES = ('station', 'dataselect', 'wfcatalog')
 def get_cached_services():
     return [s for s in CACHED_SERVICES]
 
-# get_cached_services ()
-
 
 # ----------------------------------------------------------------------------
 class NothingToDo(Error):
     """Nothing to do."""
 
+
 class AlreadyHarvesting(Error):
     """There seems to be a harvesting process already in action ({})."""
 
+
 # ----------------------------------------------------------------------------
-class Harvester(object):
+class Harvester:
     """
     Abstract base class for harvesters, harvesting EIDA nodes.
     """
@@ -123,16 +94,12 @@ class Harvester(object):
 
         return self._config
 
-    # config ()
-
     @staticmethod
     def _update_lastseen(obj):
         obj.lastseen = datetime.datetime.utcnow()
 
     def harvest(self, session):
         raise NotImplementedError
-
-# class Harvester
 
 
 class RoutingHarvester(Harvester):
@@ -153,6 +120,7 @@ class RoutingHarvester(Harvester):
 
     This harvester does not rely on the EIDA routing service anymore.
     """
+
     STATION_TAG = 'station'
 
     class StationXMLParsingError(Harvester.HarvesterError):
@@ -289,8 +257,6 @@ class RoutingHarvester(Harvester):
 
         # TODO(damb): Show stats for updated/inserted elements
 
-    # harvest ()
-
     def _harvest_from_stationxml(self, session, station_xml):
         """
         Create/update Network, Station and ChannelEpoch objects from a
@@ -329,15 +295,13 @@ class RoutingHarvester(Harvester):
 
         return nets, stas, chas
 
-    # _harvest_from_stationxml ()
-
     def _emerge_service(self, session, service_tag):
         """
         Factory method for a orm.Service object.
         """
         try:
             service = session.query(orm.Service).\
-                filter(orm.Service.name==service_tag).\
+                filter(orm.Service.name == service_tag).\
                 one_or_none()
         except MultipleResultsFound as err:
             raise self.IntegrityError(err)
@@ -351,8 +315,6 @@ class RoutingHarvester(Harvester):
 
         return service
 
-    # _emerge_service ()
-
     def _emerge_endpoint(self, session, url, service):
         """
         Factory method for a orm.Endpoint object.
@@ -360,7 +322,7 @@ class RoutingHarvester(Harvester):
 
         try:
             endpoint = session.query(orm.Endpoint).\
-                filter(orm.Endpoint.url==url).\
+                filter(orm.Endpoint.url == url).\
                 one_or_none()
         except MultipleResultsFound as err:
             raise self.IntegrityError(err)
@@ -374,8 +336,6 @@ class RoutingHarvester(Harvester):
                     endpoint))
 
         return endpoint
-
-    # _emerge_endpoint ()
 
     def _emerge_network(self, session, network):
         """
@@ -432,8 +392,6 @@ class RoutingHarvester(Harvester):
                 self._update_lastseen(net_epoch)
 
         return net
-
-    # _emerge_network ()
 
     def _emerge_station(self, session, station):
         """
@@ -496,8 +454,6 @@ class RoutingHarvester(Harvester):
                 self._update_lastseen(sta_epoch)
 
         return sta
-
-    # _emerge_station ()
 
     def _emerge_channelepoch(self, session, channel, network, station):
         """
@@ -584,8 +540,6 @@ class RoutingHarvester(Harvester):
 
         return cha_epoch
 
-    # _emerge_channelepoch ()
-
     def _emerge_routing(self, session, cha_epoch, endpoint, start, end):
         """
         Factory method for a orm.Routing object.
@@ -648,10 +602,6 @@ class RoutingHarvester(Harvester):
 
         return routing
 
-    # _emerge_routing ()
-
-# class RoutingHarvester
-
 
 class VNetHarvester(Harvester):
     """
@@ -684,7 +634,7 @@ class VNetHarvester(Harvester):
                 vnet = self._emerge_streamepoch_group(session, vnet_element)
 
                 for stream_element in vnet_element.iter(tag=stream_tag):
-                    self.logger.debug("Processing stream element: {}".\
+                    self.logger.debug("Processing stream element: {}".
                                       format(stream_element))
                     # convert attributes to dict
                     stream = Stream.from_route_attrs(
@@ -750,8 +700,6 @@ class VNetHarvester(Harvester):
 
         # TODO(damb): Show stats for updated/inserted elements
 
-    # harvest ()
-
     def _emerge_streamepoch_group(self, session, element):
         """
         Factory method for a orm.StreamEpochGroup
@@ -779,8 +727,6 @@ class VNetHarvester(Harvester):
                 "Updating orm.StreamEpochGroup object '{}'".format(vnet))
 
         return vnet
-
-    # _emerge_streamepoch_group()
 
     def _emerge_streamepoch(self, session, channel_epoch, stream_epoch, vnet):
         """
@@ -863,15 +809,12 @@ class VNetHarvester(Harvester):
 
         return se
 
-    # _emerge_streamepoch()
-
-# class VNetHarvester
-
 
 class StationLiteHarvestApp(App):
     """
     Implementation of the harvesting application for EIDA StationLite.
     """
+
     PROG = 'eida-stationlite-harvest'
 
     DB_PRAGMAS = ['PRAGMA journal_mode=WAL']
@@ -892,8 +835,8 @@ class StationLiteHarvestApp(App):
                             version='%(prog)s version ' + __version__)
         parser.add_argument('-P', '--pid-file', type=str,
                             metavar='PATH', dest='path_pidfile',
-                            default=\
-                            settings.EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
+                            default=settings.
+                            EIDA_STATIONLITE_HARVEST_PATH_PIDFILE,
                             help=('Path to PID file. '
                                   '(default: {%(default)s})'))
         parser.add_argument('--nodes-exclude', nargs='+',
@@ -920,8 +863,6 @@ class StationLiteHarvestApp(App):
                             help=('DB URL indicating the database dialect and '
                                   'connection arguments'))
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -981,7 +922,7 @@ class StationLiteHarvestApp(App):
 
                 if self.args.truncate:
                     self.logger.warning('Removing outdated data.')
-                    session=Session()
+                    session = Session()
                     with db.session_guard(session) as _session:
                         num_removed_rows = db.clean(_session,
                                                     self.args.truncate)
@@ -1012,8 +953,6 @@ class StationLiteHarvestApp(App):
 
         sys.exit(exit_code)
 
-    # run ()
-
     def _harvest_routes(self, Session):
         """
         Harvest the EIDA node's <route></route> information.
@@ -1025,7 +964,7 @@ class StationLiteHarvestApp(App):
                 exclude=self.args.nodes_exclude):
             url_routing_config = (
                 node_par['services']['eida']['routing']['server'] +
-                node_par['services']['eida']['routing']\
+                node_par['services']['eida']['routing']
                         ['uri_path_config'])
 
             self.logger.info(
@@ -1033,7 +972,7 @@ class StationLiteHarvestApp(App):
             try:
                 h = RoutingHarvester(node_name, url_routing_config)
 
-                session=Session()
+                session = Session()
                 # XXX(damb): Maintain sessions within the scope of a
                 # harvesting process.
                 with db.session_guard(session) as _session:
@@ -1041,8 +980,6 @@ class StationLiteHarvestApp(App):
 
             except RequestsError as err:
                 self.logger.warning(str(err))
-
-    # _harvest_routes ()
 
     def _harvest_vnetworks(self, Session):
         """
@@ -1055,7 +992,7 @@ class StationLiteHarvestApp(App):
                 exclude=self.args.nodes_exclude):
             url_vnet_config = (
                 node_par['services']['eida']['routing']['server'] +
-                node_par['services']['eida']['routing']\
+                node_par['services']['eida']['routing']
                         ['uri_path_config_vnet'])
 
             self.logger.info(
@@ -1063,7 +1000,7 @@ class StationLiteHarvestApp(App):
             try:
                 # harvest virtual network configuration
                 h = VNetHarvester(node_name, url_vnet_config)
-                session=Session()
+                session = Session()
                 # XXX(damb): Maintain sessions within the scope of a
                 # harvesting process.
                 with db.session_guard(session) as _session:
@@ -1071,10 +1008,6 @@ class StationLiteHarvestApp(App):
 
             except RequestsError as err:
                 self.logger.warning(str(err))
-
-    # _harvest_vnetworks ()
-
-# class StationLiteHarvestApp
 
 
 # ----------------------------------------------------------------------------
@@ -1099,11 +1032,7 @@ def main():
 
     app.run()
 
-# main ()
-
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     main()
-
-# ---- END OF <harvest.py> ----

@@ -1,36 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <settings.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/03/28        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA NG web services settings.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import os
 
@@ -193,7 +164,7 @@ EIDA_NODES = {
             'eida': {
                 'routing': {
                     'service': True,
-                    'server': ' http://eida.ingv.it',
+                    'server': ' http://webservices.ingv.it',
                     'uri_path_config': '/eidaws/routing/1/localconfig',
                     'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'static_file': ''},
@@ -290,9 +261,9 @@ EIDA_NODES = {
             'eida': {
                 'routing': {
                     'service': False,
-                    #'server': 'http://eida-sc3.infp.ro',
-                    #'uri_path_config': '/eidaws/routing/1/localconfig',
-                    #'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
+                    # 'server': 'http://eida-sc3.infp.ro',
+                    # 'uri_path_config': '/eidaws/routing/1/localconfig',
+                    # 'uri_path_config_vnet': '/eidaws/routing/1/localconfig',
                     'server': 'http://eida-routing.infp.ro/',
                     'uri_path_config': '/eidaws/routing/1/routing.xml',
                     'uri_path_config_vnet': '/eidaws/routing/1/routing.xml',
@@ -423,24 +394,22 @@ OTHER_SERVERS = {
     # scedc.caltech.edu/
     # disabled, because it seems to have strict surge protection, and does not
     # provide POST
-    #'scedc': {
-    #   'name': 'SCEDC',
-    #   'services': {
-    #
-    #       'fdsn': {
-    #           'server': 'http://service.scedc.caltech.edu',
-    #           'station': True,
-    #           'dataselect': True,
-    #           'event': True}
-    #   },
-    #
-    #   'testquerysncls': {
-    #       'network': 'CI',
-    #       'station': 'CJM',
-    #       'location': '--',
-    #       'channel': 'HH?',
-    #       'startdate': '2011-11-01T00:00:00'}
-    #},
+    # 'scedc': {
+    #    'name': 'SCEDC',
+    #    'services': {
+    #        'fdsn': {
+    #            'server': 'http://service.scedc.caltech.edu',
+    #            'station': True,
+    #            'dataselect': True,
+    #            'event': True}
+    #    },
+    #    'testquerysncls': {
+    #        'network': 'CI',
+    #        'station': 'CJM',
+    #        'location': '--',
+    #        'channel': 'HH?',
+    #        'startdate': '2011-11-01T00:00:00'}
+    # },
 
     # www.moho.iag.usp.br
     'usp': {
@@ -557,7 +526,7 @@ STATIONXML_ELEMENT_STATION = 'Station'
 STATIONXML_ELEMENT_CHANNEL = 'Channel'
 
 # max bytes allowed for post requests
-MAX_POST_CONTENT_LENGTH = 1024*1024
+MAX_POST_CONTENT_LENGTH = 1024 * 1024
 
 # -----------------------------------------------------------------------------
 # Federator configuration parameters
@@ -570,6 +539,9 @@ EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
 # default StationLite service URL
 EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
     'http://localhost/eidaws/routing/1/'
+# default storage (Redis) URL
+EIDA_FEDERATOR_DEFAULT_STORAGE_URL = \
+    'redis://localhost:6379/0'
 # default federator endpoint resources
 EIDA_FEDERATOR_DEFAULT_RESOURCES = (
     'fdsnws-dataselect', 'fdsnws-station', 'eidaws-wfcatalog')
@@ -591,16 +563,48 @@ EIDA_FEDERATOR_THREADS_STATION_TEXT = 10
 # number of federator-WFCatalog download threads
 EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 
-EIDA_FEDERATOR_THREAD_CONFIG = {
-    "fdsnws-dataselect": EIDA_FEDERATOR_THREADS_DATASELECT,
-    "fdsnws-station-xml": EIDA_FEDERATOR_THREADS_STATION_XML,
-    "fdsnws-station-text": EIDA_FEDERATOR_THREADS_STATION_TEXT,
-    "eidaws-wfcatalog": EIDA_FEDERATOR_THREADS_WFCATALOG}
+# default HTTP request method when issuing requests to endpoint datacenters
+EIDA_FEDERATOR_DEFAULT_HTTP_METHOD = 'POST'
+
+EIDA_FEDERATOR_RESOURCE_CONFIG = {
+    "fdsnws-dataselect": {
+        'num_threads': EIDA_FEDERATOR_THREADS_DATASELECT,
+        'request_strategy': 'granular',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "fdsnws-station-xml": {
+        'num_threads': EIDA_FEDERATOR_THREADS_STATION_XML,
+        'request_strategy': 'adaptive-bulk',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "fdsnws-station-text": {
+        'num_threads': EIDA_FEDERATOR_THREADS_STATION_TEXT,
+        'request_strategy': 'bulk',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    },
+    "eidaws-wfcatalog": {
+        'num_threads': EIDA_FEDERATOR_THREADS_WFCATALOG,
+        'request_strategy': 'granular',
+        'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+    }
+}
+
+EIDA_FEDERATOR_REQUEST_STRATEGIES = (
+    'granular',
+    'bulk',
+    'adaptive-bulk',
+    'combining')
+EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
+# Per client retry-budget cut-off error ratio in percent
+EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1.0
+# default TTL of response codes used for stats
+EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL = 1800
+# default rolling window size with respect to response code time series
+EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_WSIZE = 4096
 
 EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
 EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
-EIDA_FEDERATOR_HIDDEN_CTX_LOCKS = True
 
 # -----------------------------------------------------------------------------
 # StationLite configuration parameters
@@ -615,6 +619,9 @@ EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
 EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
                                           EIDA_STATIONLITE_SERVICE_ID,
                                           EIDA_STATIONLITE_SHARE_DIR)
+# default netloc prefixed to all URLs
+EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY = None
+
 EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----
@@ -641,5 +648,3 @@ MEDIATOR_VERSION_METHOD_TOKEN = 'version'
 EIDA_FEDERATOR_BASE_URL = 'http://mediator-devel.ethz.ch'
 EIDA_FEDERATOR_PORT = 80
 EIDA_FEDERATOR_SERVICES = ('dataselect', 'station')
-
-# ---- END OF <settings.py> ----

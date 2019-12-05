@@ -1,37 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <app.py>
-# -----------------------------------------------------------------------------
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# -----------------------------------------------------------------------------
 """
 Launch EIDA NG Federator.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
 import argparse
+import collections
 import copy
 import json
 import os
@@ -57,31 +31,55 @@ from eidangservices.utils.app import CustomParser, App, AppError
 from eidangservices.utils.error import Error, ExitCodes
 
 
-def thread_config(config_dict):
+def resource_config(config_dict):
     """
-    Parse a federator thread configuration dictionary.
+    Parse a federator resource configuration dictionary.
 
-    :param str config_dict: Configuration dictionary
-    :retval: dict
+    :param str config_dict: Serialized (JSON) configuration dictionary
+    :retval: Interpolated resource configuration dictionary
+    :rtype: dict
     """
+
+    def dict_merge(d1, d2, strict=True):
+        """
+        Recursively merge dictionaries. Performes an in-place merge of
+        `d2` into `d1`.
+
+        :param bool strict: Merge keys from `d2` only if available in `d1`.
+            Besides attribute validation is performed. Else an
+            :py:class:`~argparse.ArgumentTypeError` is raised.
+        """
+
+        for k, v in d2.items():
+            if (isinstance(d1.get(k), dict) and
+                    isinstance(v, collections.Mapping)):
+                dict_merge(d1[k], d2[k], strict=strict)
+            elif strict and k not in d1:
+                raise argparse.ArgumentTypeError(
+                    'Invalid resource config key: {!r}.'.format(k))
+            else:
+                d1[k] = d2[k]
+
+            if (strict and k == 'request_strategy' and
+                    v not in settings.EIDA_FEDERATOR_REQUEST_STRATEGIES):
+                raise argparse.ArgumentTypeError(
+                    'Invalid request strategy: {!r}'.format(v))
+
+            if (strict and k == 'request_method' and
+                    v not in settings.EIDA_FEDERATOR_REQUEST_METHODS):
+                raise argparse.ArgumentTypeError(
+                    'Invalid request method: {!r}'.format(v))
+
     try:
         config_dict = json.loads(config_dict)
     except Exception:
         raise argparse.ArgumentTypeError(
-            'Invalid thread configuration dictionary syntax.')
-    retval = copy.deepcopy(settings.EIDA_FEDERATOR_THREAD_CONFIG)
-    try:
-        for k, v in config_dict.items():
-            if k not in settings.EIDA_FEDERATOR_THREAD_CONFIG:
-                raise ValueError(
-                    'Invalid thread configuration key {!r}.'.format(k))
-            retval[k] = int(v)
-    except ValueError as err:
-        raise argparse.ArgumentTypeError(err)
+            'Invalid resource configuration dictionary syntax.')
 
+    retval = copy.deepcopy(settings.EIDA_FEDERATOR_RESOURCE_CONFIG)
+    dict_merge(retval, config_dict)
     return retval
 
-# thread_config ()
 
 def keeptempfile_config(arg):
     """
@@ -89,18 +87,48 @@ def keeptempfile_config(arg):
     """
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
 
-# keeptempfile_config ()
+
+def _pos_number(arg, vtype):
+    try:
+        arg = vtype(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg <= 0:
+        raise argparse.ArgumentTypeError(
+            'Only positive numbers allowed.')
+    return arg
+
+
+def pos_int(arg):
+    return _pos_number(arg, int)
+
+
+def pos_float(arg):
+    return _pos_number(arg, float)
+
+
+def percent(arg):
+    try:
+        arg = float(arg)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(err)
+
+    if arg < 0 or arg > 100:
+        raise argparse.ArgumentTypeError('Invalid percentage.')
+    return arg
+
 
 # -----------------------------------------------------------------------------
-class FederatorWebservice(App):
+class FederatorWebserviceBase(App):
     """
-    Implementation of the EIDA Federator webservice.
+    Base production implementation of the EIDA Federator webservice.
     """
     PROG = 'eida-federator'
 
     def build_parser(self, parents=[]):
         """
-        Set up the stationlite commandline argument parser.
+        Set up the commandline argument parser.
 
         :param list parents: list of parent parsers
         :returns: parser
@@ -114,23 +142,45 @@ class FederatorWebservice(App):
 
         parser.add_argument('--version', '-V', action='version',
                             version='%(prog)s version ' + __version__)
-        parser.add_argument('--start-local', action='store_true',
-                            default=False,
-                            help=("start a local WSGI server "
-                                  "(not for production)"))
-        parser.add_argument('-p', '--port', metavar='PORT', type=int,
-                            default=settings.\
-                            EIDA_FEDERATOR_DEFAULT_SERVER_PORT,
-                            help=('server port (only considered when '
-                                  'serving locally i.e. with --start-local)'))
         parser.add_argument('-R', '--routing-url', type=str, metavar='URL',
-                            default=settings.\
+                            default=settings.
                             EIDA_FEDERATOR_DEFAULT_ROUTING_URL,
                             dest='routing',
                             # TODO(damb): Perform integrity check.
                             help=("stationlite routing service url "
                                   "(including identifier) "
                                   "(default: %(default)s)"))
+        parser.add_argument('-S', '--storage-url', type=str,
+                            dest='storage', metavar='URL',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_STORAGE_URL,
+                            help="Storage URL (Redis) (default: %(default)s)")
+        parser.add_argument('-w', '--cretry-budget-window-size', type=pos_int,
+                            dest='cretry_budget_window_size', metavar='SIZE',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_WSIZE,
+                            help=('Rolling window size for the per client '
+                                  'retry-budget related response code time '
+                                  'series. (default: %(default)s)'))
+        parser.add_argument('-t', '--cretry-budget-ttl', type=pos_float,
+                            dest='cretry_budget_ttl', metavar='TTL',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT_TTL,
+                            help=('TTL in seconds for response codes with '
+                                  'respect to the per client retry-budget '
+                                  'ralated response code time series. The '
+                                  'value defines when request should be '
+                                  'forwarded to endpoints, again. '
+                                  '(default: %(default)s)'))
+        parser.add_argument('-e', '--cretry-budget-error-ratio',
+                            type=percent, dest='cretry_budget_eratio',
+                            metavar='PERCENT',
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT,
+                            help=('Per client retry-budget error ratio in '
+                                  'percent. Defines the error ratio above '
+                                  'requests to datacenters (DC) are dropped. '
+                                  '(default: %(default)s)'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -141,17 +191,18 @@ class FederatorWebservice(App):
                                   'resources to be configured. '
                                   '(default: %(default)s) '
                                   '(choices: {%(choices)s})'))
-        parser.add_argument('-t', '--endpoint-threads', type=thread_config,
-                            metavar='DICT', dest='thread_config',
-                            default=settings.EIDA_FEDERATOR_THREAD_CONFIG,
-                            help=('Endpoint download thread configuration '
-                                  'dictionary (JSON syntax). '
-                                  '(default: %(default)s)'))
+        parser.add_argument('--resource-config', type=resource_config,
+                            metavar='DICT', dest='resource_config',
+                            default=settings.EIDA_FEDERATOR_RESOURCE_CONFIG,
+                            help=('Resource configuration dictionary '
+                                  '(JSON syntax). Note, that bulk request '
+                                  'strategies force the request method to '
+                                  '"POST". (default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
-                                [str(c).replace('KeepTempfiles.', '').lower().\
+                                [str(c).replace('KeepTempfiles.', '').lower().
                                     replace('_', '-') for c in KeepTempfiles]),
                             default='none', type=str,
                             help=('Keep temporary files the service is '
@@ -159,8 +210,6 @@ class FederatorWebservice(App):
                                   '(choices: {%(choices)s})'))
 
         return parser
-
-    # build_parser ()
 
     def run(self):
         """
@@ -174,20 +223,13 @@ class FederatorWebservice(App):
 
             app = self.setup_app()
 
-            if self.args.start_local:
-                # run local Flask WSGI server (not for production)
-                self.logger.info('Serving with local WSGI server.')
-                app.run(threaded=True, port=self.args.port,
-                        debug=(os.environ.get('DEBUG') == 'True'),
-                        use_reloader=True, passthrough_errors=True)
+            try:
+                from mod_wsgi import version  # noqa
+                self.logger.info('Serving with mod_wsgi.')
+            except Exception:
+                pass
 
-            else:
-                try:
-                    from mod_wsgi import version  # noqa
-                    self.logger.info('Serving with mod_wsgi.')
-                except Exception:
-                    pass
-                return app
+            return app
 
         except Error as err:
             self.logger.error(err)
@@ -201,8 +243,6 @@ class FederatorWebservice(App):
             exit_code = ExitCodes.EXIT_ERROR
 
         sys.exit(exit_code)
-
-    # run ()
 
     def setup_app(self):
         """
@@ -269,27 +309,80 @@ class FederatorWebservice(App):
             # TODO(damb): Pass log_level to app.config!
             PROPAGATE_EXCEPTIONS=True,
             ROUTING_SERVICE=self.args.routing,
-            FED_THREAD_CONFIG=self.args.thread_config,
+            REDIS_URL=self.args.storage,
+            FED_RESOURCE_CONFIG=self.args.resource_config,
             FED_KEEP_TEMPFILES=keeptempfile_config(self.args.keep_tempfiles),
+            FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
+            FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
+            FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)
         api.init_app(app)
         return app
 
-    # setup_app()
 
-# class FederatorWebservice
+class FederatorWebserviceTest(FederatorWebserviceBase):
+    """
+    Test implementation of the EIDA Federator webservice.
+    """
+    PROG = 'eida-federator-test'
+
+    def build_parser(self, parents=[]):
+        """
+        Set up the commandline argument parser.
+
+        :param list parents: list of parent parsers
+        :returns: parser
+        :rtype: :py:class:`argparse.ArgumentParser`
+        """
+        parser = super().build_parser(parents)
+        parser.add_argument('-p', '--port', metavar='PORT', type=int,
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_SERVER_PORT,
+                            help='server port')
+
+        return parser
+
+    def run(self):
+        """
+        Run application.
+        """
+        exit_code = ExitCodes.EXIT_SUCCESS
+        try:
+            self.logger.info('{}: Version v{}'.format(self.PROG, __version__))
+            self.logger.debug('Configuration: {!r}'.format(self.args))
+
+            app = self.setup_app()
+
+            # run local Flask WSGI server (not for production)
+            self.logger.info('Serving with local WSGI server.')
+            app.run(threaded=True, port=self.args.port,
+                    debug=(os.environ.get('DEBUG') == 'True'),
+                    use_reloader=True, passthrough_errors=True)
+
+        except Error as err:
+            self.logger.error(err)
+            exit_code = ExitCodes.EXIT_ERROR
+        except Exception as err:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logger.critical('Local Exception: %s' % err)
+            self.logger.critical('Traceback information: ' +
+                                 repr(traceback.format_exception(
+                                     exc_type, exc_value, exc_traceback)))
+            exit_code = ExitCodes.EXIT_ERROR
+
+        sys.exit(exit_code)
+
+
+FederatorWebservice = FederatorWebserviceBase
 
 
 # -----------------------------------------------------------------------------
-def main():
+def _main(app):
     """
-    main function for EIDA Federator
+    main function executor for EIDA Federator
     """
-
-    app = FederatorWebservice(log_id='FED')
-
     try:
         app.configure(
             settings.PATH_EIDANGWS_CONF,
@@ -302,11 +395,18 @@ def main():
 
     return app.run()
 
-# main ()
+
+def main_test():
+    return _main(FederatorWebserviceTest(log_id='FED'))
+
+
+def main_prod():
+    return _main(FederatorWebservice(log_id='FED'))
+
+
+main = main_prod
 
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
-
-# ---- END OF <app.py> ----
+    main_test()

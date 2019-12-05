@@ -1,42 +1,12 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <request.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/03/28        V0.1    Daniel Armbruster
-# =============================================================================
 """
 EIDA federator request handling facilities
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
-from future.standard_library import install_aliases
-install_aliases()
 
 import functools
 
+from collections import OrderedDict
+from copy import deepcopy
 from urllib.parse import urlparse, urlunparse
 
 import requests
@@ -46,23 +16,41 @@ from eidangservices.utils.schema import StreamEpochSchema
 from eidangservices.federator import __version__
 
 
-class RequestHandlerBase(object):
+def _query_params_from_stream_epochs(stream_epochs):
+    serializer = StreamEpochSchema(many=True, context={'request': _GET})
+
+    return utils.convert_sncl_dicts_to_query_params(
+        serializer.dump(stream_epochs))
+
+
+class _GET:
+    """
+    Utility class emulating a GET request.
+    """
+    method = 'GET'
+
+
+# -----------------------------------------------------------------------------
+class RequestHandlerBase:
     """
     RequestHandler base class implementation. Provides bulk request handling
     facilities.
-
-    :param str url: URL
-    :param dict query_params: Dictionary of query parameters
-    :param list stream_epochs: List of
-        :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
-
     """
+
     HEADERS = {"user-agent": "EIDA-Federator/" + __version__,
                # force no encoding, because eida-federator currently cannot
                # handle this
                "Accept-Encoding": ""}
 
-    def __init__(self, url, query_params={}, stream_epochs=[]):
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        """
+        :param url: URL
+        :type url: str or bytes
+        :param list stream_epochs: List of
+            :py:class:`eidangservices.utils.sncl.StreamEpoch` objects
+        :param dict query_params: Dictionary of query parameters
+        """
+
         if isinstance(url, bytes):
             url = url.decode('utf-8')
         url = urlparse(url)
@@ -74,10 +62,11 @@ class RequestHandlerBase(object):
         self._query_params = query_params
         self._stream_epochs = stream_epochs
 
-    # __init__ ()
-
     @property
     def url(self):
+        """
+        Returns request URL without query parameters.
+        """
         return urlunparse(
             (self._scheme,
              self._netloc,
@@ -102,8 +91,6 @@ class RequestHandlerBase(object):
         return '{}\n{}'.format(
             data, '\n'.join(str(se) for se in self._stream_epochs))
 
-    # payload_post ()
-
     def get(self):
         raise NotImplementedError
 
@@ -123,19 +110,12 @@ class RequestHandlerBase(object):
     def __repr__(self):
         return '<{}: {}>'.format(type(self).__name__, self)
 
-# class RequestHandlerBase
-
 
 class RoutingRequestHandler(RequestHandlerBase):
     """
     Representation of a `eidaws-routing` request handler.
-
-    .. note::
-
-        Since both `eidaws-routing` and `eida-stationlite` implement the same
-        interface :py:class:`RoutingRequestHandler` may be used for both
-        webservices.
     """
+
     QUERY_PARAMS = set(('service',
                         'level',
                         'minlatitude', 'minlat',
@@ -143,16 +123,8 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    class GET(object):
-        """
-        Utility class emulating a GET request.
-        """
-        method = 'GET'
-
-    # class GET
-
-    def __init__(self, url, query_params={}, stream_epochs=[]):
-        super().__init__(url, query_params, stream_epochs)
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        super().__init__(url, stream_epochs, query_params)
 
         self._query_params = dict(
             (p, v) for p, v in self._query_params.items()
@@ -160,30 +132,22 @@ class RoutingRequestHandler(RequestHandlerBase):
 
         self._query_params['format'] = 'post'
 
-    # __init__ ()
-
     @property
     def payload_get(self):
-        se_schema = StreamEpochSchema(many=True, context={'request': self.GET})
-
-        qp = self._query_params
-        qp.update(utils.convert_sncl_dicts_to_query_params(
-                  se_schema.dump(self._stream_epochs)))
+        qp = deepcopy(self._query_params)
+        qp.update(_query_params_from_stream_epochs(self._stream_epochs))
         return qp
-
-    # payload_get ()
 
     def get(self):
         return functools.partial(requests.get, self.url,
                                  params=self.payload_get, headers=self.HEADERS)
-
-# class RoutingURL
 
 
 class FdsnRequestHandler(RequestHandlerBase):
     """
     Representation of a FDSN webservice request handler.
     """
+
     QUERY_PARAMS = set(('service',
                         'nodata',
                         'minlatitude', 'minlat',
@@ -191,15 +155,12 @@ class FdsnRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    def __init__(self, url, query_params={}, stream_epochs=[]):
-        super().__init__(url, query_params=query_params,
-                         stream_epochs=stream_epochs)
-        self._query_params = dict((p, v)
+    def __init__(self, url, stream_epochs=[], query_params={}):
+        super().__init__(url, stream_epochs=stream_epochs,
+                         query_params=query_params)
+        self._query_params = OrderedDict((p, v)
                                   for p, v in self._query_params.items()
                                   if p not in self.QUERY_PARAMS)
-    # __init__ ()
-
-# class FdsnRequestHandler
 
 
 class GranularFdsnRequestHandler(FdsnRequestHandler):
@@ -207,10 +168,10 @@ class GranularFdsnRequestHandler(FdsnRequestHandler):
     Representation of a FDSN webservice request handler for granular
     single stream requests.
     """
-    def __init__(self, url, stream_epoch, query_params={}):
-        super().__init__(url, query_params, [stream_epoch])
 
-    # __init__ ()
+    def __init__(self, url, stream_epoch, query_params={}):
+        super().__init__(url, stream_epochs=[stream_epoch],
+                         query_params=query_params)
 
     @property
     def payload_post(self):
@@ -218,10 +179,15 @@ class GranularFdsnRequestHandler(FdsnRequestHandler):
                          for p, v in self._query_params.items())
         return '{}\n{}'.format(data, self.stream_epochs[0])
 
-# class GranularFdsnRequestHandler
+    @property
+    def payload_get(self):
+        qp = deepcopy(self._query_params)
+        qp.update(_query_params_from_stream_epochs(self._stream_epochs))
+        return qp
+
+    def get(self):
+        return functools.partial(requests.get, self.url,
+                                 params=self.payload_get, headers=self.HEADERS)
 
 
 BulkFdsnRequestHandler = FdsnRequestHandler
-
-
-# ---- END OF <request.py> ----

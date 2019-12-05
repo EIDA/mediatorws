@@ -1,49 +1,24 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <stream.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2018/05/03        V0.1    Daniel Armbruster
-# =============================================================================
 """
 StationLite output format facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
-from builtins import * # noqa
+from urllib.parse import urlsplit, urlunsplit
 
 import eidangservices as eidangws
 
 
-class OutputStream(object):
+class OutputStream:
     """
     Base class for the StationLite ouput stream format.
 
     :param list routes: List of :py:class:`eidangservices.utils.Route` objects
+    :param str netloc_proxy: Network location of a proxy
     """
-    def __init__(self, routes=[]):
+    def __init__(self, routes=[], **kwargs):
         self.routes = routes
+
+        self._netloc_proxy = kwargs.get('netloc_proxy')
 
     @classmethod
     def create(cls, format, **kwargs):
@@ -54,12 +29,16 @@ class OutputStream(object):
         else:
             raise KeyError('Invalid output format chosen.')
 
-    # create ()
+    def prefix_url(self, url):
+        parsed_url = urlsplit(url)._asdict()
+
+        parsed_url_netloc = parsed_url['netloc']
+        parsed_url['path'] = '/' + parsed_url_netloc + parsed_url['path']
+        parsed_url['netloc'] = self._netloc_proxy
+        return urlunsplit(parsed_url.values())
 
     def __str__(self):
         raise NotImplementedError
-
-# class OutputStream
 
 
 class PostStream(OutputStream):
@@ -74,8 +53,12 @@ class PostStream(OutputStream):
         return ' '.join(PostStream.DESERIALIZER.dump(stream_epoch).values())
 
     def __str__(self):
-        retval =''
+        retval = ''
         for url, stream_epoch_lst in self.routes:
+            # add url netloc prefix
+            if self._netloc_proxy:
+                url = self.prefix_url(url)
+
             if retval:
                 retval += '\n\n'
             retval += url + '\n' + '\n'.join(self._deserialize(se)
@@ -85,10 +68,6 @@ class PostStream(OutputStream):
             retval += '\n'
 
         return retval
-
-    # __str__ ()
-
-# class PostStream
 
 
 class GetStream(OutputStream):
@@ -104,16 +83,13 @@ class GetStream(OutputStream):
                          GetStream.DESERIALIZER.dump(stream_epoch).items()])
 
     def __str__(self):
-        retval =''
+        retval = ''
         for url, stream_epoch_lst in self.routes:
+            # add url netloc prefix
+            if self._netloc_proxy:
+                url = self.prefix_url(url)
+
             for se in stream_epoch_lst:
                 retval += '{}?{}\n'.format(url, self._deserialize(se))
 
         return retval
-
-    # __str__ ()
-
-# class GetStream
-
-
-# ---- END OF <stream.py> ----

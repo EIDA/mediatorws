@@ -6,7 +6,7 @@
 EIDA NG Mediator/Federator webservices
 **************************************
 
-|BuildStatus|_ (py27, py35, py36)
+|BuildStatus|_ (py35, py36)
 
 This repository is intended to contain the source code for three of the web
 services of EIDA NG: (i) the *federator*, (ii) *stationlite* and (iii) the
@@ -69,13 +69,13 @@ To launch a local test WSGI server (**NOT** for production environments) enter:
 
 .. code::
 
-  (venv) $ eida-federator --start-local --tmpdir='/path/to/tmp'
+  (venv) $ eida-federator-test --tmpdir='/path/to/tmp'
 
 For further configuration options invoke
 
 .. code::
 
-  (venv) $ eida-federator -h
+  (venv) $ eida-federator-test -h
 
 The service currently writes temporary files to the :code:`tmpdir`. Make sure
 that plenty of space is available.
@@ -87,7 +87,7 @@ To launch a local test WSGI server (**NOT** for production environments) enter:
 
 .. code::
 
-  (venv) $ eida-stationlite --start-local URL
+  (venv) $ eida-stationlite-test URL
 
 :code:`URL` is a database url as described at the `SQLAlchemy documentation
 <http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls>`_.
@@ -95,7 +95,7 @@ For further configuration options invoke
 
 .. code::
 
-  (venv) $ eida-stationlite -h
+  (venv) $ eida-stationlite-test -h
 
 Mediator server (deprecated)
 ----------------------------

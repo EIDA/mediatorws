@@ -1,40 +1,12 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <fdsnws.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2017/11/20        V0.1    Daniel Armbruster
-#
-# =============================================================================
 """
 EIDA NG webservices utility test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import unittest
+
+from unittest import mock
 
 import flask # noqa
 import marshmallow as ma
@@ -44,10 +16,6 @@ from werkzeug.datastructures import MultiDict
 from webargs.flaskparser import parser
 
 from eidangservices.utils import fdsnws, schema, sncl
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
 
 
 # -----------------------------------------------------------------------------
@@ -72,8 +40,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
             _parse_streamepochs_from_argdict(arg_dict)
 
         self.assertEqual(test_dict['stream_epochs'], reference_result)
-
-    # test_parse_dict_single ()
 
     def test_parse_dict_multiple(self):
         arg_dict = MultiDict({'f': 'value',
@@ -101,8 +67,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
 
         self.assertEqual(test_dict['stream_epochs'], reference_result)
 
-    # test_parse_dict_multiple ()
-
     def test_postfile_single(self):
         postfile = "f=value\nNL HGN ?? * 2013-10-10 2013-10-11"
 
@@ -120,8 +84,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
             _parse_postfile(postfile)
 
         self.assertEqual(test_dict, reference_result)
-
-    # test_postfile_single ()
 
     def test_postfile_multiple(self):
         postfile = ("f=value\n"
@@ -149,8 +111,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
 
         self.assertEqual(test_dict, reference_result)
 
-    # test_postfile_multiple ()
-
     def test_postfile_invalid(self):
         postfile = "f=value\nNL HGN * 2013-10-10 2013-10-11"
 
@@ -163,8 +123,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
 
         self.assertEqual(test_dict, reference_result)
 
-    # test_postfile_invalid ()
-
     def test_postfile_empty(self):
         postfile = ''
         reference_result = {'stream_epochs': []}
@@ -172,8 +130,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
             _parse_postfile(postfile)
 
         self.assertEqual(test_dict, reference_result)
-
-    # test_postfile_empty ()
 
     def test_postfile_equal(self):
         postfile = '='
@@ -183,10 +139,6 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
 
         self.assertEqual(test_dict, reference_result)
 
-    # test_postfile_equal ()
-
-# class FDSNWSParserMixinTestCase
-
 
 class FDSNWSFlaskParserTestCase(unittest.TestCase):
 
@@ -195,8 +147,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
 
         class Meta:
             strict = True
-
-    # class TestSchema
 
     @mock.patch('flask.request')
     def test_get_single(self, mock_request):
@@ -225,8 +175,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
-    # test_get_single ()
-
     @mock.patch('flask.request')
     def test_get_single_extented(self, mock_request):
         mock_request.method = 'GET'
@@ -252,8 +200,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             mock_request,
             locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
-
-    # test_get_single_extented ()
 
     @mock.patch('flask.Request')
     def test_get_multiple(self, mock_request):
@@ -288,8 +234,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
-    # test_get_multiple ()
-
     @mock.patch('flask.Request')
     def test_get_missing(self, mock_request):
         mock_request.method = 'GET'
@@ -307,8 +251,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             locations=('query',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
-    # test_get_missing ()
-
     @mock.patch('flask.Request')
     def test_get_invalid(self, mock_request):
         mock_request.method = 'GET'
@@ -324,8 +266,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
                 context={'request': mock_request}),
                 mock_request,
                 locations=('query',))['stream_epochs']
-
-    # test_get_invalid
 
     @mock.patch('flask.Request')
     def test_post_single(self, mock_request):
@@ -349,8 +289,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             mock_request,
             locations=('form',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
-
-    # test_post_single ()
 
     @mock.patch('flask.Request')
     def test_post_multiple(self, mock_request):
@@ -384,8 +322,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             locations=('form',))['stream_epochs']
         self.assertEqual(sncls, reference_sncls)
 
-    # test_post_multiple ()
-
     @mock.patch('flask.Request')
     def test_post_empty(self, mock_request):
         test_str = b""
@@ -398,8 +334,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
                 context={'request': mock_request}),
                 mock_request,
                 locations=('form',))['stream_epochs']
-
-    # test_post_empty ()
 
     @mock.patch('flask.Request')
     def test_post_missing(self, mock_request):
@@ -417,8 +351,6 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
                 mock_request,
                 locations=('form',))
 
-    # test_post_missing ()
-
     @mock.patch('flask.Request')
     def test_post_invalid(self, mock_request):
         test_str = b"f=value\nNL HGN * 2013-10-10 2013-10-11"
@@ -435,12 +367,7 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
                 mock_request,
                 locations=('form',))['stream_epochs']
 
-    # test_post_invalid ()
-
-# class FDSNWSFlaskParserTestCase
 
 # -----------------------------------------------------------------------------
-if __name__ == '__main__': # noqa
+if __name__ == '__main__':
     unittest.main()
-
-# ---- END OF <fdsnws.py> ----

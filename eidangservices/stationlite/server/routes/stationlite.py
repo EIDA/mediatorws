@@ -1,42 +1,12 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <stationlite.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-stationlite).
-#
-# eida-stationlite is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-stationlite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/12/15        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Implementation of a *StationLite* resource.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import collections
 import logging
 
-from flask import request
+from flask import request, current_app
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
@@ -55,15 +25,15 @@ from eidangservices.stationlite.server.stream import OutputStream
 
 
 class StationLiteResource(Resource):
-    """Service query for routing."""
+    """
+    Service query for routing.
+    """
 
     LOGGER = 'flask.app.stationlite.stationlite_resource'
 
     def __init__(self):
         super(StationLiteResource, self).__init__()
         self.logger = logging.getLogger(self.LOGGER)
-
-    # __init__ ()
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
     @fdsnws.use_fdsnws_kwargs(
@@ -83,13 +53,14 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLiteSchema: %s' % args)
         self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, stream_epochs)
+        response = self._process_request(
+            args, stream_epochs,
+            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+
         if not response:
             self._handle_nodata(args)
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
-
-    # get ()
 
     @fdsnws.use_fdsnws_args(schema.StationLiteSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
@@ -109,13 +80,14 @@ class StationLiteResource(Resource):
         self.logger.debug('StationLiteSchema: %s' % args)
         self.logger.info('StreamEpoch objects: %s' % stream_epochs)
 
-        response = self._process_request(args, stream_epochs)
+        response = self._process_request(
+            args, stream_epochs,
+            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+
         if not response:
             self._handle_nodata(args)
 
         return misc.get_response(response, settings.MIMETYPE_TEXT)
-
-    # post ()
 
     def _handle_nodata(self, args):
         raise FDSNHTTPError.create(
@@ -123,9 +95,9 @@ class StationLiteResource(Resource):
                 args.get('nodata',
                          settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
 
-    # _handle_204 ()
-
-    def _process_request(self, args, stream_epochs):
+    def _process_request(
+        self, args, stream_epochs,
+            netloc_proxy=settings.EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY):
         # resolve virtual network streamepochs
         vnet_stream_epochs = []
         for stream_epoch in stream_epochs:
@@ -185,11 +157,6 @@ class StationLiteResource(Resource):
         # sort additionally by url
         routes.sort()
 
-        ostream = OutputStream.create(args['format'], routes=routes)
+        ostream = OutputStream.create(
+            args['format'], routes=routes, netloc_proxy=netloc_proxy)
         return str(ostream)
-
-    # _process_request ()
-
-# class StationLiteResource
-
-# ---- END OF <stationlite.py> ----

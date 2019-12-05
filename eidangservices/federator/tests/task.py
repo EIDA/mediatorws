@@ -1,37 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <task.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/06/04        V0.1    Daniel Armbruster
-#
-# =============================================================================
 """
 Task related test facilities.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import datetime
 import io
@@ -39,6 +9,8 @@ import json
 import os
 import tempfile
 import unittest
+
+from unittest import mock
 
 from lxml import etree
 
@@ -50,34 +22,31 @@ from eidangservices.utils import Route
 from eidangservices.utils.request import RequestsError
 from eidangservices.utils.sncl import Stream, StreamEpoch
 
-try:
-    import mock
-except ImportError:
-    import unittest.mock as mock
-
 
 # -----------------------------------------------------------------------------
-class Response(object):
+class Response:
 
     def __init__(self, status_code=500, data=None):
         self.status_code = status_code
         self.data = data
 
-# class Response
 
 class HTTP413(RequestsError):
+
     def __init__(self):
         self.response = Response(status_code=413,
                                  data='RequestTooLarge')
 
+
 class HTTP500(RequestsError):
+
     def __init__(self):
         self.response = Response(status_code=500,
                                  data='InternalServerError')
 
+
 # -----------------------------------------------------------------------------
 # CombinerTask related test cases
-
 class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
 
     @mock.patch('eidangservices.federator.server.task.'
@@ -107,7 +76,7 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
         # XXX(damb): Using *open* from future requires mocking the function
         # within the module it is actually used.
         with mock.patch(
-                'eidangservices.federator.server.task.open', mock_open) as m:
+                'eidangservices.federator.server.task.open', mock_open):
             net_element = t._extract_net_elements(
                 path_xml='/path/to/station.xml')[0]
 
@@ -119,8 +88,6 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
             self.assertEqual(net_element[2].get('code'), 'DAVOX')
 
         mock_max_threads.has_calls()
-
-    # test_extract_net_elements ()
 
     @mock.patch('eidangservices.federator.server.task.elements_equal')
     @mock.patch('eidangservices.federator.server.task.'
@@ -159,8 +126,6 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
 
         self.assertEqual(etree.tostring(net_element), reference_xml)
         mock_max_threads.has_calls()
-
-    # test_merge_sta_element_sta_append ()
 
     @mock.patch('eidangservices.federator.server.task.elements_equal')
     @mock.patch('eidangservices.federator.server.task.'
@@ -201,14 +166,9 @@ class StationXMLNetworkCombinerTaskTestCase(unittest.TestCase):
         self.assertEqual(etree.tostring(net_element), reference_xml)
         mock_max_threads.has_calls()
 
-    # test_merge_sta_element_sta_extend ()
-
-# class StationXMLNetworkCombinerTaskTestCase
-
 
 # -----------------------------------------------------------------------------
 # SplitAndAlign task related test cases
-
 class SplitAndAlignTaskTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -247,8 +207,6 @@ class SplitAndAlignTaskTestCase(unittest.TestCase):
                          reference_result)
         self.assertEqual(t.stream_epochs, reference_result)
 
-    # test_split_once ()
-
     def test_split_multiple(self):
         stream_epoch_orig = StreamEpoch(
             stream=self.stream,
@@ -284,10 +242,6 @@ class SplitAndAlignTaskTestCase(unittest.TestCase):
         self.assertEqual(sub_stream_epochs, sub_reference_result)
         self.assertEqual(t.stream_epochs, reference_result)
 
-    # test_split_multiple ()
-
-# class SplitAndAlignTaskTestCase
-
 
 class WFCatalogSAATaskTestCase(unittest.TestCase):
 
@@ -306,15 +260,23 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
             pass
         self.path_tempfile = None
 
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'get_cretry_budget_error_ratio',
+        return_value=0)
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'update_cretry_budget')
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
-    def test_split_missing(self, mock_get_temp_filepath, mock_raw_request):
+    def test_split_missing(
+        self, mock_get_temp_filepath, mock_raw_request, mock_method_update,
+            mock_method_eratio):
 
         err = HTTP500()
         mock_get_temp_filepath.return_value = self.path_tempfile
         mock_raw_request.side_effect = [
             io.BytesIO(b'[{"version":"1.0.0","producer":{"name":"SED","agent":"ObsPy mSEED-QC","created":"2018-01-10T18:19:25.563Z"},"station":"DAVOX","network":"CH","location":"","channel":"LHZ","num_gaps":0,"num_overlaps":2,"sum_gaps":0,"sum_overlaps":161,"max_gap":null,"max_overlap":161,"record_length":[512],"sample_rate":[1],"percent_availability":100,"encoding":["STEIM2"],"num_records":313,"start_time":"2018-01-01T00:00:00.000Z","end_time":"2018-01-02T00:00:00.000Z","format":"miniSEED","quality":"D"}]'), # noqa
             err]
+
         reference_result = Result.error('EndpointError',
                                         err.response.status_code,
                                         data=err.response.data,
@@ -326,17 +288,23 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
             starttime=datetime.datetime(2018, 1, 1),
             endtime=datetime.datetime(2018, 1, 3))
 
-        result = WFCatalogSplitAndAlignTask(self.url, stream_epoch_orig,
-                                            self.query_params)()
+        task = WFCatalogSplitAndAlignTask(self.url, stream_epoch_orig,
+                                          self.query_params)
+
+        result = task()
         self.assertEqual(result, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_missing ()
-
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'get_cretry_budget_error_ratio',
+        return_value=0)
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'update_cretry_budget')
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
-    def test_split_single_without_overlap(self, mock_get_temp_filepath,
-                                          mock_raw_request):
+    def test_split_single_without_overlap(
+        self, mock_get_temp_filepath, mock_raw_request, mock_method_update,
+            mock_method_eratio):
 
         mock_get_temp_filepath.return_value = self.path_tempfile
         mock_raw_request.side_effect = [
@@ -360,12 +328,16 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_single_without_overlap ()
-
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'get_cretry_budget_error_ratio',
+        return_value=0)
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'update_cretry_budget')
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
-    def test_split_single_with_overlap(self, mock_get_temp_filepath,
-                                       mock_raw_request):
+    def test_split_single_with_overlap(
+        self, mock_get_temp_filepath, mock_raw_request, mock_method_update,
+            mock_method_eratio):
 
         mock_get_temp_filepath.return_value = self.path_tempfile
         mock_raw_request.side_effect = [
@@ -389,12 +361,16 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_single_with_overlap ()
-
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'get_cretry_budget_error_ratio',
+        return_value=0)
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'update_cretry_budget')
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
-    def test_split_multiple_without_overlap(self, mock_get_temp_filepath,
-                                            mock_raw_request):
+    def test_split_multiple_without_overlap(
+        self, mock_get_temp_filepath, mock_raw_request, mock_method_update,
+            mock_method_eratio):
         # NOTE(damb): We do not care about stream epoch splitting. We simply
         # test the task's aligning facilities.
         mock_get_temp_filepath.return_value = self.path_tempfile
@@ -421,12 +397,16 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
 
-    # test_split_multiple_without_overlap ()
-
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'get_cretry_budget_error_ratio',
+        return_value=0)
+    @mock.patch.object(
+        WFCatalogSplitAndAlignTask, 'update_cretry_budget')
     @mock.patch('eidangservices.federator.server.task.raw_request')
     @mock.patch('eidangservices.federator.server.task.get_temp_filepath')
-    def test_split_multiple_with_overlap(self, mock_get_temp_filepath,
-                                         mock_raw_request):
+    def test_split_multiple_with_overlap(
+        self, mock_get_temp_filepath, mock_raw_request, mock_method_update,
+            mock_method_eratio):
         # NOTE(damb): We do not care about stream epoch splitting. We simply
         # test the task's aligning facilities.
         mock_get_temp_filepath.return_value = self.path_tempfile
@@ -452,14 +432,8 @@ class WFCatalogSAATaskTestCase(unittest.TestCase):
 
         self.assertEqual(data, reference_result)
         mock_raw_request.has_calls()
-
-    # test_split_multiple_with_overlap ()
-
-# class WFCatalogSplitAndAlignTask
 
 
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     unittest.main()
-
-# ---- END OF <task.py> ----

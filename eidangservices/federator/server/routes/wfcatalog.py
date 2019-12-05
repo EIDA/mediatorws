@@ -1,37 +1,7 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <wfcatalog.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices (eida-federator).
-#
-# eida-federator is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# eida-federator is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-#
-# REVISION AND CHANGES
-# 2017/10/26        V0.1    Daniel Armbruster
-# =============================================================================
 """
 This file is part of the EIDA mediator/federator webservices.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
 
 import logging
 
@@ -96,17 +66,18 @@ class WFCatalogResource(Resource):
         self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             settings.WFCATALOG_MIMETYPE,
             query_params=args,
             stream_epochs=stream_epochs,
-            post=False,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-        ).streamed_response
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],)
 
-    # get ()
+        processor.post = False
+        return processor.streamed_response
 
     @fdsnws.use_fdsnws_args(WFCatalogSchema(), locations=('form',))
     @fdsnws.use_fdsnws_kwargs(
@@ -133,18 +104,15 @@ class WFCatalogResource(Resource):
         self.logger.debug('WFCatalogSchema (serialized): %s' % args)
 
         # process request
-        return RequestProcessor.create(
+        processor = RequestProcessor.create(
             args['service'],
             settings.WFCATALOG_MIMETYPE,
             query_params=args,
             stream_epochs=stream_epochs,
-            post=True,
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
-        ).streamed_response
+            retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
+            **current_app.config['FED_RESOURCE_CONFIG']['eidaws-wfcatalog'],)
 
-    # post ()
-
-# class WFCatalogResource
-
-# ---- END OF <wfcatalog.py> ----
+        processor.post = True
+        return processor.streamed_response

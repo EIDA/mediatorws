@@ -25,11 +25,11 @@ CMD ["/sbin/my_init"]
 RUN apt-get update && apt-get install -y libxml2-dev \
                                          libxslt-dev \
                                          python3-dev \
+                                         python3-setuptools \
+                                         python3-pip \
                                          git \
                                          build-essential \
-                                         python-setuptools \
                                          zlib* \
-                                         python-pip \
                                          pkg-config \
                                          libpq-dev \
                                          libpng-dev \
@@ -40,10 +40,10 @@ RUN apt-get update && apt-get install -y libxml2-dev \
                                          libapache2-mod-wsgi-py3
 
 # Update pip
-RUN pip install --upgrade pip
+RUN pip3 install --upgrade pip
 
-# Install the Python dependencies
-RUN pip install virtualenv
+# Install Python packages
+RUN pip3 install virtualenv
 
 # Get the source from GitHub:master
 RUN git clone https://github.com/EIDA/mediatorws.git /var/www/mediatorws
@@ -60,7 +60,7 @@ RUN mkdir /var/www/federator && cd /var/www/federator && \
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
     virtualenv -p $(which python3.5) venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
-    pip install psycopg2 && \
+    pip install numpy psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
 
 # Copy Apache configuration configuration
@@ -79,6 +79,7 @@ RUN cp -v db/stationlite.db.empty db/stationlite.db
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
 
 # Enable the supplied WSGI modules
+RUN a2dissite 000-default.conf
 RUN a2ensite federator.conf
 
 # Add the apache2 service
@@ -87,9 +88,9 @@ RUN mkdir /etc/service/apache2 && \
 	chmod +x /etc/service/apache2/run
 
 # Add the harvesting cronjob (once per day)
-COPY .env /var/www/mediatorws/docker/cron-env
-RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/cron-env
-RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
+COPY .env /var/www/mediatorws/docker/prod/federator/cron-env
+RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/prod/federator/cron-env
+RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db

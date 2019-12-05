@@ -5,28 +5,26 @@ Field and schema related test facilities.
 
 import unittest
 
-import marshmallow as ma
-
-from eidangservices.federator.server import schema
+from eidangservices.stationlite.server import schema
 
 
 # -----------------------------------------------------------------------------
-# schema related test cases
-class StationSchemaTestCase(unittest.TestCase):
+class StationLiteSchemaTestCase(unittest.TestCase):
 
     def test_geographic_opts(self):
         self.maxDiff = None
-        s = schema.StationSchema()
+        s = schema.StationLiteSchema()
         reference_result = {
-            'service': 'station',
-            'format': 'xml',
-            'level': 'station',
+            'alternative': 'false',
+            'service': 'dataselect',
+            'format': 'post',
+            'level': 'channel',
             'minlatitude': '0.0',
             'maxlatitude': '45.0',
-            'includerestricted': 'true',
-            'matchtimeseries': 'false',
+            'minlongitude': '-180.0',
+            'maxlongitude': '180.0',
             'nodata': '204',
-            'includeavailability': 'false'}
+        }
 
         test_datasets = [{'minlatitude': 0.,
                           'maxlatitude': 45.,
@@ -39,12 +37,6 @@ class StationSchemaTestCase(unittest.TestCase):
         self.assertEqual(result, reference_result)
         result = s.dump(s.load(test_datasets[1]))
         self.assertEqual(result, reference_result)
-
-    def test_rect_and_circular(self):
-        s = schema.StationSchema()
-        test_data = {'minlatitude': 0., 'latitude': 45.}
-        with self.assertRaises(ma.ValidationError):
-            _ = s.load(test_data)
 
 
 # -----------------------------------------------------------------------------

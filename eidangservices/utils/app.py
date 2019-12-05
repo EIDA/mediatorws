@@ -1,39 +1,10 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <app.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2018/02/09        V0.1    Daniel Armbruster
-# =============================================================================
 """
 Provide facilities building general purpose CLI applications.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from builtins import * # noqa
-
 import argparse
+import configparser
 import logging
 import logging.config
 import logging.handlers  # needed for handlers defined in logging.conf
@@ -45,12 +16,6 @@ from collections import OrderedDict
 from eidangservices import utils
 from eidangservices.utils.error import ErrorWithTraceback, ExitCodes
 
-try:
-    # Python 2.x
-    import ConfigParser as configparser
-except ImportError:
-    # Python 3:
-    import configparser
 
 # ------------------------------------------------------------------------------
 class CustomParser(argparse.ArgumentParser):
@@ -68,29 +33,29 @@ class CustomParser(argparse.ArgumentParser):
         self.print_help()
         sys.exit(ExitCodes.EXIT_ERROR)
 
-# class CustomParser
 
 class AppError(ErrorWithTraceback):
     """Base application error"""
 
+
 class LoggingConfOptionAlreadyAvailable(AppError):
     """CLI option '--logging-conf' already defined. ({})."""
 
-class App(object):
+
+class App:
     """
     Implementation of a configurable application.
-
-    :param str log_id: Default identifier to be used when logging
     """
 
     def __init__(self, log_id='EIDAWS'):
+        """
+        :param str log_id: Default identifier to be used when logging
+        """
         self.parser = None
         self.args = None
         self.log_id = log_id
         self.logger = None
         self.logger_configured = False
-
-    # __init__ ()
 
     def configure(self, path_default_config, config_section=None,
                   positional_required_args=[], capture_warnings=True,
@@ -120,7 +85,7 @@ class App(object):
         if path_default_config and config_section:
             config_parser = configparser.ConfigParser(**kwargs)
             config_parser.read(args.config_file)
-            env_dict=None
+            env_dict = None
             interpolation = kwargs.get('interpolation',
                                        configparser.BasicInterpolation())
             if (interpolation and
@@ -200,8 +165,6 @@ class App(object):
 
         return self.args
 
-    # configure ()
-
     def _build_configfile_parser(self, path_default_config):
         c_parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -217,8 +180,6 @@ class App(object):
                      "(default: '%(default)s')")
 
         return c_parser
-
-    # _build_configfile_parser ()
 
     def _setup_logger(self):
         """
@@ -241,7 +202,6 @@ class App(object):
                 self.logger.warning('Setup logging failed with %s. '
                                     'Using fallback logging configuration.' %
                                     err)
-    # _setup_logger ()
 
     def _setup_fallback_logger(self):
         """Setup a fallback logger."""
@@ -251,15 +211,13 @@ class App(object):
                                                           'local0')
         fallback_handler.setLevel(logging.WARN)
         fallback_formatter = logging.Formatter(
-            fmt=("<"+self.log_id+
+            fmt=("<" + self.log_id +
                  "> %(asctime)s %(levelname)s %(name)s %(process)d "
                  "%(filename)s:%(lineno)d - %(message)s"),
             datefmt="%Y-%m-%dT%H:%M:%S%z")
         fallback_handler.setFormatter(fallback_formatter)
         self.logger.addHandler(fallback_handler)
         self.logger_configured = True
-
-    # _setup_fallback_logger ()
 
     def build_parser(self, parents=[]):
         """
@@ -272,18 +230,9 @@ class App(object):
         """
         raise NotImplementedError
 
-    # build_parser ()
-
     def run(self):
         """
         Abstract method to run application. The method must be implemented by
         clients.
         """
         raise NotImplementedError
-
-    # run ()
-
-# class App
-
-
-# ---- END OF <app.py> ----
