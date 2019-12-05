@@ -606,8 +606,6 @@ EIDA_FEDERATOR_SHARE_DIR = FDSN_WADL_DIR
 EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
                                         EIDA_FEDERATOR_SHARE_DIR)
 
-EIDA_FEDERATOR_HIDDEN_CTX_LOCKS = True
-
 # -----------------------------------------------------------------------------
 # StationLite configuration parameters
 

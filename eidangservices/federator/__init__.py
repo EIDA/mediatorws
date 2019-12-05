@@ -1,4 +1,4 @@
 """
 Base package for EIDA NG Federator.
 """
-__version__ = '0.9.5rc2'
+__version__ = '0.9.5'
