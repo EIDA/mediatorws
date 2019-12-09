@@ -13,6 +13,8 @@ import sys
 import tempfile
 import traceback
 
+from urllib.parse import urlsplit
+
 from flask_restful import Api
 
 from eidangservices import settings
@@ -119,6 +121,28 @@ def percent(arg):
     return arg
 
 
+def proxy_netloc(netloc):
+    """
+    Validate a proxy network location.
+
+    :param netloc: Network location
+    :type netloc: str or None
+    """
+    if netloc is None:
+        return netloc
+
+    try:
+        r = urlsplit(netloc)
+        if not r.netloc or r.scheme or r.path or r.query or r.fragment:
+            raise ValueError(
+                'Invalid network location. (Format: '
+                '//[user[:password]@]host[:port])')
+    except Exception as err:
+        raise argparse.ArgumentTypeError(str(err))
+    else:
+        return '//' + r.netloc
+
+
 # -----------------------------------------------------------------------------
 class FederatorWebserviceBase(App):
     """
@@ -181,6 +205,16 @@ class FederatorWebserviceBase(App):
                                   'percent. Defines the error ratio above '
                                   'requests to datacenters (DC) are dropped. '
                                   '(default: %(default)s)'))
+        parser.add_argument('--proxy-netloc', type=proxy_netloc,
+                            default=settings.
+                            EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
+                            dest='proxy_netloc', metavar='NETLOC',
+                            help=('Enforce the routing service in use to '
+                                  'prefix routed URLs with a network '
+                                  'location. May be used if requests are '
+                                  'redirected e.g. when using a proxy. '
+                                  'See also: https://tools.ietf.org/html/'
+                                  'rfc1738#section-3.1'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -315,6 +349,7 @@ class FederatorWebserviceBase(App):
             FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
+            FED_NETLOC_PROXY=self.args.proxy_netloc,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

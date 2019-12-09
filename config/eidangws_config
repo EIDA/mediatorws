@@ -93,6 +93,13 @@
 # keep_tempfiles = none
 #
 # ----
+# Force routing service to prepend a constant network location to routed URLs.
+# This option may be used if requests are redirected e.g. when using a proxy.
+# See also: https://tools.ietf.org/html/rfc1738#section-3.1
+#
+# proxy_netloc = '//[user[:password]@]host[:port]
+#
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format

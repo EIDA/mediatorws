@@ -123,7 +123,7 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'minlongitude', 'minlon',
                         'maxlongitude', 'maxlon'))
 
-    def __init__(self, url, stream_epochs=[], query_params={}):
+    def __init__(self, url, stream_epochs=[], query_params={}, **kwargs):
         super().__init__(url, stream_epochs, query_params)
 
         self._query_params = dict(
@@ -131,6 +131,9 @@ class RoutingRequestHandler(RequestHandlerBase):
             if p in self.QUERY_PARAMS)
 
         self._query_params['format'] = 'post'
+
+        if 'proxy_netloc' in kwargs and kwargs['proxy_netloc'] is not None:
+            self._query_params['proxynetloc'] = kwargs['proxy_netloc']
 
     @property
     def payload_get(self):
