@@ -97,7 +97,7 @@ class StationLiteResource(Resource):
 
     def _process_request(
             self, args, stream_epochs, netloc_proxy=None):
-        # resolve virtual network streamepochs
+        # resolve virtual network stream epochs
         vnet_stream_epochs = []
         for stream_epoch in stream_epochs:
             self.logger.debug(
