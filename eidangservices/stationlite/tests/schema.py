@@ -12,7 +12,6 @@ from eidangservices.stationlite.server import schema
 class StationLiteSchemaTestCase(unittest.TestCase):
 
     def test_geographic_opts(self):
-        self.maxDiff = None
         s = schema.StationLiteSchema()
         reference_result = {
             'alternative': 'false',
