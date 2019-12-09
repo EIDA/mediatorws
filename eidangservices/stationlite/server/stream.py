@@ -45,12 +45,12 @@ class PostStream(OutputStream):
     """
     StationLite output stream for `format=post`.
     """
-    DESERIALIZER = eidangws.utils.schema.StreamEpochSchema(
+    SERIALIZER = eidangws.utils.schema.StreamEpochSchema(
         context={'routing': True})
 
     @staticmethod
-    def _deserialize(stream_epoch):
-        return ' '.join(PostStream.DESERIALIZER.dump(stream_epoch).values())
+    def _serialize(stream_epoch):
+        return ' '.join(PostStream.SERIALIZER.dump(stream_epoch).values())
 
     def __str__(self):
         retval = ''
@@ -61,7 +61,7 @@ class PostStream(OutputStream):
 
             if retval:
                 retval += '\n\n'
-            retval += url + '\n' + '\n'.join(self._deserialize(se)
+            retval += url + '\n' + '\n'.join(self._serialize(se)
                                              for se in stream_epoch_lst)
 
         if retval:
@@ -74,13 +74,13 @@ class GetStream(OutputStream):
     """
     StationLite output stream for `format=post`.
     """
-    DESERIALIZER = eidangws.utils.schema.StreamEpochSchema(
+    SERIALIZER = eidangws.utils.schema.StreamEpochSchema(
         context={'routing': True})
 
     @staticmethod
-    def _deserialize(stream_epoch):
+    def _serialize(stream_epoch):
         return '&'.join(['{}={}'.format(k, v) for k, v in
-                         GetStream.DESERIALIZER.dump(stream_epoch).items()])
+                         GetStream.SERIALIZER.dump(stream_epoch).items()])
 
     def __str__(self):
         retval = ''
@@ -90,6 +90,6 @@ class GetStream(OutputStream):
                 url = self.prefix_url(url)
 
             for se in stream_epoch_lst:
-                retval += '{}?{}\n'.format(url, self._deserialize(se))
+                retval += '{}?{}\n'.format(url, self._serialize(se))
 
         return retval
