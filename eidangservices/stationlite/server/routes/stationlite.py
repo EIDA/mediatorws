@@ -125,9 +125,7 @@ class StationLiteResource(Resource):
 
             routes.extend(_routes)
 
-        # flatten response list
         self.logger.debug('StationLite routes: %s' % routes)
-
         # merge stream epochs for each route
         merged_routes = collections.defaultdict(StreamEpochsHandler)
         for url, stream_epochs in routes:
