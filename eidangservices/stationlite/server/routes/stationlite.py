@@ -6,7 +6,7 @@ Implementation of a *StationLite* resource.
 import collections
 import logging
 
-from flask import request, current_app
+from flask import request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
