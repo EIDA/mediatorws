@@ -6,7 +6,7 @@ Implementation of a *StationLite* resource.
 import collections
 import logging
 
-from flask import request, current_app
+from flask import request
 from flask_restful import Resource
 from webargs.flaskparser import use_args
 
@@ -55,7 +55,7 @@ class StationLiteResource(Resource):
 
         response = self._process_request(
             args, stream_epochs,
-            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+            netloc_proxy=args['proxynetloc'])
 
         if not response:
             self._handle_nodata(args)
@@ -82,7 +82,7 @@ class StationLiteResource(Resource):
 
         response = self._process_request(
             args, stream_epochs,
-            netloc_proxy=current_app.config['STL_PROXY_NETLOC'])
+            netloc_proxy=args['proxynetloc'])
 
         if not response:
             self._handle_nodata(args)
@@ -96,8 +96,7 @@ class StationLiteResource(Resource):
                          settings.FDSN_DEFAULT_NO_CONTENT_ERROR_CODE)))
 
     def _process_request(
-        self, args, stream_epochs,
-            netloc_proxy=settings.EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY):
+            self, args, stream_epochs, netloc_proxy=None):
         # resolve virtual network streamepochs
         vnet_stream_epochs = []
         for stream_epoch in stream_epochs:

@@ -595,6 +595,10 @@ EIDA_FEDERATOR_REQUEST_STRATEGIES = (
     'adaptive-bulk',
     'combining')
 EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
+
+# default netloc prefixed to all URLs (used for routing service)
+EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY = None
+
 # Per client retry-budget cut-off error ratio in percent
 EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1.0
 # default TTL of response codes used for stats
@@ -619,9 +623,6 @@ EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
 EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
                                           EIDA_STATIONLITE_SERVICE_ID,
                                           EIDA_STATIONLITE_SHARE_DIR)
-# default netloc prefixed to all URLs
-EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY = None
-
 EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----

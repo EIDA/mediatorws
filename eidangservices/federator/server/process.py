@@ -92,6 +92,8 @@ class RequestProcessor(ClientRetryBudgetMixin):
         :param float retry_budget_client: Per client retry-budget in percent.
             The value defines the cut-off error ratio above requests to
             datacenters (DC) are dropped.
+        :param str proxy_netloc: Proxy netloc delegated to the routing service
+            in use
         """
 
         self.mimetype = mimetype
@@ -140,6 +142,9 @@ class RequestProcessor(ClientRetryBudgetMixin):
         self._http_method = kwargs.get(
             'request_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
         self._num_threads = kwargs.get('num_threads', self.POOL_SIZE)
+        self._proxy_netloc = kwargs.get(
+            'proxy_netloc', settings.EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY)
+
         self._post = True
 
     @staticmethod
@@ -207,7 +212,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
         """
         routing_req = RoutingRequestHandler(
             self._routing_service, self.stream_epochs,
-            self.query_params)
+            self.query_params, proxy_netloc=self._proxy_netloc)
 
         self._num_routes = self._strategy.route(
             routing_req, post=self.post, nodata=self._nodata,

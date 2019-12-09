@@ -3,6 +3,8 @@
 Stationlite schema definitions
 """
 
+from urllib.parse import urlsplit
+
 from marshmallow import (Schema, fields, validate, validates_schema,
                          pre_load, ValidationError)
 
@@ -35,6 +37,9 @@ class StationLiteSchema(Schema):
         missing='channel',
         validate=validate.OneOf(
             ['network', 'station', 'channel', 'response']))
+    proxynetloc = fields.Method(
+        "serialize_netloc", deserialize="deserialize_netloc",
+        missing=None, allow_none=True)
 
     # geographic (rectangular spatial) options
     # XXX(damb): Default values are defined and assigned within merge_keys ()
@@ -46,6 +51,24 @@ class StationLiteSchema(Schema):
     minlon = Latitude(load_only=True)
     maxlongitude = Longitude(missing=180.)
     maxlon = Latitude(load_only=True)
+
+    def serialize_netloc(self, obj):
+        return str(obj.get('proxynetloc'))
+
+    def deserialize_netloc(self, value):
+        if value is None:
+            return
+
+        try:
+            r = urlsplit(value)
+            if not r.netloc or r.scheme or r.path or r.query or r.fragment:
+                raise ValidationError(
+                    'Invalid network location: %r. (Format: '
+                    '//[user[:password]@]host[:port])' % value)
+        except Exception as err:
+            raise ValidationError(str(err))
+
+        return r.netloc
 
     @pre_load
     def merge_keys(self, data, **kwargs):
