@@ -56,7 +56,7 @@ class StationLiteSchema(Schema):
         return str(obj.get('proxynetloc'))
 
     def deserialize_netloc(self, value):
-        if value in (None, 'None', 'none', 'null'):
+        if value is None:
             return
 
         try:
