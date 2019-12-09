@@ -83,13 +83,13 @@ class GetStream(OutputStream):
                          GetStream.SERIALIZER.dump(stream_epoch).items()])
 
     def __str__(self):
-        retval = ''
+        lines = []
         for url, stream_epoch_lst in self.routes:
             # add url netloc prefix
             if self._netloc_proxy:
                 url = self.prefix_url(url)
 
-            for se in stream_epoch_lst:
-                retval += '{}?{}\n'.format(url, self._serialize(se))
+            lines.extend('{}?{}\n'.format(url, self._serialize(se))
+                         for se in stream_epoch_lst)
 
-        return retval
+        return ''.join(lines)
