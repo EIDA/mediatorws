@@ -23,6 +23,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
             'maxlatitude': '45.0',
             'minlongitude': '-180.0',
             'maxlongitude': '180.0',
+            'proxynetloc': 'None',
             'nodata': '204',
         }
 
