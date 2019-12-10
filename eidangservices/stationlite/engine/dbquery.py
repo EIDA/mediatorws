@@ -90,7 +90,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     Return routes for a given stream epoch.
 
     :param session: SQLAlchemy session
-    :type session: :py:class:`sqlalchemy.orm.sessionSession`
+    :type session: :py:class:`sqlalchemy.orm.session.Session`
     :param stream_epoch: StreamEpoch the database query is performed with
     :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
