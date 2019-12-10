@@ -314,7 +314,7 @@ class StreamEpoch(namedtuple('StreamEpoch',
         """
         if num < 2:
             return [self]
-        end = self.endtime if self.endtime else default_endtime
+        end = self.endtime or default_endtime
         t = Epochs.from_tuples([(self.starttime, end)])
 
         for n in range(1, num):
