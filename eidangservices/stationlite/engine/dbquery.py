@@ -7,8 +7,8 @@ import collections
 import logging
 
 from eidangservices import utils, settings
-from eidangservices.utils.sncl import (StreamEpochs, StreamEpochsHandler,
-                                       none_as_max)
+from eidangservices.utils.sncl import (
+    StreamEpoch, StreamEpochs, StreamEpochsHandler, none_as_max)
 
 from eidangservices.stationlite.engine import orm
 
@@ -197,14 +197,15 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
         # NOTE(damb): Set endtime to 'max' if undefined (i.e. device currently
         # acquiring data).
         with none_as_max(endtime) as end:
-            stream_epochs = StreamEpochs(
+            stream_epoch = StreamEpoch.from_sncl(
                 network=row[4],
                 station=sta,
                 location=loc,
                 channel=cha,
-                epochs=[(starttime, end)])
+                starttime=starttime,
+                endtime=end)
 
-            routes[row[8]].merge([stream_epochs])
+            routes[row[8]].add(stream_epoch)
 
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]
