@@ -60,7 +60,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
         query = query.\
             filter(orm.StreamEpoch.starttime < sql_stream_epoch.endtime)
 
-    # slice the stream epoch
+    # slice stream epochs
     sliced_ses = []
     for s in query.all():
         # print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
