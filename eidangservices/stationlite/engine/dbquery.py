@@ -92,7 +92,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :param session: SQLAlchemy session
     :type session: :py:class:`sqlalchemy.orm.session.Session`
     :param stream_epoch: StreamEpoch the database query is performed with
-    :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
+    :type stream_epoch: :py:class:`~eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
     :param str level: Optional `fdsnws-station` *level* parameter
     :param str access: Optional access parameter; The parameter is only taken
@@ -105,7 +105,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :param float maxlon: Longitude smaller than or equal to the specified
         maximum
     :param str like_escape: Character used for the `SQL ESCAPE` statement
-    :return: List of :py:class:`eidangservices.utils.Route` objects
+    :return: List of :py:class:`~eidangservices.utils.Route` objects
     :rtype: list
     """
     VALID_ACCESS = ('open', 'closed', 'any')
