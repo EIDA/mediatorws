@@ -266,6 +266,13 @@ class StreamEpoch(namedtuple('StreamEpoch',
                    starttime=stream_epochs.starttime,
                    endtime=stream_epochs.endtime)
 
+    @property
+    def epochs(self):
+        """
+        Return the epoch of the :py:class:`StreamEpoch`.
+        """
+        return Epochs.from_tuples([(self.starttime, self.endtime)])
+
     def id(self, sep='.'):
         """
         Returns the :py:class:`StreamEpoch`'s identifier.
@@ -639,29 +646,33 @@ class StreamEpochsHandler:
 
             self.d[se.id()] = se.epochs
 
+    def add(self, other):
+        """
+        Add ``other`` to :py:class:`StreamEpochsHandler` without merging
+        overlaps.
+
+        :param other: Object to be added.
+        :type other: :py:class:`StreamEpochs` or :py:class:`StreamEpoch`
+        """
+        try:
+            # merge epoch interval trees (union)
+            self.d[other.id()] |= other.epochs
+        except KeyError:
+            self.d[other.id()] = other.epochs
+
     def merge(self, others):
         """
-        Merge a list of other :py:class:`StreamEpochs` to objects.
+        Merge a list of ``others``.
 
-        :param list others: List of :py:class:`StreamEpochs` objects
+        :param list others: List of :py:class:`StreamEpoch` and
+            :py:class:`StreamEpochs` objects
         """
-        for stream_epochs in others:
-            self._merge(stream_epochs.id(), stream_epochs.epochs)
+        for other in others:
+            self.add(other)
 
-    def _merge(self, key, epochs):
-        """
-        Merge a Stream code (or object) and Epochs into StreamEpochHandler.
-        """
-        if key in self.d:
-            # merge epoch interval trees (union)
-            self.d[key] |= epochs
-        else:
-            # add new StreamEpochs object
-            self.d[key] = epochs
-
-        # tree for key may be overlapping; intervals are merged even if they
-        # are only end-to-end adjacent
-        self.d[key].merge_overlaps(strict=False)
+            # tree for key may be overlapping; intervals are merged even if they
+            # are only end-to-end adjacent
+            self.d[other.id()].merge_overlaps(strict=False)
 
     @property
     def streams(self):
