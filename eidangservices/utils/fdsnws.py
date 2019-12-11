@@ -63,12 +63,20 @@ class FDSNWSParserMixin:
         # preprocess the req.args multidict regarding SNCL parameters
         networks = _get_values(('net', 'network')) or ['*']
         networks = set(networks)
+        if '*' in networks:
+            networks = ['*']
         stations = _get_values(('sta', 'station')) or ['*']
         stations = set(stations)
+        if '*' in stations:
+            stations = ['*']
         locations = _get_values(('loc', 'location')) or ['*']
         locations = set(locations)
+        if '*' in locations:
+            locations = ['*']
         channels = _get_values(('cha', 'channel')) or ['*']
         channels = set(channels)
+        if '*' in channels:
+            channels= ['*']
 
         stream_epochs = []
         for prod in itertools.product(networks, stations, locations, channels):
