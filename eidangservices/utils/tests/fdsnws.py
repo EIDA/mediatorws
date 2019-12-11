@@ -65,6 +65,7 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
         test_dict = fdsnws.FDSNWSParserMixin.\
             _parse_streamepochs_from_argdict(arg_dict)
 
+        self.assertEqual(len(test_dict['stream_epochs']), 2)
         self.assertIn(test_dict['stream_epochs'][0], reference_result)
         self.assertIn(test_dict['stream_epochs'][1], reference_result)
 
