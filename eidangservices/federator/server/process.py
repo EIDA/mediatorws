@@ -75,6 +75,8 @@ class RequestProcessor(ClientRetryBudgetMixin):
     # MAX_TASKS_PER_CHILD = 4
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
+    RESPONSE_HEADERS = {}
+
     def __init__(self, mimetype, query_params={}, stream_epochs=[], **kwargs):
         """
         :param str mimetype: The response's mimetype
@@ -197,7 +199,8 @@ class RequestProcessor(ClientRetryBudgetMixin):
         self._wait()
 
         resp = Response(stream_with_context(self), mimetype=self.mimetype,
-                        content_type=self.content_type)
+                        content_type=self.content_type,
+                        headers=self.RESPONSE_HEADERS)
 
         resp.call_on_close(self._call_on_close)
 
@@ -357,6 +360,8 @@ class RawRequestProcessor(RequestProcessor):
 
     ALLOWED_STRATEGIES = ('granular', 'bulk')
     DEFAULT_DEFAULT_REQUEST_STRATEGY = 'granular'
+
+    RESPONSE_HEADERS = {'Cache-Control': 'no-store'}
 
     CHUNK_SIZE = 1024
 
@@ -813,6 +818,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
     ALLOWED_STRATEGIES = ('granular', 'bulk')
     DEFAULT_REQUEST_STRATEGY = 'granular'
+
+    RESPONSE_HEADERS = {'Cache-Control': 'no-store'}
 
     CHUNK_SIZE = 1024
 

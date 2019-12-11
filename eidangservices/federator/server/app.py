@@ -90,13 +90,13 @@ def keeptempfile_config(arg):
     return getattr(KeepTempfiles, arg.upper().replace('-', '_'))
 
 
-def _pos_number(arg, vtype):
+def _pos_number(arg, vtype, strict=True):
     try:
         arg = vtype(arg)
     except ValueError as err:
         raise argparse.ArgumentTypeError(err)
 
-    if arg <= 0:
+    if arg < 0 or (strict and arg <= 0):
         raise argparse.ArgumentTypeError(
             'Only positive numbers allowed.')
     return arg
@@ -108,6 +108,10 @@ def pos_int(arg):
 
 def pos_float(arg):
     return _pos_number(arg, float)
+
+
+def pos_int_or_null(arg):
+    return _pos_number(arg, int, strict=False)
 
 
 def percent(arg):
@@ -232,6 +236,13 @@ class FederatorWebserviceBase(App):
                                   '(JSON syntax). Note, that bulk request '
                                   'strategies force the request method to '
                                   '"POST". (default: %(default)s)'))
+        parser.add_argument('--cache-control-max-age', type=pos_int_or_null,
+                            metavar='SECONDS', dest='cache_control_max_age',
+                            default=0,
+                            help=('Enable cache control headers and configure '
+                                  'the max-age property for statically '
+                                  'created content (i.e. fdsnws-station). '
+                                  '(default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
@@ -350,6 +361,7 @@ class FederatorWebserviceBase(App):
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             FED_NETLOC_PROXY=self.args.proxy_netloc,
+            FED_CACHE_CONTROL_MAX_AGE=self.args.cache_control_max_age,
             TMPDIR=tempfile.gettempdir())
 
         app = create_app(config_dict=app_config)

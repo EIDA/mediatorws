@@ -57,6 +57,15 @@ def create_app(config_dict={}, service_version=__version__):
         g.ctx = Context(ctx=g.request_id)
         g.ctx.acquire()
 
+    @app.after_request
+    def configure_cache_control_headers(response):
+        if (config_dict['FED_CACHE_CONTROL_MAX_AGE'] > 0 and
+                'Cache-Control' not in response.headers):
+            response.cache_control.public = True
+            response.cache_control.max_age = \
+                config_dict['FED_CACHE_CONTROL_MAX_AGE']
+        return response
+
     @app.teardown_request
     def teardown_request(exception):
         try:
