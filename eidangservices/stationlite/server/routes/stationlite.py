@@ -123,6 +123,12 @@ class StationLiteResource(Resource):
                 minlon=args['minlongitude'],
                 maxlon=args['maxlongitude'])
 
+            # adjust stream epochs regarding time constraints
+            for url, streams in _routes:
+                streams.modify_with_temporal_constraints(
+                    start=stream_epoch.starttime,
+                    end=stream_epoch.endtime)
+
             routes.extend(_routes)
 
         self.logger.debug('StationLite routes: %s' % routes)
