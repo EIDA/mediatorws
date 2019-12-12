@@ -36,13 +36,6 @@
 					<param name="format" style="query" type="xsd:string" default="xml">
 						<option value="xml"/>
 						<option value="text"/>
-
-						<!-- additional, non standard options -->
-						<option value="fdsnxml"/>
-						<option value="sc3ml"/>
-						
-						<!-- value 'stationxml' seems to be unsupported in many 
-						     FDSNWS endpoints -->
 					</param>
 
 					<!-- not implemented -->
