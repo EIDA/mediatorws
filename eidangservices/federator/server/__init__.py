@@ -59,11 +59,11 @@ def create_app(config_dict={}, service_version=__version__):
 
     @app.after_request
     def configure_cache_control_headers(response):
-        if (config_dict['FED_CACHE_CONTROL_MAX_AGE'] > 0 and
-                'Cache-Control' not in response.headers):
+        max_age = config_dict['FED_CACHE_CONTROL_MAX_AGE']
+        if (max_age > 0 and 'Cache-Control' not in response.headers):
             response.cache_control.public = True
-            response.cache_control.max_age = \
-                config_dict['FED_CACHE_CONTROL_MAX_AGE']
+            response.cache_control.max_age = max_age
+
         return response
 
     @app.teardown_request
