@@ -111,6 +111,15 @@ tmpdir=/var/tmp
 proxy_netloc = //federator-proxy
 #
 # ----
+# Enable cache control headers and configure the max-age property for
+# statically created content (i.e. fdsnws-station).
+#
+# cache_control_max_age = 0
+#
+# Cache for up to 12 hours.
+cache_control_max_age = 43200
+#
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format

@@ -100,6 +100,12 @@
 # proxy_netloc = '//[user[:password]@]host[:port]
 #
 # ----
+# Enable cache control headers and configure the max-age property for
+# statically created content (i.e. fdsnws-station).
+#
+# cache_control_max_age = 0
+#
+# ----
 # Set the path to a logging configuration file. For information on howto setup
 # a logging configuration file visit the official Python documentation:
 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
