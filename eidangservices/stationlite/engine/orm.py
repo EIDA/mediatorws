@@ -58,7 +58,8 @@ class RestrictedStatusMixin(object):
 
     @declared_attr
     def restrictedstatus(cls):
-        return Column(Enum('open', 'closed', name='restricted_status'),
+        return Column(Enum('open', 'closed', 'partial',
+                           name='restricted_status'),
                       default='open')
 
 # class RestrictedStatusMixin

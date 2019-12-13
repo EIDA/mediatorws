@@ -160,6 +160,37 @@ class RoutingHarvester(Harvester):
     def harvest(self, session):
         """Harvest the routing configuration."""
 
+        def validate_cha_epoch(cha_epoch):
+            if inspect(cha_epoch).deleted:
+                # In case a orm.ChannelEpoch object is marked
+                # as deleted but harvested within the same
+                # harvesting run this is a strong hint for an
+                # integrity issue within the FDSN station
+                # InventoryXML.
+                raise self.IntegrityError(
+                    'Inventory integrity issue for {0!r}'.format(cha_epoch))
+
+            if (('dataselect' == service_tag and not
+                 self._force_restricted) and
+                (('open' == cha_epoch.restrictedstatus and
+                  settings.FDSN_QUERYAUTH_METHOD_TOKEN ==
+                  get_method_token(endpoint.url)) or
+                 ('closed' == cha_epoch.restrictedstatus and
+                  settings.FDSN_QUERY_METHOD_TOKEN ==
+                    get_method_token(endpoint.url)))):
+                # invalid method token for channel epoch
+                # specified
+                raise self.IntegrityError(
+                    'Inventory integrity issue for {!r}: '
+                    'restricted_status and query method token '
+                    'do not match. Skipping.'.format(cha_epoch))
+
+            if ('dataselect' == service_tag and
+                    'partial' == cha_epoch.restrictedstatus):
+                raise self.IntegrityError(
+                    "Unable to handle 'partial' restrictedStatus for "
+                    "ChannelEpoch {!r}.".format(cha_epoch))
+
         route_tag = '{}route'.format(self.NS_ROUTINGXML)
         _services = ['{}{}'.format(self.NS_ROUTINGXML, s)
                      for s in self._services]
@@ -271,32 +302,7 @@ class RoutingHarvester(Harvester):
                     for cha_epoch in chas:
 
                         try:
-                            if inspect(cha_epoch).deleted:
-                                # In case a orm.ChannelEpoch object is marked
-                                # as deleted but harvested within the same
-                                # harvesting run this is a strong hint for an
-                                # integrity issue within the FDSN station
-                                # InventoryXML.
-                                raise self.IntegrityError(
-                                    'Inventory integrity issue for '
-                                    '{0!r}'.format(cha_epoch))
-
-                            if (('dataselect' == service_tag and not
-                                 self._force_restricted) and
-                                (('open' == cha_epoch.restrictedstatus and
-                                  settings.FDSN_QUERYAUTH_METHOD_TOKEN ==
-                                  get_method_token(endpoint.url)) or
-                                 ('closed' == cha_epoch.restrictedstatus and
-                                  settings.FDSN_QUERY_METHOD_TOKEN ==
-                                    get_method_token(endpoint.url)))):
-                                # invalid method token for channel epoch
-                                # specified
-                                raise self.IntegrityError(
-                                    'Inventory integrity issue for {!r}: '
-                                    'restricted_status and query method token '
-                                    'do not match. Skipping.'.format(
-                                        cha_epoch))
-
+                            validate_cha_epoch(cha_epoch)
                         except self.IntegrityError as err:
                             warnings.warn(str(err))
                             self.logger.warning(err)
