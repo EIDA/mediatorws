@@ -25,7 +25,7 @@ class Base:
     def __tablename__(cls):
         return cls.__name__.lower()
 
-    oid = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
 
 class CodeMixin(object):
@@ -86,7 +86,7 @@ class Network(CodeMixin, ORMBase):
 
 class NetworkEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
 
@@ -96,9 +96,9 @@ class NetworkEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 class ChannelEpoch(CodeMixin, EpochMixin, LastSeenMixin, RestrictedStatusMixin,
                    ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
     locationcode = Column(String(LENGTH_LOCATION_CODE), nullable=False,
                           index=True)
@@ -137,7 +137,7 @@ class Station(CodeMixin, ORMBase):
 
 class StationEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
     longitude = Column(Float, nullable=False, index=True)
@@ -148,9 +148,9 @@ class StationEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
 class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
-    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'),
+    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.id'),
                                index=True)
-    endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'),
+    endpoint_ref = Column(Integer, ForeignKey('endpoint.id'),
                           index=True)
 
     channel_epoch = relationship('ChannelEpoch',
@@ -165,7 +165,7 @@ class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
 class Endpoint(ORMBase):
 
-    service_ref = Column(Integer, ForeignKey('service.oid'),
+    service_ref = Column(Integer, ForeignKey('service.id'),
                          index=True)
     url = Column(String(LENGTH_URL), nullable=False)
 
@@ -214,12 +214,12 @@ class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
     :code:`eidaws-routing` virtual networks.
     """
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
     stream_epoch_group_ref = Column(Integer,
-                                    ForeignKey('streamepochgroup.oid'),
+                                    ForeignKey('streamepochgroup.id'),
                                     index=True)
     channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
                      index=True)
