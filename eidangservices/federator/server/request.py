@@ -127,6 +127,8 @@ class RoutingRequestHandler(RequestHandlerBase):
         """
         :param str proxy_netloc: Force StationLite to prefix URLs with a proxy
             network location
+        :param str access: Specifies the ``access`` query parameter when
+        requesting data from StationLite
         """
 
         super().__init__(url, stream_epochs, query_params)
@@ -139,6 +141,8 @@ class RoutingRequestHandler(RequestHandlerBase):
 
         if 'proxy_netloc' in kwargs and kwargs['proxy_netloc'] is not None:
             self._query_params['proxynetloc'] = kwargs['proxy_netloc']
+
+        self._query_params['access'] = kwargs.get('access', 'any')
 
     @property
     def payload_get(self):
