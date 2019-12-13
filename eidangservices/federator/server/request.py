@@ -113,7 +113,7 @@ class RequestHandlerBase:
 
 class RoutingRequestHandler(RequestHandlerBase):
     """
-    Representation of a `eidaws-routing` request handler.
+    Representation of a `eidaws-routing` (*StationLite*) request handler.
     """
 
     QUERY_PARAMS = set(('service',
@@ -124,6 +124,11 @@ class RoutingRequestHandler(RequestHandlerBase):
                         'maxlongitude', 'maxlon'))
 
     def __init__(self, url, stream_epochs=[], query_params={}, **kwargs):
+        """
+        :param str proxy_netloc: Force StationLite to prefix URLs with a proxy
+            network location
+        """
+
         super().__init__(url, stream_epochs, query_params)
 
         self._query_params = dict(
