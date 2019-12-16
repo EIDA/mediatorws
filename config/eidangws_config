@@ -203,6 +203,7 @@
 # dataselect, wfcatalog}. By default all services are cached.
 #
 # services = station dataselect wfcatalog
+#
 # ----
 # Depending on the restrictedStatus property of channel epochs, force them to
 # use the correct corresponding dataselect method token for restricted access
@@ -211,6 +212,7 @@
 # (default: False)
 #
 # strict_restricted={True,False}
+#
 # ----
 # no_routes={True,False}
 # Set the path to a logging configuration file. For information on howto setup
