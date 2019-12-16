@@ -75,6 +75,8 @@ class RequestProcessor(ClientRetryBudgetMixin):
     # MAX_TASKS_PER_CHILD = 4
     TIMEOUT_STREAMING = settings.EIDA_FEDERATOR_STREAMING_TIMEOUT
 
+    ACCESS = 'open'
+
     def __init__(self, mimetype, query_params={}, stream_epochs=[], **kwargs):
         """
         :param str mimetype: The response's mimetype
@@ -215,7 +217,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
         routing_req = RoutingRequestHandler(
             self._routing_service, self.stream_epochs,
             self.query_params, proxy_netloc=self._proxy_netloc,
-            access='open')
+            access=self.ACCESS)
 
         self._num_routes = self._strategy.route(
             routing_req, post=self.post, nodata=self._nodata,
@@ -491,6 +493,8 @@ class StationRequestProcessor(RequestProcessor):
     """
 
     LOGGER = "flask.app.federator.request_processor_station"
+
+    ACCESS = 'any'
 
     @staticmethod
     def create(response_format, *args, **kwargs):
@@ -816,6 +820,8 @@ class WFCatalogRequestProcessor(RequestProcessor):
 
     ALLOWED_STRATEGIES = ('granular', 'bulk')
     DEFAULT_REQUEST_STRATEGY = 'granular'
+
+    ACCESS = 'any'
 
     CHUNK_SIZE = 1024
 
