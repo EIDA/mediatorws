@@ -2348,6 +2348,619 @@
 				"description": "Single route; empty location:\n\nlevel=network\nformat=get"
 			},
 			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=any&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH HASLI -- BHZ 1999-01-19T00:00:00",
+							"",
+							"http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth",
+							"CH SBAP -- EGZ 2004-06-21T00:00:00 2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=post&access=any",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "access",
+							"value": "any"
+						}
+					]
+				},
+				"description": "Two routes (both open and closed)\n\naccess=any\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=any&net=CH&format=get",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query?network=CH&station=HASLI&location=--&channel=BHZ&starttime=1999-01-19T00:00:00",
+							"http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth?network=CH&station=SBAP&location=--&channel=EGZ&starttime=2004-06-21T00:00:00&endtime=2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=get&access=any",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "get"
+						},
+						{
+							"key": "access",
+							"value": "any"
+						}
+					]
+				},
+				"description": "Two routes (both open and closed)\n\naccess=any\nformat=get"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=any&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH HASLI -- BHZ 2000-01-01T00:00:00 2001-01-01T00:00:00",
+							"",
+							"http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth",
+							"CH SBAP -- EGZ 2005-01-01T00:00:00 2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=dataselect\nformat=post\naccess=any\n\nCH HASLI * BHZ 2000-01-01 2001-01-01\nCH SBAP * EGZ 2005-01-01 2006-01-10"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Two routes (both open and closed)\n\naccess=any\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=open&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH HASLI -- BHZ 1999-01-19T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=post&access=open",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "access",
+							"value": "open"
+						}
+					]
+				},
+				"description": "Single route (open only)\n\naccess=open\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=open&net=CH&format=get",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query?network=CH&station=HASLI&location=--&channel=BHZ&starttime=1999-01-19T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=get&access=open",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "get"
+						},
+						{
+							"key": "access",
+							"value": "open"
+						}
+					]
+				},
+				"description": "Single route (open only)\n\naccess=open\nformat=get"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=open&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/query",
+							"CH HASLI -- BHZ 2000-01-01T00:00:00 2001-01-01T00:00:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=dataselect\nformat=post\naccess=open\n\nCH HASLI * BHZ 2000-01-01 2001-01-01\nCH SBAP * EGZ 2005-01-01 2006-01-10"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route (open only)\n\naccess=open\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=closed&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth",
+							"CH SBAP -- EGZ 2004-06-21T00:00:00 2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=post&access=closed",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "post"
+						},
+						{
+							"key": "access",
+							"value": "closed"
+						}
+					]
+				},
+				"description": "Single route (closed only)\n\naccess=closed\nformat=post"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=closed&net=CH&format=get",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth?network=CH&station=SBAP&location=--&channel=EGZ&starttime=2004-06-21T00:00:00&endtime=2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query?service=dataselect&net=CH&sta=HASLI,SBAP&cha=BHZ,EGZ&format=get&access=closed",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "dataselect"
+						},
+						{
+							"key": "net",
+							"value": "CH"
+						},
+						{
+							"key": "sta",
+							"value": "HASLI,SBAP"
+						},
+						{
+							"key": "cha",
+							"value": "BHZ,EGZ"
+						},
+						{
+							"key": "format",
+							"value": "get"
+						},
+						{
+							"key": "access",
+							"value": "closed"
+						}
+					]
+				},
+				"description": "Single route (closed only)\n\naccess=closed\nformat=get"
+			},
+			"response": []
+		},
+		{
+			"name": "query?service=dataselect&access=closed&net=CH&format=post",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d2b47e8-1062-4ad9-b9d0-389573e2767e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Header is valid\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"    pm.response.to.be.header(\"Content-Type\", \"text/plain\");",
+							"});",
+							"",
+							"pm.test(\"Body is correct\", function () {",
+							"    var reference_result =",
+							"`http://${pm.environment.get('fed_proxy')}eida.ethz.ch/fdsnws/dataselect/1/queryauth",
+							"CH SBAP -- EGZ 2005-01-01T00:00:00 2005-01-20T09:15:00",
+							"`;",
+							"    pm.response.to.have.body(reference_result);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "service=dataselect\nformat=post\naccess=closed\n\nCH HASLI * BHZ 2000-01-01 2001-01-01\nCH SBAP * EGZ 2005-01-01 2006-01-10"
+				},
+				"url": {
+					"raw": "{{url_base}}:{{port_stl}}/eidaws/routing/1/query",
+					"host": [
+						"{{url_base}}"
+					],
+					"port": "{{port_stl}}",
+					"path": [
+						"eidaws",
+						"routing",
+						"1",
+						"query"
+					]
+				},
+				"description": "Single route (closed only)\n\naccess=closed\nformat=post"
+			},
+			"response": []
 		}
 	],
 	"event": [
