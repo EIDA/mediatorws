@@ -69,8 +69,8 @@ COPY federator.conf /etc/apache2/sites-available/
 # Copy the WSGI configuration scripts
 COPY *.wsgi /var/www/mediatorws/apache2/
 
-# The default configuration
-COPY eidangws_config /var/www/mediatorws/config/
+# The service and harvesting configuration
+COPY *_config /var/www/mediatorws/config/
 
 # Create an empty stationlite.db from template
 RUN cp -v db/stationlite.db.empty db/stationlite.db
@@ -87,10 +87,11 @@ RUN mkdir /etc/service/apache2 && \
 	echo "#!/bin/sh\nexec apachectl -D FOREGROUND" > /etc/service/apache2/run && \
 	chmod +x /etc/service/apache2/run
 
-# Add the harvesting cronjob (once per day)
+# Add the harvesting cronjobs (once per day)
 COPY .env /var/www/mediatorws/docker/prod/federator/cron-env
 RUN sed -e 's/^/export /' -i /var/www/mediatorws/docker/prod/federator/cron-env
-RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/eidangws_config") | crontab
+RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/harvest_other_config") | crontab
+RUN (crontab -l ; echo "0 4 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/harvest_station_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db

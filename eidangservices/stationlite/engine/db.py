@@ -149,7 +149,7 @@ def clean(session, timestamp):
 
     vnets_active = set(
         session.query(orm.StreamEpochGroup).
-        filter(orm.StreamEpochGroup.oid.in_(vnets_active)).
+        filter(orm.StreamEpochGroup.id.in_(vnets_active)).
         all())
 
     vnets_all = set(session.query(orm.StreamEpochGroup).all())

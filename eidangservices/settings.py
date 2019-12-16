@@ -467,9 +467,9 @@ FDSN_EVENT_SERVICES = {
 # FDSN webservice specific configuration
 
 FDSN_QUERY_METHOD_TOKEN = 'query'
+FDSN_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 FDSN_VERSION_METHOD_TOKEN = 'version'
 FDSN_WADL_METHOD_TOKEN = 'application.wadl'
-FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
@@ -595,6 +595,10 @@ EIDA_FEDERATOR_REQUEST_STRATEGIES = (
     'adaptive-bulk',
     'combining')
 EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
+
+# default netloc prefixed to all URLs (used for routing service)
+EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY = None
+
 # Per client retry-budget cut-off error ratio in percent
 EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1.0
 # default TTL of response codes used for stats
@@ -619,15 +623,14 @@ EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
 EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
                                           EIDA_STATIONLITE_SERVICE_ID,
                                           EIDA_STATIONLITE_SHARE_DIR)
-# default netloc prefixed to all URLs
-EIDA_STATIONLITE_DEFAULT_NETLOC_PROXY = None
-
 EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----
 EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
 EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
     os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
+
+EIDA_STATIONLITE_HARVEST_SERVICES = ('station', 'dataselect', 'wfcatalog')
 
 # -----------------------------------------------------------------------------
 # Mediator related
