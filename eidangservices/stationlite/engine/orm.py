@@ -6,7 +6,7 @@ EIDA NG stationlite ORM.
 import datetime
 
 from sqlalchemy import (Column, Integer, Float, String, Unicode, DateTime,
-                        ForeignKey)
+                        Enum, ForeignKey)
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.orm import relationship
 
@@ -25,10 +25,17 @@ class Base:
     def __tablename__(cls):
         return cls.__name__.lower()
 
-    oid = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
 
-class EpochMixin:
+class CodeMixin(object):
+
+    @declared_attr
+    def code(cls):
+        return Column(String(LENGTH_STD_CODE), nullable=False, index=True)
+
+
+class EpochMixin(object):
 
     @declared_attr
     def starttime(cls):
@@ -47,40 +54,53 @@ class LastSeenMixin:
                       onupdate=datetime.datetime.utcnow)
 
 
+class RestrictedStatusMixin(object):
+
+    @declared_attr
+    def restrictedstatus(cls):
+        return Column(Enum('open', 'closed', 'partial',
+                           name='restricted_status'),
+                      default='open')
+
+# class RestrictedStatusMixin
+
+
 # -----------------------------------------------------------------------------
 ORMBase = declarative_base(cls=Base)
 
 
-class Network(ORMBase):
+class Network(CodeMixin, ORMBase):
 
-    name = Column(String(LENGTH_STD_CODE), nullable=False, index=True)
-
-    network_epochs = relationship('NetworkEpoch', back_populates='network')
+    network_epochs = relationship('NetworkEpoch',
+                                  back_populates='network',
+                                  cascade='all, delete-orphan')
     channel_epochs = relationship('ChannelEpoch',
-                                  back_populates='network')
-    stream_epochs = relationship('StreamEpoch', back_populates='network')
+                                  back_populates='network',
+                                  cascade='all, delete-orphan')
+    stream_epochs = relationship('StreamEpoch',
+                                 back_populates='network',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
-        return '<Network(code=%s)>' % self.name
+        return '<Network(code=%s)>' % self.code
 
 
-class NetworkEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class NetworkEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
 
     network = relationship('Network', back_populates='network_epochs')
 
 
-class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class ChannelEpoch(CodeMixin, EpochMixin, LastSeenMixin, RestrictedStatusMixin,
+                   ORMBase):
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
-    channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
-                     index=True)
     locationcode = Column(String(LENGTH_LOCATION_CODE), nullable=False,
                           index=True)
 
@@ -95,26 +115,30 @@ class ChannelEpoch(EpochMixin, LastSeenMixin, ORMBase):
     def __repr__(self):
         return ('<ChannelEpoch(network=%r, station=%r, channel=%r, '
                 'location=%r, starttime=%r, endtime=%r)>' %
-                (self.network, self.station, self.channel,
+                (self.network, self.station, self.code,
                  self.locationcode, self.starttime, self.endtime))
 
 
-class Station(ORMBase):
+class Station(CodeMixin, ORMBase):
 
-    name = Column(String(LENGTH_STD_CODE), nullable=False, index=True)
+    station_epochs = relationship('StationEpoch',
+                                  back_populates='station',
+                                  cascade='all, delete-orphan')
 
-    station_epochs = relationship('StationEpoch', back_populates='station')
-
-    channel_epochs = relationship('ChannelEpoch', back_populates='station')
-    stream_epochs = relationship('StreamEpoch', back_populates='station')
+    channel_epochs = relationship('ChannelEpoch',
+                                  back_populates='station',
+                                  cascade='all, delete-orphan')
+    stream_epochs = relationship('StreamEpoch',
+                                 back_populates='station',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
-        return '<Station(code=%s)>' % self.name
+        return '<Station(code=%s)>' % self.code
 
 
-class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
+class StationEpoch(EpochMixin, LastSeenMixin, RestrictedStatusMixin, ORMBase):
 
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
     description = Column(Unicode(LENGTH_DESCRIPTION))
     longitude = Column(Float, nullable=False, index=True)
@@ -125,13 +149,15 @@ class StationEpoch(EpochMixin, LastSeenMixin, ORMBase):
 
 class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
-    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.oid'),
+    channel_epoch_ref = Column(Integer, ForeignKey('channelepoch.id'),
                                index=True)
-    endpoint_ref = Column(Integer, ForeignKey('endpoint.oid'),
+    endpoint_ref = Column(Integer, ForeignKey('endpoint.id'),
                           index=True)
 
-    channel_epoch = relationship('ChannelEpoch', back_populates='endpoints')
-    endpoint = relationship('Endpoint', back_populates='channel_epochs')
+    channel_epoch = relationship('ChannelEpoch',
+                                 back_populates='endpoints')
+    endpoint = relationship('Endpoint',
+                            back_populates='channel_epochs')
 
     def __repr__(self):
         return ('<Routing(url=%s, starttime=%r, endtime=%r)>' %
@@ -140,14 +166,17 @@ class Routing(EpochMixin, LastSeenMixin, ORMBase):
 
 class Endpoint(ORMBase):
 
-    service_ref = Column(Integer, ForeignKey('service.oid'),
+    service_ref = Column(Integer, ForeignKey('service.id'),
                          index=True)
     url = Column(String(LENGTH_URL), nullable=False)
 
     # many to many ChannelEpoch<->Endpoint
-    channel_epochs = relationship('Routing', back_populates='endpoint')
+    channel_epochs = relationship('Routing',
+                                  back_populates='endpoint',
+                                  cascade='all, delete-orphan')
 
-    service = relationship('Service', back_populates='endpoints')
+    service = relationship('Service',
+                           back_populates='endpoints')
 
     def __repr__(self):
         return '<Endpoint(url=%s)>' % self.url
@@ -157,33 +186,41 @@ class Service(ORMBase):
 
     name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
 
-    endpoints = relationship('Endpoint', back_populates='service')
+    endpoints = relationship('Endpoint',
+                             back_populates='service',
+                             cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<Service(name=%s)>' % self.name
 
 
-class StreamEpochGroup(ORMBase):
-
-    name = Column(String(LENGTH_STD_CODE), nullable=False, unique=True)
+class StreamEpochGroup(CodeMixin, ORMBase):
+    """
+    ORM entity representing a *Virtual Network* in the context of
+    :code:`eidaws-routing`.
+    """
 
     stream_epochs = relationship('StreamEpoch',
-                                 back_populates='stream_epoch_group')
+                                 back_populates='stream_epoch_group',
+                                 cascade='all, delete-orphan')
 
     def __repr__(self):
-        return '<StreamEpochGroup(code=%s)>' % self.name
+        return '<StreamEpochGroup(code=%s)>' % self.code
 
 
-# TODO(damb): Find a way to map sncl.StreamEpoch to orm.StreamEpoch more
-# elegantly
+
 class StreamEpoch(EpochMixin, LastSeenMixin, ORMBase):
+    """
+    ORM entity representing a *Virtual Stream Epoch* in the context of
+    :code:`eidaws-routing` virtual networks.
+    """
 
-    network_ref = Column(Integer, ForeignKey('network.oid'),
+    network_ref = Column(Integer, ForeignKey('network.id'),
                          index=True)
-    station_ref = Column(Integer, ForeignKey('station.oid'),
+    station_ref = Column(Integer, ForeignKey('station.id'),
                          index=True)
     stream_epoch_group_ref = Column(Integer,
-                                    ForeignKey('streamepochgroup.oid'),
+                                    ForeignKey('streamepochgroup.id'),
                                     index=True)
     channel = Column(String(LENGTH_CHANNEL_CODE), nullable=False,
                      index=True)

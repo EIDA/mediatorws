@@ -19,6 +19,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
     def test_geographic_opts(self):
         s = self.create_schema()
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -47,6 +48,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -73,6 +75,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -91,6 +94,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -104,6 +108,30 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         }
 
         self.assertEqual(s.load({'proxynetloc': None}), reference_result)
+
+    def test_access_dataselect(self):
+        s = self.create_schema()
+
+        self.assertEqual(s.load({'access': 'any'})['access'], 'any')
+        self.assertEqual(s.load({'access': 'closed'})['access'], 'closed')
+        self.assertEqual(s.load({'access': 'open'})['access'], 'open')
+
+    def test_access_other(self):
+        s = self.create_schema()
+
+        self.assertEqual(
+            s.load({'service': 'station', 'access': 'any'})['access'], 'any')
+        with self.assertRaises(ValidationError):
+            s.load({'service': 'station', 'access': 'closed'})
+        with self.assertRaises(ValidationError):
+            s.load({'service': 'station', 'access': 'open'})
+
+        self.assertEqual(
+            s.load({'service': 'wfcatalog', 'access': 'any'})['access'], 'any')
+        with self.assertRaises(ValidationError):
+            s.load({'service': 'wfcatalog', 'access': 'closed'})
+        with self.assertRaises(ValidationError):
+            s.load({'service': 'wfcatalog', 'access': 'open'})
 
 
 # -----------------------------------------------------------------------------

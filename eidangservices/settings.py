@@ -467,9 +467,9 @@ FDSN_EVENT_SERVICES = {
 # FDSN webservice specific configuration
 
 FDSN_QUERY_METHOD_TOKEN = 'query'
+FDSN_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 FDSN_VERSION_METHOD_TOKEN = 'version'
 FDSN_WADL_METHOD_TOKEN = 'application.wadl'
-FDSN_DATASELECT_QUERYAUTH_METHOD_TOKEN = 'queryauth'
 
 FDSN_DATASELECT_VERSION = '1.1.0'
 FDSN_STATION_VERSION = '1.1.0'
@@ -629,6 +629,8 @@ EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 EIDA_STATIONLITE_HARVEST_CONFIG_SECTION = 'CONFIG_STATIONLITE_HARVEST'
 EIDA_STATIONLITE_HARVEST_PATH_PIDFILE = \
     os.path.join(PATH_VAR_TMP, 'eida-stationlite-harvesting.pid')
+
+EIDA_STATIONLITE_HARVEST_SERVICES = ('station', 'dataselect', 'wfcatalog')
 
 # -----------------------------------------------------------------------------
 # Mediator related

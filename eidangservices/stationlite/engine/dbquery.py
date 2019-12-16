@@ -41,9 +41,9 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     query = session.query(orm.StreamEpoch).\
         join(orm.StreamEpochGroup).\
         join(orm.Station).\
-        filter(orm.StreamEpochGroup.name.like(sql_stream_epoch.network,
+        filter(orm.StreamEpochGroup.code.like(sql_stream_epoch.network,
                                               escape=like_escape)).\
-        filter(orm.Station.name.like(sql_stream_epoch.station,
+        filter(orm.Station.code.like(sql_stream_epoch.station,
                                      escape=like_escape)).\
         filter(orm.StreamEpoch.channel.like(sql_stream_epoch.channel,
                                             escape=like_escape)).\
@@ -66,8 +66,8 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
         # print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
         with none_as_max(s.endtime) as end:
             se = StreamEpochs(
-                network=s.network.name,
-                station=s.station.name,
+                network=s.network.code,
+                station=s.station.code,
                 location=s.location,
                 channel=s.channel,
                 epochs=[(s.starttime, end)])
@@ -84,7 +84,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
 
 
 def find_streamepochs_and_routes(session, stream_epoch, service,
-                                 level='channel',
+                                 level='channel', access='any',
                                  minlat=-90., maxlat=90., minlon=-180.,
                                  maxlon=180., like_escape='/'):
     """
@@ -96,6 +96,8 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
     :param str level: Optional `fdsnws-station` *level* parameter
+    :param str access: Optional access parameter; The parameter is only taken
+        into consideration if :code:`service` equal :code:`dataselect`
     :param float minlat: Latitude larger than or equal to the specified minimum
     :param float maxlat: Latitude smaller than or equal to the specified
         maximum
@@ -107,6 +109,12 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :return: List of :py:class:`eidangservices.utils.Route` objects
     :rtype: list
     """
+    VALID_ACCESS = ('open', 'closed', 'any')
+
+    if access not in VALID_ACCESS:
+        raise ValueError(
+            'Invalid restriction parameter: {!r}'.format(access))
+
     logger.debug('Processing request for (SQL) {0!r}'.format(stream_epoch))
     sql_stream_epoch = stream_epoch.fdsnws_to_sql_wildcards()
 
@@ -114,31 +122,31 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     loc = sql_stream_epoch.location
     cha = sql_stream_epoch.channel
 
-    query = session.query(orm.ChannelEpoch.channel,
+    query = session.query(orm.ChannelEpoch.code,
                           orm.ChannelEpoch.locationcode,
                           orm.ChannelEpoch.starttime,
                           orm.ChannelEpoch.endtime,
-                          orm.Network.name,
-                          orm.Station.name,
+                          orm.Network.code,
+                          orm.Station.code,
                           orm.Routing.starttime,
                           orm.Routing.endtime,
                           orm.Endpoint.url).\
         join(orm.Routing,
-             orm.Routing.channel_epoch_ref == orm.ChannelEpoch.oid).\
+             orm.Routing.channel_epoch_ref == orm.ChannelEpoch.id).\
         join(orm.Endpoint,
-             orm.Routing.endpoint_ref == orm.Endpoint.oid).\
+             orm.Routing.endpoint_ref == orm.Endpoint.id).\
         join(orm.Service).\
         join(orm.Network).\
         join(orm.Station).\
         join(orm.StationEpoch).\
-        filter(orm.Network.name.like(sql_stream_epoch.network,
+        filter(orm.Network.code.like(sql_stream_epoch.network,
                                      escape=like_escape)).\
-        filter(orm.Station.name.like(sta, escape=like_escape)).\
+        filter(orm.Station.code.like(sta, escape=like_escape)).\
         filter((orm.StationEpoch.latitude >= minlat) &
                (orm.StationEpoch.latitude <= maxlat)).\
         filter((orm.StationEpoch.longitude >= minlon) &
                (orm.StationEpoch.longitude <= maxlon)).\
-        filter(orm.ChannelEpoch.channel.like(cha, escape=like_escape)).\
+        filter(orm.ChannelEpoch.code.like(cha, escape=like_escape)).\
         filter(orm.ChannelEpoch.locationcode.like(loc, escape=like_escape)).\
         filter(orm.Service.name == service)
 
@@ -151,6 +159,10 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     if sql_stream_epoch.endtime:
         query = query.\
             filter(orm.ChannelEpoch.starttime < sql_stream_epoch.endtime)
+
+    if access != 'any' and service == 'dataselect':
+        query = query.\
+            filter(orm.ChannelEpoch.restrictedstatus == access)
 
     routes = collections.defaultdict(StreamEpochsHandler)
 
