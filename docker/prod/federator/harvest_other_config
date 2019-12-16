@@ -1,0 +1,77 @@
+[CONFIG_STATIONLITE_HARVEST]
+# Configuration section for the EIDA StationLite Harvesting. Note, that
+# commandline parameters passed is given priority over options set within this
+# file. The syntax for option setting is:
+#
+# key=value
+#
+# You obtain additional information as well as default configuration values
+# when entering:
+#
+# $ eida-stationlite-harvest --help
+#
+# See also the Python configparser module documentation:
+#   - https://docs.python.org/library/configparser.html
+#
+# -----------------------------------------------------------------------------
+# Path to PID (lock) file.
+# (default: /var/tmp/eida-stationlite-harvesting.pid)
+#
+# path_pidfile = /path/to/eida-stationlite-harvest/pidfile
+#
+# ----
+# Exclude EIDA nodes from harvesting. A whitespace separated list of nodes to
+# be excluded. Choices are: {bgr, eth, gfz, ingv, ipgp, koeri, lmu, niep, noa,
+# odc, resif}.
+#
+# nodes_exclude = bgr eth gfz
+#
+# ----
+# Do not harvest <route></route> information while harvesting.
+# (default: False)
+#
+# no_routes={True,False}
+#
+# ----
+# Do not harvest <vnetwork></vnetwork> information while harvesting.
+# (default: False)
+#
+# no_vnetworks={True,False}
+#
+# ----
+# Truncate DB i.e. delete outdated information. The TIMESTAMP format must agree
+# with formats supported by obspy.UTCDateTime.
+# See also:
+# https://docs.obspy.org/packages/autogen/obspy.core.utcdatetime.UTCDateTime.html
+#
+# truncate=2017-01-01T00:00:00
+# 
+# ----
+# Whitespace separated list of FDSN and EIDA services to be cached from
+# eida-routing localconfig configuration files. Choices are: {station,
+# dataselect, wfcatalog}. By default all services are cached.
+#
+services = dataselect wfcatalog
+#
+# ----
+# Depending on the restrictedStatus property of channel epochs, force them to
+# use the correct corresponding dataselect method token for restricted access
+# while routing.
+# By default the dataselect query method token is adjusted automatically.
+# (default: False)
+#
+# strict_restricted={True,False}
+#
+# ----
+# Set the path to a logging configuration file. For information on howto setup
+# a logging configuration file visit the official Python documentation:
+# https://docs.python.org/3/library/logging.config.html#configuration-file-format
+#
+path_logging_conf=/var/www/mediatorws/config/harvest-logging.conf
+#
+# ----
+# DB URL indicating the database dialect and the connection arguments.
+# See also:
+# http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+#
+db_engine = postgresql://%(POSTGRES_USER)s:%(POSTGRES_PASSWORD)s@%(POSTGRES_HOST)s:5432/%(POSTGRES_DB)s
