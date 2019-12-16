@@ -19,6 +19,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
     def test_geographic_opts(self):
         s = self.create_schema()
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -47,6 +48,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -73,6 +75,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
@@ -91,6 +94,7 @@ class StationLiteSchemaTestCase(unittest.TestCase):
         s = self.create_schema()
 
         reference_result = {
+            'access': 'any',
             'alternative': 'false',
             'service': 'dataselect',
             'format': 'post',
