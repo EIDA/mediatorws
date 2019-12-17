@@ -72,9 +72,6 @@ COPY *.wsgi /var/www/mediatorws/apache2/
 # The service and harvesting configuration
 COPY *_config /var/www/mediatorws/config/
 
-# Create an empty stationlite.db from template
-RUN cp -v db/stationlite.db.empty db/stationlite.db
-
 # Give read permissions
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
 
