@@ -61,7 +61,6 @@ class StationResource(Resource):
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
             retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
-            proxy_netloc=current_app.config['FED_NETLOC_PROXY'],
             **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
         processor.post = False
@@ -96,7 +95,6 @@ class StationResource(Resource):
             context=g.ctx,
             keep_tempfiles=current_app.config['FED_KEEP_TEMPFILES'],
             retry_budget_client=current_app.config['FED_CRETRY_BUDGET_ERATIO'],
-            proxy_netloc=current_app.config['FED_NETLOC_PROXY'],
             **current_app.config['FED_RESOURCE_CONFIG'][resource_cfg],)
 
         processor.post = True
