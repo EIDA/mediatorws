@@ -754,7 +754,8 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
                         ofd.write(chunk)
 
             except RequestsError as err:
-                code = err.response.status_code
+                code = (None if err.response is None else
+                        err.response.status_code)
                 if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
@@ -767,7 +768,8 @@ class RawSplitAndAlignTask(SplitAndAlignTask):
             else:
                 code = 200
             finally:
-                self.update_cretry_budget(self.url, code)
+                if code is not None:
+                    self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -852,7 +854,8 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
                             ofd.write(obj)
 
             except RequestsError as err:
-                code = err.response.status_code
+                code = (None if err.response is None else
+                        err.response.status_code)
                 if code == 413:
                     self.logger.info(
                         'Download failed (url={}, stream_epoch={}).'.format(
@@ -866,7 +869,8 @@ class WFCatalogSplitAndAlignTask(SplitAndAlignTask):
             else:
                 code = 200
             finally:
-                self.update_cretry_budget(self.url, code)
+                if code is not None:
+                    self.update_cretry_budget(self.url, code)
 
             if stream_epoch in self.stream_epochs:
                 self.logger.debug(
@@ -924,10 +928,12 @@ class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
                    self._request_handler.stream_epochs,
                    self._http_method,
                    self.path_tempfile))
+
         try:
             self._run(req)
         except RequestsError as err:
-            code = err.response.status_code
+            # set response code only if a connection could be established
+            code = None if err.response is None else err.response.status_code
             return self._handle_error(err)
         else:
             code = 200
@@ -936,7 +942,8 @@ class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
                     self.url,
                     self._request_handler.stream_epochs))
         finally:
-            self.update_cretry_budget(self.url, code)
+            if code is not None:
+                self.update_cretry_budget(self.url, code)
 
         return Result.ok(data=self.path_tempfile, length=self._size,
                          extras={'type_task': self._TYPE})
