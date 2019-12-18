@@ -43,28 +43,42 @@ storage=redis://federator-redis:6379/0
 #  "fdsnws-dataselect":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-xml":
 #   {"num_threads": 5,
 #    "request_strategy": "adaptive-bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-text": 
 #   {"num_threads": 10,
 #    "request_strategy": "bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "eidaws-wfcatalog":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"}}'
+#    "request_method": "POST",
+#    "proxy_netloc": null}}'
 # 
 resource_config = {
  "fdsnws-station-xml":
   {"request_strategy": "combining",
-   "request_method": "GET"},
+   "request_method": "GET",
+   "proxy_netloc": "//federator-proxy"},
  "fdsnws-station-text":
   {"request_strategy": "granular",
-   "request_method": "GET"}}
-
+   "request_method": "GET",
+   "proxy_netloc": "//federator-proxy"}}
+#
+# When configuring "proxy_netloc", then the routing service is forced to
+# prepend a constant network location to routed URLs.  This option may be used
+# if requests are redirected e.g. when using a proxy. Set to *null* if
+# redirecting should be disabled.
+# See also: https://tools.ietf.org/html/rfc1738#section-3.1
+#
+# Also, make sure that the proxy configured is reachable by eida-federator.
+#
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.
 #
@@ -99,16 +113,6 @@ tmpdir=/var/tmp
 # on-errors}; The default configuration is: none
 #
 # keep_tempfiles = none
-#
-# ----
-# Force routing service to prepend a constant network location to routed URLs.
-# This option may be used if requests are redirected e.g. when using a proxy.
-# See also: https://tools.ietf.org/html/rfc1738#section-3.1
-#
-# Make sure that the proxy configured is reachable by eida-federator.
-#
-# proxy_netloc = //[user[:password]@]host[:port]
-proxy_netloc = //federator-proxy
 #
 # ----
 # Set the path to a logging configuration file. For information on howto setup

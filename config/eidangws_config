@@ -43,20 +43,30 @@
 #  "fdsnws-dataselect":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-xml":
 #   {"num_threads": 5,
 #    "request_strategy": "adaptive-bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-text": 
 #   {"num_threads": 10,
 #    "request_strategy": "bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "eidaws-wfcatalog":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"}}'
+#    "request_method": "POST",
+#    "proxy_netloc": null}}'
 # 
+# When configuring "proxy_netloc", then the routing service is forced to
+# prepend a constant network location to routed URLs.  This option may be used
+# if requests are redirected e.g. when using a proxy. Set to *null* if
+# redirecting should be disabled.
+# See also: https://tools.ietf.org/html/rfc1738#section-3.1
+#
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.
 #
@@ -91,13 +101,6 @@
 # on-errors}; The default configuration is: none
 #
 # keep_tempfiles = none
-#
-# ----
-# Force routing service to prepend a constant network location to routed URLs.
-# This option may be used if requests are redirected e.g. when using a proxy.
-# See also: https://tools.ietf.org/html/rfc1738#section-3.1
-#
-# proxy_netloc = '//[user[:password]@]host[:port]
 #
 # ----
 # Set the path to a logging configuration file. For information on howto setup
