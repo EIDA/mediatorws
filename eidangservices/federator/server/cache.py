@@ -176,7 +176,6 @@ class RedisCache(CachingBackend):
 
         timeout = self._normalize_timeout(timeout)
 
-        print(value)
         if timeout == 0:
             return self.redis.set(name=key, value=value)
         else:
