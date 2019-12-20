@@ -16,7 +16,8 @@ from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles)
-from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
+from eidangservices.federator.server.mixin import (
+    ClientRetryBudgetMixin, CachingMixin)
 from eidangservices.federator.server.request import RoutingRequestHandler
 from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
@@ -487,7 +488,7 @@ class RawRequestProcessor(RequestProcessor):
             self._terminate()
 
 
-class StationRequestProcessor(RequestProcessor):
+class StationRequestProcessor(RequestProcessor, CachingMixin):
     """
     Base class for federating fdsnws-station request processors.
     """
@@ -504,6 +505,46 @@ class StationRequestProcessor(RequestProcessor):
             return StationTextRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
+
+    @property
+    def streamed_response(self):
+        """
+        Return a :py:class:`flask.Response`.
+        """
+
+        # TODO(damb): Implement bypass caching
+
+        def create_and_cache_response(cache_key):
+            self._route()
+
+            if not self._num_routes:
+                raise FDSNHTTPError.create(self._nodata)
+
+            self._request()
+
+            # XXX(damb): Only return a streamed response as soon as valid data
+            # is available. Use a timeout and process errors here.
+            self._wait()
+
+            resp = Response(
+                self.cache_stream(stream_with_context(self), cache_key),
+                mimetype=self.mimetype, content_type=self.content_type)
+
+            resp.call_on_close(self._call_on_close)
+
+            return resp
+
+        cache_key = self.make_cache_key(
+            self.query_params, self.stream_epochs, key_prefix=type(self))
+        cached, found = self.get_cache(cache_key)
+
+        if found and cached:
+            resp = Response(
+                cached, mimetype=self.mimetype, content_type=self.content_type)
+
+            return resp
+
+        return create_and_cache_response(cache_key)
 
 
 class StationXMLRequestProcessor(StationRequestProcessor):
