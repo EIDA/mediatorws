@@ -56,6 +56,10 @@ class CachingMixin:
     :py:class:`~eidangservices.federator.server.process.RequestProcessor`.
     """
 
+    @property
+    def cache(self):
+        return cache
+
     def make_cache_key(self, query_params, stream_epochs, key_prefix=None,
                        sort_args=True, hash_method=hashlib.md5):
         """
