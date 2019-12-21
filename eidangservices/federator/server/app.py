@@ -100,6 +100,17 @@ def resource_config(config_dict):
     return retval
 
 
+def cache_config(arg):
+    # TODO(damb): Validate parameters
+    try:
+        config_dict = json.loads(arg)
+    except Exception as err:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration dictionary syntax ({}).'.format(err))
+    else:
+        return config_dict
+
+
 def keeptempfile_config(arg):
     """
     Populate the corresponding :code:`enum` value from the CLI configuration.
@@ -219,6 +230,11 @@ class FederatorWebserviceBase(App):
                                   '"POST". (default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
+        parser.add_argument('--cache-config', type=cache_config,
+                            dest='cache_config', metavar='DICT',
+                            default=settings.EIDA_FEDERATOR_CACHE_CONFIG,
+                            help=('Cache configuration dictionary '
+                                  '(JSON syntax) (default: %(default)s'))
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
                                 [str(c).replace('KeepTempfiles.', '').lower().
@@ -335,6 +351,9 @@ class FederatorWebserviceBase(App):
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             TMPDIR=tempfile.gettempdir())
+
+        if self.args.cache_config:
+            app_config.update(self.args.cache_config)
 
         app = create_app(config_dict=app_config)
         api.init_app(app)

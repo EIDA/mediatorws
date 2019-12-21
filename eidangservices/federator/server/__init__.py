@@ -12,6 +12,7 @@ from flask_redis import FlaskRedis
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.stats import ResponseCodeStats
+from eidangservices.federator.server.cache import Cache
 from eidangservices.utils import httperrors
 from eidangservices.utils.error import Error
 from eidangservices.utils.fdsnws import (register_parser_errorhandler,
@@ -21,6 +22,8 @@ from eidangservices.utils.fdsnws import (register_parser_errorhandler,
 redis_client = FlaskRedis()
 
 response_code_stats = ResponseCodeStats(redis=redis_client)
+
+cache = Cache()
 
 
 def create_app(config_dict={}, service_version=__version__):
@@ -45,6 +48,8 @@ def create_app(config_dict={}, service_version=__version__):
         'window_size': config_dict['FED_CRETRY_BUDGET_WINDOW_SIZE'],
         'ttl': config_dict['FED_CRETRY_BUDGET_TTL'],
     }
+    # configure cache
+    cache.init_cache(config=config_dict)
 
     # app.config['PROFILE'] = True
     # app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
