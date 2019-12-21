@@ -188,6 +188,9 @@ class RequestProcessor(ClientRetryBudgetMixin):
         """
         Return a streamed :py:class:`flask.Response`.
         """
+        return self._create_response()
+
+    def _create_response(self, stream_wrapper=None, **wrapper_kwargs):
         self._route()
 
         if not self._num_routes:
@@ -199,7 +202,12 @@ class RequestProcessor(ClientRetryBudgetMixin):
         # is available. Use a timeout and process errors here.
         self._wait()
 
-        resp = Response(stream_with_context(self), mimetype=self.mimetype,
+        response_generator = stream_with_context(self)
+        if callable(stream_wrapper):
+            response_generator = stream_wrapper(
+                response_generator, **wrapper_kwargs)
+
+        resp = Response(response_generator, mimetype=self.mimetype,
                         content_type=self.content_type)
 
         resp.call_on_close(self._call_on_close)
@@ -511,28 +519,7 @@ class StationRequestProcessor(RequestProcessor, CachingMixin):
         """
         Return a :py:class:`flask.Response`.
         """
-
         # TODO(damb): Implement bypass caching
-
-        def create_and_cache_response(cache_key):
-            self._route()
-
-            if not self._num_routes:
-                raise FDSNHTTPError.create(self._nodata)
-
-            self._request()
-
-            # XXX(damb): Only return a streamed response as soon as valid data
-            # is available. Use a timeout and process errors here.
-            self._wait()
-
-            resp = Response(
-                self.cache_stream(stream_with_context(self), cache_key),
-                mimetype=self.mimetype, content_type=self.content_type)
-
-            resp.call_on_close(self._call_on_close)
-
-            return resp
 
         cache_key = self.make_cache_key(
             self.query_params, self.stream_epochs, key_prefix=type(self))
@@ -544,7 +531,7 @@ class StationRequestProcessor(RequestProcessor, CachingMixin):
 
             return resp
 
-        return create_and_cache_response(cache_key)
+        return self._create_response(self.cache_stream, cache_key=cache_key)
 
 
 class StationXMLRequestProcessor(StationRequestProcessor):
