@@ -7,12 +7,17 @@ The module provides a similar functionality as implemented by `pallets/cachelib
 <https://github.com/sh4nks/flask-caching>`_.
 """
 
+import errno
 import gzip
+import hashlib
+import os
 import redis
 import string
+import tempfile
+
+from time import time
 
 from eidangservices.utils.error import ErrorWithTraceback
-
 
 # Used to remove control characters and whitespace from cache keys.
 valid_chars = set(string.ascii_letters + string.digits + "_.")
@@ -52,6 +57,7 @@ class Cache:
         cache_map = {
             'null': NullCache,
             'redis': RedisCache,
+            'fs': FileSystemCache,
         }
 
         cache_obj = cache_map[config['CACHE_TYPE']]
@@ -197,5 +203,175 @@ class RedisCache(CachingBackend):
 
         if value is None:
             return None
+
+        return gzip.decompress(value)
+
+
+class FileSystemCache(CachingBackend):
+    """
+    Implementation of a file system caching backend. The implementation is
+    based on `pallets/cachelib <https://github.com/pallets/cachelib>`_.
+
+    Make absolutely sure that nobody but this cache stores files there or
+    otherwise the cache will randomly delete files therein.
+    """
+
+    # used for temporary files by the FileSystemCache
+    _fs_transaction_suffix = '.__fed_cache'
+    # keep amount of files in a cache element
+    _fs_count_file = '__fed_cache_count'
+
+    def __init__(self, cache_dir, threshold=10000, default_timeout=300,
+                 mode=0o600):
+        super().__init__(default_timeout)
+
+        self._path = cache_dir
+        self._threshold = threshold
+        self._mode = mode
+
+        try:
+            os.makedirs(self._path)
+        except OSError as err:
+            if err.errno != errno.EEXIST:
+                raise CacheError(err)
+
+        # If there are many files and a zero threshold,
+        # the list_dir can slow initialisation massively
+        if self._threshold != 0:
+            self._update_count(value=len(self._list_dir()))
+
+    @property
+    def _file_count(self):
+        count = self.get(self._fs_count_file) or b'0'
+        return int(count.decode('utf-8'))
+
+    def _update_count(self, delta=None, value=None):
+        # If we have no threshold, don't count files
+        if self._threshold == 0:
+            return
+
+        if delta:
+            new_count = self._file_count + delta
+        else:
+            new_count = value or 0
+        self.set(self._fs_count_file, str(new_count), mgmt_element=True)
+
+    def _normalize_timeout(self, timeout):
+        if timeout is None:
+            timeout = self._default_timeout
+
+        if timeout != 0:
+            timeout = time() + timeout
+
+        return int(timeout)
+
+    def _list_dir(self):
+        """
+        Return a list of (fully qualified) cache filenames.
+        """
+        mgmt_files = [self._get_filename(name).split('/')[-1]
+                      for name in (self._fs_count_file,)]
+        return [os.path.join(self._path, fn) for fn in os.listdir(self._path)
+                if not fn.endswith(self._fs_transaction_suffix) and
+                fn not in mgmt_files]
+
+    def _get_filename(self, key):
+        if isinstance(key, str):
+            key = key.encode('utf-8')  # XXX unicode review
+        hash = hashlib.md5(key).hexdigest()
+        return os.path.join(self._path, hash)
+
+    def _prune(self):
+        if self._threshold == 0 or not self._file_count > self._threshold:
+            return
+
+        entries = self._list_dir()
+        now = time()
+        for idx, fname in enumerate(entries):
+            try:
+                remove = False
+                with open(fname, 'rb') as ifd:
+                    expires = int(ifd.readline().rstrip())
+                remove = (expires != 0 and expires <= now) or idx % 3 == 0
+
+                if remove:
+                    os.remove(fname)
+            except (IOError, OSError, ValueError):
+                pass
+
+        self._update_count(value=len(self._list_dir()))
+
+    def get(self, key):
+        filename = self._get_filename(key)
+        try:
+            with open(filename, 'rb') as ifd:
+                t = int(ifd.readline().rstrip())
+                if t == 0 or t >= time():
+                    return self._deserialize(ifd.read())
+                else:
+                    os.remove(filename)
+                    return None
+        except (IOError, OSError):
+            return None
+
+    def delete(self, key, mgmt_element=False):
+        try:
+            os.remove(self._get_filename(key))
+        except (IOError, OSError):
+            return False
+        else:
+            # Management elements should not count towards threshold
+            if not mgmt_element:
+                self._update_count(delta=-1)
+            return True
+
+    def set(self, key, value, timeout=None, mgmt_element=False):
+        # Management elements have no timeout
+        if mgmt_element:
+            timeout = 0
+
+        # Don't prune on management element update, to avoid loop
+        else:
+            self._prune()
+
+        timeout = self._normalize_timeout(timeout)
+        filename = self._get_filename(key)
+        try:
+            fd, tmp = tempfile.mkstemp(suffix=self._fs_transaction_suffix,
+                                       dir=self._path)
+            with os.fdopen(fd, 'wb') as ofd:
+                ofd.write("{}\n".format(timeout).encode('utf-8'))
+                ofd.write(self._serialize(value))
+
+            os.rename(tmp, filename)
+            os.chmod(filename, self._mode)
+        except (IOError, OSError):
+            return False
+        else:
+            # Management elements should not count towards threshold
+            if not mgmt_element:
+                self._update_count(delta=1)
+            return True
+
+    def __contains__(self, key):
+        filename = self._get_filename(key)
+        try:
+            with open(filename, 'rb') as ifd:
+                t = int(ifd.readline().rstrip())
+                if t == 0 or t >= time():
+                    return True
+                else:
+                    os.remove(filename)
+                    return False
+        except (IOError, OSError, ValueError):
+            return False
+
+    def _serialize(self, value):
+        return gzip.compress(value.encode('utf-8'))
+
+    def _deserialize(self, value):
+        """
+        The complementary method of :py:meth:`_serialize`.
+        """
 
         return gzip.decompress(value)
