@@ -7,6 +7,7 @@ The module provides a similar functionality as implemented by `pallets/cachelib
 <https://github.com/sh4nks/flask-caching>`_.
 """
 
+import gzip
 import redis
 import string
 
@@ -186,7 +187,15 @@ class RedisCache(CachingBackend):
         return self.redis.exists(self._create_key_prefix() + key)
 
     def _serialize(self, value):
-        return value
+        return gzip.compress(value.encode('utf-8'))
 
     def _deserialize(self, value):
-        return value
+        """
+        The complementary method of :py:meth:`_serialize`. Can be called with
+        ``None``.
+        """
+
+        if value is None:
+            return None
+
+        return gzip.decompress(value)
