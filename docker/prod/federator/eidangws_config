@@ -83,6 +83,34 @@ resource_config = {
 # scales squared.
 #
 # ----
+# Configure eida-federator frontend caching backend. The default configuration
+# is:
+#
+# cache_config = '{
+#   "CACHE_TYPE": "null",
+#   "CACHE_KWARGS": {}}'
+#
+cache_config = {
+  "CACHE_TYPE": "fs",
+  "CACHE_KWARGS": {
+    "cache_dir": "/var/cache/eida-federator",
+    "default_timeout": 43200, }}
+#
+# Two caching backends are configurable. For local file caching set
+# "CACHE_TYPE" to "fs". A file system cache provides the following
+# configuration parameters ("CACHE_KWARGS" attribute):
+#   - "cache_dir": Location of the file system cache
+#   - "mode": Mode of cache files
+#   - "default_timeout": TTL
+#   - "threshold": Maximum number of items the cache stores before it starts
+#                 deleting some. A value of 0 idicates no threshold.
+#
+# For distributed caching a Redis backend is provided (set "CACHE_TYPE" to
+# "redis"). A Redis cache provide sthe following configuration parameters:
+#   - "url": URL of Redis datastore
+#   - "default_timeout": TTL
+#
+# ----
 # Per client retry-budget cut-off error ratio in percent. Requests to remote
 # datacenters (DC) are dropped above this value. The default configuration is:
 # 1.0
