@@ -7,6 +7,7 @@ Launch EIDA NG Federator.
 import argparse
 import collections
 import copy
+import inspect
 import json
 import os
 import sys
@@ -20,6 +21,7 @@ from flask_restful import Api
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
+from eidangservices.federator.server.cache import Cache
 from eidangservices.federator.server.misc import KeepTempfiles
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
@@ -107,8 +109,30 @@ def cache_config(arg):
     except Exception as err:
         raise argparse.ArgumentTypeError(
             'Invalid cache configuration dictionary syntax ({}).'.format(err))
-    else:
-        return config_dict
+
+    allowed_keys = set(settings.EIDA_FEDERATOR_CACHE_CONFIG)
+    difference = set(config_dict) - allowed_keys
+
+    if difference:
+        return argparse.ArgumentTypeError('Invalid key: {!r}'.format())
+
+    cache_type = config_dict['CACHE_TYPE']
+    if cache_type not in Cache.CACHE_MAP:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache type: {!r}'.format(cache_type))
+
+    config_dict.setdefault('CACHE_KWARGS', {})
+    allowed_args = set(inspect.getfullargspec(
+        Cache.CACHE_MAP[cache_type]).args[1:])
+    difference = set(config_dict['CACHE_KWARGS']) - allowed_args
+
+    if difference:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration parameter: {!r}; '
+            'Valid args for CACHE_TYPE={!r}: {!r}'.format(
+                difference, cache_type, allowed_args))
+
+    return config_dict
 
 
 def keeptempfile_config(arg):
