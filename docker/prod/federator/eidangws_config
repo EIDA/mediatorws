@@ -94,7 +94,7 @@ cache_config = {
   "CACHE_TYPE": "fs",
   "CACHE_KWARGS": {
     "cache_dir": "/var/cache/eida-federator",
-    "default_timeout": 43200, }}
+    "default_timeout": 43200}}
 #
 # Two caching backends are configurable. For local file caching set
 # "CACHE_TYPE" to "fs". A file system cache provides the following
