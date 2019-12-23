@@ -22,6 +22,11 @@ services:
         target: /var/tmp
         volume:
           nocopy: false
+      - type: volume
+        source: federator_cache
+        target: /var/cache/eida-federator
+        volume:
+          nocopy: false
     ports:
       - "8080:80"
 
@@ -68,4 +73,5 @@ volumes:
   mediatorws_log:
   mediatorws_tmp:
   stationlite_pgdata:
+  federator_cache:
   federator_cache_proxy:

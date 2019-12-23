@@ -92,6 +92,7 @@ RUN (crontab -l ; echo "0 4 * * * source /var/www/mediatorws/docker/prod/federat
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
 RUN mkdir -p /var/tmp/ && chown www-data:www-data /var/tmp/
+RUN mkdir -p /var/cache/eida-federator && chown www-data:www-data /var/cache
 
 # Add the logging configuration
 COPY fed-logging.conf /var/www/mediatorws/config/fed-logging.conf
