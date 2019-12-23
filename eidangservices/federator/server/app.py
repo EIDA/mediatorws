@@ -103,7 +103,6 @@ def resource_config(config_dict):
 
 
 def cache_config(arg):
-    # TODO(damb): Validate parameters
     try:
         config_dict = json.loads(arg)
     except Exception as err:
