@@ -44,6 +44,11 @@ class CachingBackend:
         """
         self._default_timeout = default_timeout
 
+    def _normalize_timeout(self, timeout):
+        if timeout is None:
+            return self._default_timeout
+        return timeout
+
     def get(self, key):
         """
         Look up ``key`` in the cache and return the value for it.
@@ -118,11 +123,6 @@ class RedisCache(CachingBackend):
         if isinstance(self.key_prefix, str):
             return self.key_prefix
         return self.key_prefix()
-
-    def _normalize_timeout(self, timeout):
-        if timeout is None:
-            return self._default_timeout
-        return timeout
 
     def get(self, key):
         return self._deserialize(
@@ -211,8 +211,7 @@ class FileSystemCache(CachingBackend):
         self.set(self._fs_count_file, str(new_count), mgmt_element=True)
 
     def _normalize_timeout(self, timeout):
-        if timeout is None:
-            timeout = self._default_timeout
+        timeout = super()._normalize_timeout(timeout)
 
         if timeout != 0:
             timeout = time() + timeout
