@@ -30,52 +30,6 @@ class CacheError(ErrorWithTraceback):
     """Base cache error ({})."""
 
 
-class Cache:
-    """
-    Generic API for cache objects.
-    """
-
-    def __init__(self, config=None):
-
-        if not isinstance(config, (dict, type(None))):
-            raise TypeError("Invalid type for 'config'.")
-
-        self._config = config
-
-        if config:
-            self.init_cache(config=config)
-
-    def init_cache(self, config={}):
-
-        config.setdefault('CACHE_TYPE', 'null')
-        config.setdefault('CACHE_KWARGS', {})
-
-        self._set_cache(config)
-
-    def _set_cache(self, config):
-
-        cache_map = {
-            'null': NullCache,
-            'redis': RedisCache,
-            'fs': FileSystemCache,
-        }
-
-        cache_obj = cache_map[config['CACHE_TYPE']]
-        self._cache = cache_obj(**config['CACHE_KWARGS'])
-
-    def get(self, *args, **kwargs):
-        return self._cache.get(*args, **kwargs)
-
-    def set(self, *args, **kwargs):
-        return self._cache.set(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        return self._cache.delete(*args, **kwargs)
-
-    def __contains__(self, *args, **kwargs):
-        return self._cache.__contains__(*args, **kwargs)
-
-
 # -----------------------------------------------------------------------------
 class CachingBackend:
     """
@@ -375,3 +329,48 @@ class FileSystemCache(CachingBackend):
         """
 
         return gzip.decompress(value)
+
+
+# -----------------------------------------------------------------------------
+class Cache:
+    """
+    Generic API for cache objects.
+    """
+    CACHE_MAP = {
+        'null': NullCache,
+        'redis': RedisCache,
+        'fs': FileSystemCache,
+    }
+
+    def __init__(self, config=None):
+
+        if not isinstance(config, (dict, type(None))):
+            raise TypeError("Invalid type for 'config'.")
+
+        self._config = config
+
+        if config:
+            self.init_cache(config=config)
+
+    def init_cache(self, config={}):
+
+        config.setdefault('CACHE_TYPE', 'null')
+        config.setdefault('CACHE_KWARGS', {})
+
+        self._set_cache(config)
+
+    def _set_cache(self, config):
+        cache_obj = self.CACHE_MAP[config['CACHE_TYPE']]
+        self._cache = cache_obj(**config['CACHE_KWARGS'])
+
+    def get(self, *args, **kwargs):
+        return self._cache.get(*args, **kwargs)
+
+    def set(self, *args, **kwargs):
+        return self._cache.set(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        return self._cache.delete(*args, **kwargs)
+
+    def __contains__(self, *args, **kwargs):
+        return self._cache.__contains__(*args, **kwargs)
