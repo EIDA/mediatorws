@@ -13,7 +13,7 @@
 # docker exec -it eida-federator /bin/bash
 
 # Base image
-FROM phusion/baseimage:latest
+FROM phusion/baseimage:0.11
 
 # Add label metadata
 LABEL maintainer="Mathijs Koymans"
