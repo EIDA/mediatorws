@@ -53,12 +53,12 @@ WORKDIR /var/www/mediatorws
 
 # Create the virtual environments
 RUN mkdir /var/www/federator && cd /var/www/federator && \
-    virtualenv -p $(which python3.5) venv3 && \
+    virtualenv -p $(which python3.6) venv3 && \
     /bin/bash -c "source /var/www/federator/venv3/bin/activate && \
     make -C /var/www/mediatorws install SERVICES=federator && deactivate"
 
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
-    virtualenv -p $(which python3.5) venv3 && \
+    virtualenv -p $(which python3.6) venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
     pip install numpy psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
