@@ -91,7 +91,6 @@ RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federat
 RUN (crontab -l ; echo "0 4 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/harvest_station_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
-RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
 RUN mkdir -p /var/tmp/ && chown www-data:www-data /var/tmp/
 
 # Add the logging configuration
