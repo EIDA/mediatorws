@@ -595,6 +595,11 @@ EIDA_FEDERATOR_RESOURCE_CONFIG = {
     }
 }
 
+EIDA_FEDERATOR_CACHE_CONFIG = {
+    'CACHE_TYPE': 'null',
+    'CACHE_KWARGS': {},
+}
+
 EIDA_FEDERATOR_REQUEST_STRATEGIES = (
     'granular',
     'bulk',

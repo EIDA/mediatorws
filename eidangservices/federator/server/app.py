@@ -7,6 +7,7 @@ Launch EIDA NG Federator.
 import argparse
 import collections
 import copy
+import inspect
 import json
 import os
 import sys
@@ -20,6 +21,7 @@ from flask_restful import Api
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
+from eidangservices.federator.server.cache import Cache
 from eidangservices.federator.server.misc import KeepTempfiles
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
@@ -98,6 +100,45 @@ def resource_config(config_dict):
     retval = copy.deepcopy(settings.EIDA_FEDERATOR_RESOURCE_CONFIG)
     dict_merge(retval, config_dict)
     return retval
+
+
+def cache_config(arg):
+    # XXX(damb): Exclude for all CACHE_TYPEs
+    INVALID_CACHE_ARGS = set(['mode', ])
+
+    try:
+        config_dict = json.loads(arg)
+    except Exception as err:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration dictionary syntax ({}).'.format(err))
+
+    allowed_keys = set(settings.EIDA_FEDERATOR_CACHE_CONFIG)
+    difference = set(config_dict) - allowed_keys
+
+    if difference:
+        return argparse.ArgumentTypeError('Invalid key: {!r}'.format())
+
+    try:
+        cache_type = config_dict['CACHE_TYPE']
+    except KeyError:
+        raise argparse.ArgumentTypeError('Missing cache type.')
+    else:
+        if cache_type not in Cache.CACHE_MAP:
+            raise argparse.ArgumentTypeError(
+                'Invalid cache type: {!r}'.format(cache_type))
+
+    config_dict.setdefault('CACHE_KWARGS', {})
+    allowed_args = set(inspect.getfullargspec(
+        Cache.CACHE_MAP[cache_type]).args[1:]) - INVALID_CACHE_ARGS
+    difference = set(config_dict['CACHE_KWARGS']) - allowed_args
+
+    if difference:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration parameter: {!r}; '
+            'Valid args for CACHE_TYPE={!r}: {!r}'.format(
+                difference, cache_type, allowed_args))
+
+    return config_dict
 
 
 def keeptempfile_config(arg):
@@ -219,6 +260,11 @@ class FederatorWebserviceBase(App):
                                   '"POST". (default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
+        parser.add_argument('--cache-config', type=cache_config,
+                            dest='cache_config', metavar='DICT',
+                            default=settings.EIDA_FEDERATOR_CACHE_CONFIG,
+                            help=('Cache configuration dictionary '
+                                  '(JSON syntax) (default: %(default)s'))
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
                                 [str(c).replace('KeepTempfiles.', '').lower().
@@ -335,6 +381,9 @@ class FederatorWebserviceBase(App):
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
             TMPDIR=tempfile.gettempdir())
+
+        if self.args.cache_config:
+            app_config.update(self.args.cache_config)
 
         app = create_app(config_dict=app_config)
         api.init_app(app)

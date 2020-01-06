@@ -16,7 +16,8 @@ from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles)
-from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
+from eidangservices.federator.server.mixin import (
+    ClientRetryBudgetMixin, CachingMixin)
 from eidangservices.federator.server.request import RoutingRequestHandler
 from eidangservices.federator.server.strategy import (  # noqa
     GranularRequestStrategy, NetworkBulkRequestStrategy,
@@ -187,6 +188,9 @@ class RequestProcessor(ClientRetryBudgetMixin):
         """
         Return a streamed :py:class:`flask.Response`.
         """
+        return self._create_response()
+
+    def _create_response(self, stream_wrapper=None, **wrapper_kwargs):
         self._route()
 
         if not self._num_routes:
@@ -198,7 +202,12 @@ class RequestProcessor(ClientRetryBudgetMixin):
         # is available. Use a timeout and process errors here.
         self._wait()
 
-        resp = Response(stream_with_context(self), mimetype=self.mimetype,
+        response_generator = stream_with_context(self)
+        if callable(stream_wrapper):
+            response_generator = stream_wrapper(
+                response_generator, **wrapper_kwargs)
+
+        resp = Response(response_generator, mimetype=self.mimetype,
                         content_type=self.content_type)
 
         resp.call_on_close(self._call_on_close)
@@ -487,7 +496,7 @@ class RawRequestProcessor(RequestProcessor):
             self._terminate()
 
 
-class StationRequestProcessor(RequestProcessor):
+class StationRequestProcessor(RequestProcessor, CachingMixin):
     """
     Base class for federating fdsnws-station request processors.
     """
@@ -504,6 +513,25 @@ class StationRequestProcessor(RequestProcessor):
             return StationTextRequestProcessor(*args, **kwargs)
         else:
             raise KeyError('Invalid RequestProcessor chosen.')
+
+    @property
+    def streamed_response(self):
+        """
+        Return a :py:class:`flask.Response`.
+        """
+        # TODO(damb): Implement bypass caching
+
+        cache_key = self.make_cache_key(
+            self.query_params, self.stream_epochs, key_prefix=type(self))
+        cached, found = self.get_cache(cache_key)
+
+        if found and cached:
+            resp = Response(
+                cached, mimetype=self.mimetype, content_type=self.content_type)
+
+            return resp
+
+        return self._create_response(self.cache_stream, cache_key=cache_key)
 
 
 class StationXMLRequestProcessor(StationRequestProcessor):
