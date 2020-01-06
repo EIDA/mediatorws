@@ -103,6 +103,9 @@ def resource_config(config_dict):
 
 
 def cache_config(arg):
+    # XXX(damb): Exclude for all CACHE_TYPEs
+    INVALID_CACHE_ARGS = set(['mode', ])
+
     try:
         config_dict = json.loads(arg)
     except Exception as err:
@@ -126,7 +129,7 @@ def cache_config(arg):
 
     config_dict.setdefault('CACHE_KWARGS', {})
     allowed_args = set(inspect.getfullargspec(
-        Cache.CACHE_MAP[cache_type]).args[1:])
+        Cache.CACHE_MAP[cache_type]).args[1:]) - INVALID_CACHE_ARGS
     difference = set(config_dict['CACHE_KWARGS']) - allowed_args
 
     if difference:
