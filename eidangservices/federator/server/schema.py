@@ -3,6 +3,8 @@
 Federator schema definitions
 """
 
+import functools
+
 from marshmallow import (Schema, SchemaOpts, fields, validate, ValidationError,
                          pre_load, post_load, validates_schema)
 
@@ -12,6 +14,11 @@ from eidangservices.utils.schema import (Percentage, NotEmptyString,
                                          Radius, FDSNWSBool, NoData)
 
 
+Quality = functools.partial(fields.Str,
+                            validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B']))
+
+
+# -----------------------------------------------------------------------------
 class ServiceOpts(SchemaOpts):
     """
     Same as the default class Meta options, but adds the *service* option.
@@ -56,7 +63,7 @@ class DataselectSchema(ServiceSchema):
     class Meta:
         service = 'dataselect'
         strict = True
-        ordered=True
+        ordered = True
 
 
 class StationSchema(ServiceSchema):
@@ -154,7 +161,7 @@ class StationSchema(ServiceSchema):
     class Meta:
         service = 'station'
         strict = True
-        ordered=True
+        ordered = True
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -539,4 +546,4 @@ class WFCatalogSchema(ServiceSchema):
     class Meta:
         service = 'wfcatalog'
         strict = True
-        ordered=True
+        ordered = True
