@@ -10,9 +10,10 @@ import marshmallow as ma
 from eidangservices.federator.server import schema
 
 
-# -----------------------------------------------------------------------------
-# schema related test cases
 class StationSchemaTestCase(unittest.TestCase):
+    """
+    Query filter parameter related test cases for ``fdsnws-station``.
+    """
 
     def test_geographic_opts(self):
         self.maxDiff = None
