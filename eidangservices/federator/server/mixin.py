@@ -61,7 +61,8 @@ class CachingMixin:
         return cache
 
     def make_cache_key(self, query_params, stream_epochs, key_prefix=None,
-                       sort_args=True, hash_method=hashlib.md5):
+                       sort_args=True, hash_method=hashlib.md5,
+                       exclude_params=('nodata', 'service',)):
         """
         Create a cache key from ``query_params`` and ``stream_epochs``.
 
@@ -73,8 +74,13 @@ class CachingMixin:
             key.
         :param hash_method: Hash method used for key generation. Default is
             ``hashlib.md5``.
+        :param exclude_params: Keys to be excluded from the ``query_params``
+            mapping while generating the key.
+        :type exclude_params: tuple of str
         """
         if sort_args:
+            query_params = [(k, v) for k, v in query_params.items()
+                            if k not in exclude_params]
             query_params = sorted(query_params)
             stream_epochs = sorted(stream_epochs)
 
