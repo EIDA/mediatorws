@@ -115,10 +115,14 @@ def cache_config(arg):
     if difference:
         return argparse.ArgumentTypeError('Invalid key: {!r}'.format())
 
-    cache_type = config_dict['CACHE_TYPE']
-    if cache_type not in Cache.CACHE_MAP:
-        raise argparse.ArgumentTypeError(
-            'Invalid cache type: {!r}'.format(cache_type))
+    try:
+        cache_type = config_dict['CACHE_TYPE']
+    except KeyError:
+        raise argparse.ArgumentTypeError('Missing cache type.')
+    else:
+        if cache_type not in Cache.CACHE_MAP:
+            raise argparse.ArgumentTypeError(
+                'Invalid cache type: {!r}'.format(cache_type))
 
     config_dict.setdefault('CACHE_KWARGS', {})
     allowed_args = set(inspect.getfullargspec(
