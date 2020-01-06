@@ -3,8 +3,6 @@
 Federator schema definitions
 """
 
-import functools
-
 from marshmallow import (Schema, SchemaOpts, fields, validate, ValidationError,
                          pre_load, post_load, validates_schema)
 
@@ -14,11 +12,6 @@ from eidangservices.utils.schema import (Percentage, NotEmptyString,
                                          Radius, FDSNWSBool, NoData)
 
 
-Quality = functools.partial(fields.Str,
-                            validate=validate.OneOf(['D', 'R', 'Q', 'M', 'B']))
-
-
-# -----------------------------------------------------------------------------
 class ServiceOpts(SchemaOpts):
     """
     Same as the default class Meta options, but adds the *service* option.
@@ -59,13 +52,6 @@ class DataselectSchema(ServiceSchema):
         missing='miniseed',
         validate=validate.OneOf(['miniseed']))
     nodata = NoData()
-
-    quality = Quality()  # missing='B')
-    minimumlength = fields.Float(
-        missing=0.,
-        as_string=True,
-        validate=lambda n: 0. <= n)
-    longestonly = FDSNWSBool(missing='false')
 
     class Meta:
         service = 'dataselect'
