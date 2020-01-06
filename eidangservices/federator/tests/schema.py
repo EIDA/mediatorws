@@ -24,9 +24,7 @@ class StationSchemaTestCase(unittest.TestCase):
             'minlatitude': '0.0',
             'maxlatitude': '45.0',
             'includerestricted': 'true',
-            'matchtimeseries': 'false',
-            'nodata': '204',
-            'includeavailability': 'false'}
+            'nodata': '204', }
 
         test_datasets = [{'minlatitude': 0.,
                           'maxlatitude': 45.,
