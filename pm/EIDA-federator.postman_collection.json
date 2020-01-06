@@ -1569,6 +1569,164 @@
 						"description": "Single node, single network, single station\n\nlevel=channel\nformat=text"
 					},
 					"response": []
+				},
+				{
+					"name": "query?net=CH,AW,GR,BW&level=network&format=text (not cached)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var regex_header = /^(#Network\\|Description\\|StartTime\\|EndTime\\|TotalStations)$/;",
+									"    var regex_line = /^\\w+\\|.+\\|(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})\\|(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?\\|\\d+/;",
+									"    ",
+									"    var resp_lst = pm.response.text().split(\"\\n\");",
+									"    ",
+									"    console.log(resp_lst[0]);",
+									"    pm.expect(resp_lst[0]).to.match(regex_header);",
+									"    pm.expect(resp_lst[resp_lst.length-1]).to.be.empty;",
+									"    ",
+									"    resp_lst = resp_lst.slice(1, -1);",
+									"    ",
+									"    pm.expect(resp_lst.length).to.equal(4);",
+									"    ",
+									"    resp_lst.forEach(function(line) {",
+									"        console.log(line);",
+									"        pm.expect(line).to.match(regex_line);",
+									"    });",
+									"});",
+									"",
+									"pm.test(\"Response time is greater than 1000ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,AW,GR,BW&level=network&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,AW,GR,BW"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Test cache\n\nformat=text"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH,AW,GR,BW&level=network&format=text (cached)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var regex_header = /^(#Network\\|Description\\|StartTime\\|EndTime\\|TotalStations)$/;",
+									"    var regex_line = /^\\w+\\|.+\\|(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})\\|(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?\\|\\d+/;",
+									"    ",
+									"    var resp_lst = pm.response.text().split(\"\\n\");",
+									"    ",
+									"    console.log(resp_lst[0]);",
+									"    pm.expect(resp_lst[0]).to.match(regex_header);",
+									"    pm.expect(resp_lst[resp_lst.length-1]).to.be.empty;",
+									"    ",
+									"    resp_lst = resp_lst.slice(1, -1);",
+									"    ",
+									"    pm.expect(resp_lst.length).to.equal(4);",
+									"    ",
+									"    resp_lst.forEach(function(line) {",
+									"        console.log(line);",
+									"        pm.expect(line).to.match(regex_line);",
+									"    });",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 50ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(50);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?net=CH,AW,GR,BW&level=network&format=text",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH,AW,GR,BW"
+								},
+								{
+									"key": "level",
+									"value": "network"
+								},
+								{
+									"key": "format",
+									"value": "text"
+								}
+							]
+						},
+						"description": "Test cache\n\nformat=text"
+					},
+					"response": []
 				}
 			],
 			"protocolProfileBehavior": {}
