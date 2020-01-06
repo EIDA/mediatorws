@@ -109,9 +109,6 @@ class StationSchema(ServiceSchema):
         validate=validate.OneOf(
             ['network', 'station', 'channel', 'response']))
     includerestricted = FDSNWSBool(missing='true')
-    includeavailability = FDSNWSBool(missing='false')
-    updateafter = FDSNWSDateTime(format='fdsnws')
-    matchtimeseries = FDSNWSBool(missing='false')
 
     @pre_load
     def merge_keys(self, data, **kwargs):
