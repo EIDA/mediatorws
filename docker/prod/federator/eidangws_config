@@ -100,7 +100,6 @@ cache_config = {
 # "CACHE_TYPE" to "fs". A file system cache provides the following
 # configuration parameters ("CACHE_KWARGS" attribute):
 #   - "cache_dir": Location of the file system cache
-#   - "mode": Mode of cache files
 #   - "default_timeout": TTL
 #   - "threshold": Maximum number of items the cache stores before it starts
 #                 deleting some. A value of 0 idicates no threshold.
