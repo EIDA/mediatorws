@@ -344,6 +344,20 @@ EIDA_NODES = {
             'location': '--',
             'channel': 'HH?',
             'startdate': '2011-01-01T00:00:00'}
+    },
+
+    'uib': {
+        'name': 'University of Bergen',
+        'services': {
+            'eida': {
+                'routing': {
+                    'service': True,
+                    'server': 'http://eida.geo.uib.no/',
+                    'uri_path_config': 'eidaws/routing.xml',
+                    'uri_path_config_vnet': 'eidaws/routing.xml',
+                    'static_file': ''}
+            }
+        }
     }
 }
 
