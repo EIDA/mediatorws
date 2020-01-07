@@ -41,7 +41,7 @@ def get_version(filename):
     return metadata['version']
 
 
-_name = 'eidangservices'
+_name = 'eidaws'
 _version = '0.9.4'
 _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
@@ -130,7 +130,7 @@ if 'federator' == subsys:
     # configure the federator setup
     sys.argv.pop(1)
 
-    _name = 'federator'
+    _name = 'eidaws-federator'
     _version = get_version('eidangservices/federator/__init__.py')
     _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
@@ -149,7 +149,7 @@ if 'federator' == subsys:
 elif 'stationlite' == subsys:
     sys.argv.pop(1)
 
-    _name = 'stationlite'
+    _name = 'eidaws-stationlite'
     _version = get_version('eidangservices/stationlite/__init__.py')
     _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = "daniel.armbruster@sed.ethz.ch, fabian.euchner@sed.ethz.ch"
