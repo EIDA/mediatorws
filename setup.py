@@ -183,7 +183,7 @@ setup(
     url="https://github.com/EIDA/mediatorws",
     platforms=['Linux', ],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Framework :: Flask",
         "Environment :: Web Environment",
         "Intended Audience :: Science/Research",
