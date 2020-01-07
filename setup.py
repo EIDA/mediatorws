@@ -75,9 +75,9 @@ _extras = {
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]
 
-# NOTE(damb): Since this setup.py provides multiple package creation/deployment
-# we exclusively deploy additionaly files by means of the 'data_files'
-# parameter
+# NOTE(damb): This setup.py allows multiple package creation/deployment. That
+# is why, additional files are deployed by means of the  'data_files'
+# parameter.
 _data_files_all = [
     ('', ['COPYING',
           'Makefile']),
