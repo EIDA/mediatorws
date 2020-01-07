@@ -1,29 +1,4 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# This is <setup.py>
-# -----------------------------------------------------------------------------
-#
-# This file is part of EIDA NG webservices.
-#
-# EIDA NG webservices are free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# EIDA NG webservices are distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ----
-#
-# Copyright (c) Daniel Armbruster (ETH), Fabian Euchner (ETH)
-#
-# REVISION AND CHANGES
-# 2017/11/26        V0.1    Daniel Armbruster
-# =============================================================================
 """
 setup.py for EIDA NG Mediator/Federator webservices
 """
@@ -41,11 +16,14 @@ def get_version(filename):
     return metadata['version']
 
 
-_name = 'eidangservices'
-_version = '0.9.4'
-_author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
-_author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
+_name = 'eidaws'
+_author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
+_author_email = "daniel.armbruster@sed.ethz.ch, fabian.euchner@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
+
+_version_federator = get_version('eidangservices/federator/__init__.py')
+_version_stationlite = get_version('eidangservices/stationlite/__init__.py')
+_version = max(_version_federator, _version_stationlite)
 
 _entry_points_federator = {
     'console_scripts': [
@@ -97,9 +75,9 @@ _extras = {
 
 _test_suites = [os.path.join('eidangservices', 'utils', 'tests')]
 
-# NOTE(damb): Since this setup.py provides multiple package creation/deployment
-# we exclusively deploy additionaly files by means of the 'data_files'
-# parameter
+# NOTE(damb): This setup.py allows multiple package creation/deployment. That
+# is why, additional files are deployed by means of the  'data_files'
+# parameter.
 _data_files_all = [
     ('', ['COPYING',
           'Makefile']),
@@ -127,14 +105,11 @@ _data_files_stationlite += _data_files_all
 
 subsys = sys.argv[1]
 if 'federator' == subsys:
-    # configure the federator setup
+    # configure the eidaws-federator setup
     sys.argv.pop(1)
 
-    _name = 'federator'
-    _version = get_version('eidangservices/federator/__init__.py')
-    _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
-    _author_email = ("daniel.armbruster@sed.ethz.ch, " +
-                     "fabian.euchner@sed.ethz.ch")
+    _name = 'eidaws-federator'
+    _version = _version_federator
     _description = ("EIDA NG Federator webservice")
     _includes = ('eidangservices', 'eidangservices.utils',
                  'eidangservices.utils.tests',
@@ -147,12 +122,11 @@ if 'federator' == subsys:
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
 
 elif 'stationlite' == subsys:
+    # configure the eidaws-stationlite setup
     sys.argv.pop(1)
 
-    _name = 'stationlite'
-    _version = get_version('eidangservices/stationlite/__init__.py')
-    _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
-    _author_email = "daniel.armbruster@sed.ethz.ch, fabian.euchner@sed.ethz.ch"
+    _name = 'eidaws-stationlite'
+    _version = _version_stationlite
     _description = ("EIDA NG StationLite webservice")
 
     _includes = ('eidangservices', 'eidangservices.utils',
@@ -209,7 +183,7 @@ setup(
     url="https://github.com/EIDA/mediatorws",
     platforms=['Linux', ],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Framework :: Flask",
         "Environment :: Web Environment",
         "Intended Audience :: Science/Research",
@@ -237,5 +211,3 @@ setup(
             'version': ('setup.py', _version),
             'release': ('setup.py', _version)}},
 )
-
-# ---- END OF <setup.py> ----
