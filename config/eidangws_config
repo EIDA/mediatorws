@@ -197,7 +197,7 @@
 # ----
 # Exclude EIDA nodes from harvesting. A whitespace separated list of nodes to
 # be excluded. Choices are: {bgr, eth, gfz, ingv, ipgp, koeri, lmu, niep, noa,
-# odc, resif}.
+# odc, resif, uib}.
 #
 # nodes_exclude = bgr eth gfz
 #
