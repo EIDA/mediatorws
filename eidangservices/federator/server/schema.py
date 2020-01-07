@@ -60,17 +60,10 @@ class DataselectSchema(ServiceSchema):
         validate=validate.OneOf(['miniseed']))
     nodata = NoData()
 
-    quality = Quality()  # missing='B')
-    minimumlength = fields.Float(
-        missing=0.,
-        as_string=True,
-        validate=lambda n: 0. <= n)
-    longestonly = FDSNWSBool(missing='false')
-
     class Meta:
         service = 'dataselect'
         strict = True
-        ordered=True
+        ordered = True
 
 
 class StationSchema(ServiceSchema):
@@ -116,9 +109,6 @@ class StationSchema(ServiceSchema):
         validate=validate.OneOf(
             ['network', 'station', 'channel', 'response']))
     includerestricted = FDSNWSBool(missing='true')
-    includeavailability = FDSNWSBool(missing='false')
-    updateafter = FDSNWSDateTime(format='fdsnws')
-    matchtimeseries = FDSNWSBool(missing='false')
 
     @pre_load
     def merge_keys(self, data, **kwargs):
@@ -168,7 +158,7 @@ class StationSchema(ServiceSchema):
     class Meta:
         service = 'station'
         strict = True
-        ordered=True
+        ordered = True
 
 
 class WFCatalogSchema(ServiceSchema):
@@ -553,4 +543,4 @@ class WFCatalogSchema(ServiceSchema):
     class Meta:
         service = 'wfcatalog'
         strict = True
-        ordered=True
+        ordered = True

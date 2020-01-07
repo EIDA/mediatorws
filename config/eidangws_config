@@ -43,22 +43,53 @@
 #  "fdsnws-dataselect":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-xml":
 #   {"num_threads": 5,
 #    "request_strategy": "adaptive-bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "fdsnws-station-text": 
 #   {"num_threads": 10,
 #    "request_strategy": "bulk",
-#    "request_method": "POST"},
+#    "request_method": "POST",
+#    "proxy_netloc": null},
 #  "eidaws-wfcatalog":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
-#    "request_method": "POST"}}'
+#    "request_method": "POST",
+#    "proxy_netloc": null}}'
 # 
+# When configuring "proxy_netloc", then the routing service is forced to
+# prepend a constant network location to routed URLs.  This option may be used
+# if requests are redirected e.g. when using a proxy. Set to *null* if
+# redirecting should be disabled.
+# See also: https://tools.ietf.org/html/rfc1738#section-3.1
+#
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.
+#
+# ----
+# Configure eida-federator frontend caching backend. The default configuration
+# is:
+#
+# cache_config = '{
+#   "CACHE_TYPE": "null",
+#   "CACHE_KWARGS": {}}'
+#
+# Two caching backends are configurable. For local file caching set
+# "CACHE_TYPE" to "fs". A file system cache provides the following
+# configuration parameters ("CACHE_KWARGS" attribute):
+#   - "cache_dir": Location of the file system cache
+#   - "default_timeout": TTL
+#   - "threshold": Maximum number of items the cache stores before it starts
+#                 deleting some. A value of 0 idicates no threshold.
+#
+# For distributed caching a Redis backend is provided (set "CACHE_TYPE" to
+# "redis"). A Redis cache provide sthe following configuration parameters:
+#   - "url": URL of Redis datastore
+#   - "default_timeout": TTL
 #
 # ----
 # Per client retry-budget cut-off error ratio in percent. Requests to remote
@@ -91,13 +122,6 @@
 # on-errors}; The default configuration is: none
 #
 # keep_tempfiles = none
-#
-# ----
-# Force routing service to prepend a constant network location to routed URLs.
-# This option may be used if requests are redirected e.g. when using a proxy.
-# See also: https://tools.ietf.org/html/rfc1738#section-3.1
-#
-# proxy_netloc = '//[user[:password]@]host[:port]
 #
 # ----
 # Set the path to a logging configuration file. For information on howto setup
@@ -173,7 +197,7 @@
 # ----
 # Exclude EIDA nodes from harvesting. A whitespace separated list of nodes to
 # be excluded. Choices are: {bgr, eth, gfz, ingv, ipgp, koeri, lmu, niep, noa,
-# odc, resif}.
+# odc, resif, uib}.
 #
 # nodes_exclude = bgr eth gfz
 #

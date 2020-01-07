@@ -7,6 +7,7 @@ Launch EIDA NG Federator.
 import argparse
 import collections
 import copy
+import inspect
 import json
 import os
 import sys
@@ -20,6 +21,7 @@ from flask_restful import Api
 from eidangservices import settings
 from eidangservices.federator import __version__
 from eidangservices.federator.server import create_app
+from eidangservices.federator.server.cache import Cache
 from eidangservices.federator.server.misc import KeepTempfiles
 from eidangservices.federator.server.routes.misc import (
     DataselectVersionResource, StationVersionResource,
@@ -72,6 +74,23 @@ def resource_config(config_dict):
                 raise argparse.ArgumentTypeError(
                     'Invalid request method: {!r}'.format(v))
 
+            if (strict and k == 'proxy_netloc'):
+                # validate proxy_netloc
+                if v is None:
+                    continue
+
+                try:
+                    r = urlsplit(v)
+                    if (not r.netloc or r.scheme or r.path or r.query or
+                            r.fragment):
+                        raise ValueError(
+                            'Invalid network location. (Format: '
+                            '//[user[:password]@]host[:port])')
+                except Exception as err:
+                    raise argparse.ArgumentTypeError(str(err))
+                else:
+                    v = '//' + r.netloc
+
     try:
         config_dict = json.loads(config_dict)
     except Exception:
@@ -81,6 +100,45 @@ def resource_config(config_dict):
     retval = copy.deepcopy(settings.EIDA_FEDERATOR_RESOURCE_CONFIG)
     dict_merge(retval, config_dict)
     return retval
+
+
+def cache_config(arg):
+    # XXX(damb): Exclude for all CACHE_TYPEs
+    INVALID_CACHE_ARGS = set(['mode', ])
+
+    try:
+        config_dict = json.loads(arg)
+    except Exception as err:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration dictionary syntax ({}).'.format(err))
+
+    allowed_keys = set(settings.EIDA_FEDERATOR_CACHE_CONFIG)
+    difference = set(config_dict) - allowed_keys
+
+    if difference:
+        return argparse.ArgumentTypeError('Invalid key: {!r}'.format())
+
+    try:
+        cache_type = config_dict['CACHE_TYPE']
+    except KeyError:
+        raise argparse.ArgumentTypeError('Missing cache type.')
+    else:
+        if cache_type not in Cache.CACHE_MAP:
+            raise argparse.ArgumentTypeError(
+                'Invalid cache type: {!r}'.format(cache_type))
+
+    config_dict.setdefault('CACHE_KWARGS', {})
+    allowed_args = set(inspect.getfullargspec(
+        Cache.CACHE_MAP[cache_type]).args[1:]) - INVALID_CACHE_ARGS
+    difference = set(config_dict['CACHE_KWARGS']) - allowed_args
+
+    if difference:
+        raise argparse.ArgumentTypeError(
+            'Invalid cache configuration parameter: {!r}; '
+            'Valid args for CACHE_TYPE={!r}: {!r}'.format(
+                difference, cache_type, allowed_args))
+
+    return config_dict
 
 
 def keeptempfile_config(arg):
@@ -119,28 +177,6 @@ def percent(arg):
     if arg < 0 or arg > 100:
         raise argparse.ArgumentTypeError('Invalid percentage.')
     return arg
-
-
-def proxy_netloc(netloc):
-    """
-    Validate a proxy network location.
-
-    :param netloc: Network location
-    :type netloc: str or None
-    """
-    if netloc is None:
-        return netloc
-
-    try:
-        r = urlsplit(netloc)
-        if not r.netloc or r.scheme or r.path or r.query or r.fragment:
-            raise ValueError(
-                'Invalid network location. (Format: '
-                '//[user[:password]@]host[:port])')
-    except Exception as err:
-        raise argparse.ArgumentTypeError(str(err))
-    else:
-        return '//' + r.netloc
 
 
 # -----------------------------------------------------------------------------
@@ -205,16 +241,6 @@ class FederatorWebserviceBase(App):
                                   'percent. Defines the error ratio above '
                                   'requests to datacenters (DC) are dropped. '
                                   '(default: %(default)s)'))
-        parser.add_argument('--proxy-netloc', type=proxy_netloc,
-                            default=settings.
-                            EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
-                            dest='proxy_netloc', metavar='NETLOC',
-                            help=('Enforce the routing service in use to '
-                                  'prefix routed URLs with a network '
-                                  'location. May be used if requests are '
-                                  'redirected e.g. when using a proxy. '
-                                  'See also: https://tools.ietf.org/html/'
-                                  'rfc1738#section-3.1'))
         parser.add_argument('-r', '--endpoint-resources', nargs='+',
                             type=str, metavar='ENDPOINT',
                             default=sorted(
@@ -234,6 +260,11 @@ class FederatorWebserviceBase(App):
                                   '"POST". (default: %(default)s)'))
         parser.add_argument('--tmpdir', type=str, default='',
                             help='directory for temp files')
+        parser.add_argument('--cache-config', type=cache_config,
+                            dest='cache_config', metavar='DICT',
+                            default=settings.EIDA_FEDERATOR_CACHE_CONFIG,
+                            help=('Cache configuration dictionary '
+                                  '(JSON syntax) (default: %(default)s'))
         parser.add_argument('--keep-tempfiles', dest='keep_tempfiles',
                             choices=sorted(
                                 [str(c).replace('KeepTempfiles.', '').lower().
@@ -349,8 +380,10 @@ class FederatorWebserviceBase(App):
             FED_CRETRY_BUDGET_WINDOW_SIZE=self.args.cretry_budget_window_size,
             FED_CRETRY_BUDGET_TTL=self.args.cretry_budget_ttl,
             FED_CRETRY_BUDGET_ERATIO=self.args.cretry_budget_eratio,
-            FED_NETLOC_PROXY=self.args.proxy_netloc,
             TMPDIR=tempfile.gettempdir())
+
+        if self.args.cache_config:
+            app_config.update(self.args.cache_config)
 
         app = create_app(config_dict=app_config)
         api.init_app(app)

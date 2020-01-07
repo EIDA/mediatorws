@@ -13,7 +13,7 @@
 # docker exec -it eida-federator /bin/bash
 
 # Base image
-FROM phusion/baseimage:latest
+FROM phusion/baseimage:0.11
 
 # Add label metadata
 LABEL maintainer="Mathijs Koymans"
@@ -53,12 +53,12 @@ WORKDIR /var/www/mediatorws
 
 # Create the virtual environments
 RUN mkdir /var/www/federator && cd /var/www/federator && \
-    virtualenv -p $(which python3.5) venv3 && \
+    virtualenv -p $(which python3.6) venv3 && \
     /bin/bash -c "source /var/www/federator/venv3/bin/activate && \
     make -C /var/www/mediatorws install SERVICES=federator && deactivate"
 
 RUN mkdir /var/www/stationlite && cd /var/www/stationlite && \
-    virtualenv -p $(which python3.5) venv3 && \
+    virtualenv -p $(which python3.6) venv3 && \
     /bin/bash -c "source /var/www/stationlite/venv3/bin/activate && \
     pip install numpy psycopg2 && \
     make -C /var/www/mediatorws install SERVICES=stationlite && deactivate"
@@ -71,9 +71,6 @@ COPY *.wsgi /var/www/mediatorws/apache2/
 
 # The service and harvesting configuration
 COPY *_config /var/www/mediatorws/config/
-
-# Create an empty stationlite.db from template
-RUN cp -v db/stationlite.db.empty db/stationlite.db
 
 # Give read permissions
 RUN chmod +r /var/www/mediatorws/config/eidangws_config /var/www/mediatorws/apache2/*.wsgi
@@ -94,8 +91,8 @@ RUN (crontab -l ; echo "0 1 * * * source /var/www/mediatorws/docker/prod/federat
 RUN (crontab -l ; echo "0 4 * * * source /var/www/mediatorws/docker/prod/federator/cron-env; /var/www/stationlite/venv3/bin/eida-stationlite-harvest --config /var/www/mediatorws/config/harvest_station_config") | crontab
 
 RUN mkdir -p /var/www/mediatorws/log && chown www-data:www-data /var/www/mediatorws/log
-RUN mkdir -p /var/www/mediatorws/db && chown www-data:www-data /var/www/mediatorws/db
 RUN mkdir -p /var/tmp/ && chown www-data:www-data /var/tmp/
+RUN mkdir -p /var/cache/eida-federator && chown www-data:www-data /var/cache/eida-federator
 
 # Add the logging configuration
 COPY fed-logging.conf /var/www/mediatorws/config/fed-logging.conf

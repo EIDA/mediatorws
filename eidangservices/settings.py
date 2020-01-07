@@ -344,6 +344,20 @@ EIDA_NODES = {
             'location': '--',
             'channel': 'HH?',
             'startdate': '2011-01-01T00:00:00'}
+    },
+
+    'uib': {
+        'name': 'University of Bergen',
+        'services': {
+            'eida': {
+                'routing': {
+                    'service': True,
+                    'server': 'http://eida.geo.uib.no/',
+                    'uri_path_config': 'eidaws/routing.xml',
+                    'uri_path_config_vnet': 'eidaws/routing.xml',
+                    'static_file': ''}
+            }
+        }
     }
 }
 
@@ -565,28 +579,39 @@ EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 
 # default HTTP request method when issuing requests to endpoint datacenters
 EIDA_FEDERATOR_DEFAULT_HTTP_METHOD = 'POST'
+# default netloc prefixed to all URLs (used for routing service)
+EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY = None
 
 EIDA_FEDERATOR_RESOURCE_CONFIG = {
     "fdsnws-dataselect": {
         'num_threads': EIDA_FEDERATOR_THREADS_DATASELECT,
         'request_strategy': 'granular',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+        'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
     },
     "fdsnws-station-xml": {
         'num_threads': EIDA_FEDERATOR_THREADS_STATION_XML,
         'request_strategy': 'adaptive-bulk',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+        'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
     },
     "fdsnws-station-text": {
         'num_threads': EIDA_FEDERATOR_THREADS_STATION_TEXT,
         'request_strategy': 'bulk',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+        'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
     },
     "eidaws-wfcatalog": {
         'num_threads': EIDA_FEDERATOR_THREADS_WFCATALOG,
         'request_strategy': 'granular',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
+        'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
     }
+}
+
+EIDA_FEDERATOR_CACHE_CONFIG = {
+    'CACHE_TYPE': 'null',
+    'CACHE_KWARGS': {},
 }
 
 EIDA_FEDERATOR_REQUEST_STRATEGIES = (
@@ -595,9 +620,6 @@ EIDA_FEDERATOR_REQUEST_STRATEGIES = (
     'adaptive-bulk',
     'combining')
 EIDA_FEDERATOR_REQUEST_METHODS = ('POST', 'GET')
-
-# default netloc prefixed to all URLs (used for routing service)
-EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY = None
 
 # Per client retry-budget cut-off error ratio in percent
 EIDA_FEDERATOR_DEFAULT_RETRY_BUDGET_CLIENT = 1.0
