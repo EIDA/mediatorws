@@ -105,7 +105,7 @@ _data_files_stationlite += _data_files_all
 
 subsys = sys.argv[1]
 if 'federator' == subsys:
-    # configure the federator setup
+    # configure the eidaws-federator setup
     sys.argv.pop(1)
 
     _name = 'eidaws-federator'
@@ -122,6 +122,7 @@ if 'federator' == subsys:
     _test_suites.append(os.path.join('eidangservices', 'federator', 'tests'))
 
 elif 'stationlite' == subsys:
+    # configure the eidaws-stationlite setup
     sys.argv.pop(1)
 
     _name = 'eidaws-stationlite'
