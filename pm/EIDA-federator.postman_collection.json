@@ -148,6 +148,85 @@
 									"        port = ':port'.replace(\"port\", fed_port);",
 									"    }",
 									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'foo'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "text/plain",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "foo=bar\n\nCH HASLI * * 2019-01-01 2020-01-01",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query? (empty request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
 									"    var reference_result = ",
 									"`",
 									"Error 400: Bad request",
@@ -174,18 +253,433 @@
 							{
 								"key": "Content-Type",
 								"name": "Content-Type",
-								"value": "text/plain",
-								"type": "text"
+								"type": "text",
+								"value": "text/plain"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "foo=bar",
+							"raw": "\n",
 							"options": {
 								"raw": {
 									"language": "text"
 								}
 							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest empty request."
+					},
+					"response": []
+				},
+				{
+					"name": "query?includeavailability=true",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'includeavailability'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query?includeavailability=true`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?includeavailability=true",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "includeavailability",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?includeavailability=true",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'includeavailability'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "includeavailability=true\n\n* * * * 2019-01-01 2020-01-01"
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?updateafter=2019-01-01",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'updateafter'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query?updateafter=2019-01-01`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?updateafter=2019-01-01",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "updateafter",
+									"value": "2019-01-01"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?updateafter=2019-01-01",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'updateafter'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "updateafter=2019-01-01\n\n* * * * 2019-01-01 2020-01-01"
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?matchtimeseries=true",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'matchtimeseries'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query?matchtimeseries=true`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query?matchtimeseries=true",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"station",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "matchtimeseries",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?matchtimeseries=true",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'matchtimeseries'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/station/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "matchtimeseries=true\n\n* * * * 2019-01-01 2020-01-01"
 						},
 						"url": {
 							"raw": "{{url_base}}:{{port_fed}}/fdsnws/station/1/query",
@@ -1911,6 +2405,414 @@
 									"language": "text"
 								}
 							}
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?quality=M",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'quality'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query?quality=M`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?quality=M",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "quality",
+									"value": "M"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?quality=M",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'quality'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "quality=M\n\n* * * * 2019-01-01 2020-01-01"
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?minimumlength=60.0",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'minimumlength'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query?minimumlength=60.0`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?minimumlength=60.0",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "minimumlength",
+									"value": "60.0"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?minimumlength=60.0",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'minimumlength'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "minimumlength=60.0\n\n* * * * 2019-01-01 2020-01-01"
+						},
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?longestonly=True",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'longestonly'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query?longestonly=true`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query?longestonly=true",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"fdsnws",
+								"dataselect",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "longestonly",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Bad request (HTTP 400).\n\nTest invalid query parameter."
+					},
+					"response": []
+				},
+				{
+					"name": "query?longestonly=True",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f940622e-f2dd-4c70-8042-66cb6aa1bf5a",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});",
+									"",
+									"pm.test(\"Body matches string\", function () {",
+									"    var fed_port = pm.environment.get('port_fed');",
+									"    var port = '';",
+									"    if (fed_port != 80)",
+									"    {",
+									"        port = ':port'.replace(\"port\", fed_port);",
+									"    }",
+									"    ",
+									"    var reference_result =",
+									"`",
+									"Error 400: Bad request",
+									"",
+									"ValidationError: Invalid request query parameters: {'longestonly'}.",
+									"",
+									"Usage details are available from http://www.fdsn.org/webservices/",
+									"",
+									"Request:",
+									"${pm.environment.get('url_base')}${port}/fdsnws/dataselect/1/query`;",
+									"    ",
+									"    pm.expect(pm.response.text()).to.include(reference_result);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "longestonly=true\n\n* * * * 2019-01-01 2020-01-01"
 						},
 						"url": {
 							"raw": "{{url_base}}:{{port_fed}}/fdsnws/dataselect/1/query",

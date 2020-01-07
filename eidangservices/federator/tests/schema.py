@@ -10,9 +10,10 @@ import marshmallow as ma
 from eidangservices.federator.server import schema
 
 
-# -----------------------------------------------------------------------------
-# schema related test cases
 class StationSchemaTestCase(unittest.TestCase):
+    """
+    Query filter parameter related test cases for ``fdsnws-station``.
+    """
 
     def test_geographic_opts(self):
         self.maxDiff = None
@@ -24,9 +25,7 @@ class StationSchemaTestCase(unittest.TestCase):
             'minlatitude': '0.0',
             'maxlatitude': '45.0',
             'includerestricted': 'true',
-            'matchtimeseries': 'false',
-            'nodata': '204',
-            'includeavailability': 'false'}
+            'nodata': '204', }
 
         test_datasets = [{'minlatitude': 0.,
                           'maxlatitude': 45.,
