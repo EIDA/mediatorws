@@ -83,10 +83,6 @@ _deps_stationlite = _deps_all + [
     'fasteners>=0.14.1',
     'Flask-SQLAlchemy>=2.3.2',
     'obspy==1.1.0',
-    # matplotlib v3.x dropped python2.7 support; stick to the LTS version which
-    # will support python2.7 until 01/01/2020; see https://matplotlib.org/
-    # Note, that matplotlib is required by obspy.
-    'matplotlib<3,>=2.2.3',
     'SQLAlchemy>=1.2.0', ]
 _deps = deepcopy(_deps_federator)
 _deps.extend(_deps_stationlite)
