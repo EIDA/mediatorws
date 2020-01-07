@@ -42,10 +42,13 @@ def get_version(filename):
 
 
 _name = 'eidaws'
-_version = '0.9.4'
 _author = "Fabian Euchner (ETH), Daniel Armbruster (ETH)"
 _author_email = "fabian.euchner@sed.ethz.ch, daniel.armbruster@sed.ethz.ch"
 _description = ("EIDA NG Mediator/Federator webservices")
+
+_version_federator = get_version('eidangservices/federator/__init__.py')
+_version_stationlite = get_version('eidangservices/stationlite/__init__.py')
+_version = max(_version_federator, _version_stationlite)
 
 _entry_points_federator = {
     'console_scripts': [
@@ -131,7 +134,7 @@ if 'federator' == subsys:
     sys.argv.pop(1)
 
     _name = 'eidaws-federator'
-    _version = get_version('eidangservices/federator/__init__.py')
+    _version = _version_federator
     _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = ("daniel.armbruster@sed.ethz.ch, " +
                      "fabian.euchner@sed.ethz.ch")
@@ -150,7 +153,7 @@ elif 'stationlite' == subsys:
     sys.argv.pop(1)
 
     _name = 'eidaws-stationlite'
-    _version = get_version('eidangservices/stationlite/__init__.py')
+    _version = _version_stationlite
     _author = "Daniel Armbruster (ETH), Fabian Euchner (ETH)"
     _author_email = "daniel.armbruster@sed.ethz.ch, fabian.euchner@sed.ethz.ch"
     _description = ("EIDA NG StationLite webservice")
