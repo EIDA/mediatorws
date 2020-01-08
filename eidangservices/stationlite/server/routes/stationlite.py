@@ -32,7 +32,7 @@ class StationLiteResource(Resource):
     LOGGER = 'flask.app.stationlite.stationlite_resource'
 
     def __init__(self):
-        super(StationLiteResource, self).__init__()
+        super().__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
