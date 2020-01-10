@@ -335,10 +335,6 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         StationXML :code`BaseNodeType` elements.
 
     """
-    # TODO(damb): The combiner has to write metadata to the log database.
-    # Also in case of errors.
-    # Besides of processors this combiner has to log since it is the instance
-    # collecting and analyzing DownloadTask results.
 
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
 
