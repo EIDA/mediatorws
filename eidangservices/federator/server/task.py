@@ -402,7 +402,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                     _result = result.get()
                     if _result.status_code == 200:
                         for net_element in self._extract_net_elements(
-                                result.data):
+                                _result.data):
                             self._merge_net_element(net_element,
                                                     level=self._level)
                         self._clean(_result)
