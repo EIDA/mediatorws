@@ -348,11 +348,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         nets = set([se.network for route in routes for se in route.streams])
 
-        # TODO(damb): Use assert instead
-        if len(nets) != 1:
-            raise ValueError(
-                'Routes must belong exclusively to a single '
-                'network code.')
+        assert len(nets) == 1, ('Routes must belong exclusively to a single '
+                                'network code.')
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
