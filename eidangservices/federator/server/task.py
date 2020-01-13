@@ -321,19 +321,9 @@ class CombinerTask(TaskBase):
 class StationXMLNetworkCombinerTask(CombinerTask):
     """
     Task downloading and combining `StationXML
-    <http://www.fdsn.org/xml/station/>`_ information for a network element.
+    <http://www.fdsn.org/xml/station/fdsn-station-1.0.xsd>`_ information for a
+    network element.
     Downloading is performed concurrently.
-
-    :param list routes: Routes to combine. Must belong to exclusively a single
-        network code.
-
-    .. note::
-
-        *StationXML* :code:`BaseNodeType` elements by definition
-        (http://www.fdsn.org/xml/station/fdsn-station-1.0.xsd) are ordered
-        using :code:`<xs:sequence></sequence>`. This fact is used when merging
-        StationXML :code`BaseNodeType` elements.
-
     """
 
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
@@ -345,6 +335,10 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     CHANNEL_TAG = settings.STATIONXML_ELEMENT_CHANNEL
 
     def __init__(self, routes, query_params, **kwargs):
+        """
+        :param list routes: Routes to combine. Must belong to exclusively a
+            single network code.
+        """
 
         nets = set([se.network for route in routes for se in route.streams])
 
