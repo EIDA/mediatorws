@@ -348,7 +348,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
 
-        self._network_elements = {}
+        self._network_elements = collections.OrderedDict()
         self.path_tempfile = None
 
     def _clean(self, result):
@@ -548,7 +548,7 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 for cha_element in sta_element.findall(tag):
                     yield cha_element
 
-        sta_elements = {}
+        sta_elements = collections.OrderedDict()
         for sta_element in emerge_sta_elements(net_element):
 
             cha_elements = []
