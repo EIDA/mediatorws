@@ -401,7 +401,10 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 if result.ready():
                     _result = result.get()
                     if _result.status_code == 200:
-                        self._merge(_result.data, level=self._level)
+                        for net_element in self._extract_net_elements(
+                                result.data):
+                            self._merge_net_element(net_element,
+                                                    level=self._level)
                         self._clean(_result)
                         self._sizes.append(_result.length)
 
@@ -451,54 +454,55 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         return Result.ok(data=self.path_tempfile, length=_length,
                          extras={'type_task': self._TYPE})
 
-    def _merge(self, result_data, level):
+    def _merge_net_element(self, net_element, level,
+                           namespaces=settings.STATIONXML_NAMESPACES):
         """
-        Merge `StationXML
-        <https://www.fdsn.org/xml/station/fdsn-station-1.0.xsd>`_ data into
-        internal element tree.
+        Merge a `StationXML
+        <https://www.fdsn.org/xml/station/fdsn-station-1.0.xsd>`_
+        ``<Network></Network>`` element into the internal element tree.
         """
+        if level in ('channel', 'response'):
+            # merge <Channel></Channel> elements into
+            # <Station></Station> from the correct
+            # <Network></Network> epoch element
+            loaded_net_element, loaded_sta_elements = \
+                self._deserialize_net_element(
+                    net_element, namespaces=namespaces)
 
-        for net_element in self._extract_net_elements(result_data):
-            if level in ('channel', 'response'):
-                # merge <Channel></Channel> elements into
-                # <Station></Station> from the correct
-                # <Network></Network> epoch element
-                demuxed_net_element, demuxed_sta_elements = \
-                    self._deserialize_net_element(net_element)
+            loaded_net_element, sta_elements = \
+                self._emerge_net_element(loaded_net_element)
 
-                demuxed_net_element, sta_elements = \
-                    self._emerge_net_element(demuxed_net_element)
+            # append / merge <Station></Station> elements
+            for key, loaded_sta_element in loaded_sta_elements.items():
+                try:
+                    sta_element = sta_elements[key]
+                except KeyError:
+                    sta_elements[key] = loaded_sta_element
+                else:
+                    # XXX(damb): Channels are ALWAYS appended; no merging
+                    # is performed
+                    sta_element[1].extend(loaded_sta_element[1])
 
-                # append / merge <Station></Station> elements
-                for key, demuxed_sta_element in \
-                        demuxed_sta_elements.items():
-                    try:
-                        sta_element = sta_elements[key]
-                    except KeyError:
-                        sta_elements[key] = demuxed_sta_element
-                    else:
-                        # XXX(damb): Channels are ALWAYS appended; no merging
-                        # is performed
-                        sta_element[1].extend(demuxed_sta_element[1])
+        elif level == 'station':
+            # append <Station></Station> elements to the
+            # corresponding <Network></Network> epoch
+            loaded_net_element, loaded_sta_elements = \
+                self._deserialize_net_element(
+                    net_element, namespaces=namespaces)
 
-            elif level == 'station':
-                # append <Station></Station> elements to the
-                # corresponding <Network></Network> epoch
-                demuxed_net_element, demuxed_sta_elements = \
-                    self._deserialize_net_element(net_element)
+            loaded_net_element, sta_elements = \
+                self._emerge_net_element(loaded_net_element)
 
-                demuxed_net_element, sta_elements = \
-                    self._emerge_net_element(demuxed_net_element)
+            # append <Station></Station> elements if
+            # unknown
+            for key, loaded_sta_element in loaded_sta_elements.items():
+                sta_elements.setdefault(key, loaded_sta_element)
 
-                # append <Station></Station> elements if
-                # unknown
-                for key, demuxed_sta_element in \
-                        demuxed_sta_elements.items():
-                    sta_elements.setdefault(
-                        key, demuxed_sta_element)
+        elif level == 'network':
+            _ = self._emerge_net_element(net_element)
 
-            elif level == 'network':
-                _ = self._emerge_net_element(net_element)
+        else:
+            raise ValueError('Invalid level: {!r}'.format(level))
 
     def _emerge_net_element(self, net_element):
         """
@@ -531,6 +535,9 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
     def _deserialize_net_element(self, net_element, hash_method=hashlib.md5,
                                  namespaces=settings.STATIONXML_NAMESPACES):
+        """
+        Deserialize and demultiplex ``net_element``.
+        """
 
         def emerge_sta_elements(net_element, namespaces=namespaces):
             station_tags = ['{}{}'.format(ns, self.STATION_TAG)
