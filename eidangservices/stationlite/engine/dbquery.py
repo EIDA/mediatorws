@@ -203,3 +203,21 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
 
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]
+
+
+def get_alimits(session, service='dataselect'):
+    """
+    Return access limits for endpoint URLs.
+
+    :param session: SQLAlchemy session
+    :type session: :py:class:`sqlalchemy.orm.sessionSession`
+    :param str service: String specifying the webservice endpoint
+    """
+
+    query = session.query(orm.Endpoint.url, orm.Endpoint.alimit).\
+        join(orm.Service,
+             orm.Endpoint.service_ref == orm.Service.id).\
+        filter(orm.Service.name == service).\
+        order_by(orm.Endpoint.url)
+
+    return query.all()
