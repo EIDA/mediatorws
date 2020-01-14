@@ -640,6 +640,8 @@ EIDA_FEDERATOR_APP_SHARE = os.path.join(APP_ROOT, EIDA_FEDERATOR_SERVICE_ID,
 EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
 EIDA_STATIONLITE_SERVICE_ID = 'stationlite'
 
+EIDA_STATIONLITE_ALIMIT_PATH = '/eidaws/alimit/1/'
+
 # default port configuration for flask test wsgi stationlite instance
 EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
 
@@ -647,6 +649,7 @@ EIDA_STATIONLITE_SHARE_DIR = FDSN_WADL_DIR
 EIDA_STATIONLITE_APP_SHARE = os.path.join(APP_ROOT,
                                           EIDA_STATIONLITE_SERVICE_ID,
                                           EIDA_STATIONLITE_SHARE_DIR)
+
 EIDA_ROUTING_WADL_FILENAME = 'routing.wadl'
 
 # ----

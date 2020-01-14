@@ -17,6 +17,7 @@ from eidangservices.stationlite.engine.db import configure_sqlite
 from eidangservices.stationlite.server import create_app
 from eidangservices.stationlite.server.routes.stationlite import \
     StationLiteResource
+from eidangservices.stationlite.server.routes.alimit import AccessLimitResource
 from eidangservices.stationlite.server.routes.misc import \
     StationLiteVersionResource, StationLiteWadlResource
 from eidangservices.utils.app import CustomParser, App, AppError
@@ -137,6 +138,10 @@ class StationLiteWebserviceBase(App):
         api.add_resource(StationLiteWadlResource, "%s%s" %
                          (settings.EIDA_ROUTING_PATH,
                           settings.FDSN_WADL_METHOD_TOKEN))
+
+        api.add_resource(AccessLimitResource, "%s%s" %
+            (settings.EIDA_STATIONLITE_ALIMIT_PATH,
+             settings.FDSN_QUERY_METHOD_TOKEN))
 
         app = create_app(config_dict=app_config)
         api.init_app(app)
