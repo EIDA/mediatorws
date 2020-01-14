@@ -169,6 +169,8 @@ class Endpoint(ORMBase):
     service_ref = Column(Integer, ForeignKey('service.id'),
                          index=True)
     url = Column(String(LENGTH_URL), nullable=False)
+    # XXX(damb): alimit of -1 means no access limitation
+    alimit = Column(Integer, nullable=False, default=-1)
 
     # many to many ChannelEpoch<->Endpoint
     channel_epochs = relationship('Routing',
