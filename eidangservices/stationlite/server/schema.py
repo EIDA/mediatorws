@@ -3,6 +3,8 @@
 Stationlite schema definitions
 """
 
+import functools
+
 from urllib.parse import urlsplit
 
 from marshmallow import (Schema, fields, validate, validates_schema,
@@ -12,7 +14,13 @@ from eidangservices.utils.schema import (FDSNWSBool, Latitude, Longitude,
                                          NoData)
 
 
-# ----------------------------------------------------------------------------
+Service = functools.partial(
+    fields.Str,
+    missing='dataselect',
+    validate=validate.OneOf(['dataselect', 'station', 'wfcatalog']))
+
+
+# -----------------------------------------------------------------------------
 class StationLiteSchema(Schema):
     """
     Stationlite webservice schema definition.
@@ -26,9 +34,7 @@ class StationLiteSchema(Schema):
         missing='post',
         # validate=validate.OneOf(['xml', 'json', 'get', 'post'])
         validate=validate.OneOf(['post', 'get']))
-    service = fields.Str(
-        missing='dataselect',
-        validate=validate.OneOf(['dataselect', 'station', 'wfcatalog']))
+    service = Service()
 
     nodata = NoData()
     alternative = FDSNWSBool(missing='false')
@@ -123,3 +129,14 @@ class StationLiteSchema(Schema):
 
     class Meta:
         strict = True
+
+
+class AccessLimitSchema(Schema):
+    """
+    Stationlite webservice schema definition with respect to the endpoint
+    access limit configuration.
+    """
+
+    service = Service()
+
+    nodata = NoData()
