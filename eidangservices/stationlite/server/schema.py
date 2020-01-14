@@ -26,7 +26,7 @@ class StationLiteSchema(Schema):
     Stationlite webservice schema definition.
 
     The parameters defined correspond to the definition
-    `https://www.orfeus-eu.org/data/eida/webservices/routing/`
+    `https://www.orfeus-eu.org/data/eida/webservices/routing/`_.
     """
     format = fields.Str(
         # NOTE(damb): formats different from 'post' are not implemented yet.
