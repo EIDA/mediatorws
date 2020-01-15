@@ -515,7 +515,8 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         :returns: Emerged ``<Network></Network>`` element
         """
         return self._network_elements.setdefault(
-            self._make_key(net_element), (net_element, {}))
+            self._make_key(net_element),
+            (net_element, collections.OrderedDict()))
 
     def _extract_net_elements(self, path_xml,
                               namespaces=settings.STATIONXML_NAMESPACES):
