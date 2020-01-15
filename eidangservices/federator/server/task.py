@@ -6,6 +6,7 @@ EIDA federator task facilities
 import collections
 import datetime
 import enum
+import hashlib
 import json
 import logging
 import os
@@ -18,8 +19,7 @@ from lxml import etree
 
 from eidangservices import settings
 from eidangservices.federator.server.misc import (
-    Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath,
-    elements_equal)
+    Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath)
 from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
@@ -321,24 +321,10 @@ class CombinerTask(TaskBase):
 class StationXMLNetworkCombinerTask(CombinerTask):
     """
     Task downloading and combining `StationXML
-    <http://www.fdsn.org/xml/station/>`_ information for a network element.
+    <http://www.fdsn.org/xml/station/fdsn-station-1.0.xsd>`_ information for a
+    network element.
     Downloading is performed concurrently.
-
-    :param list routes: Routes to combine. Must belong to exclusively a single
-        network code.
-
-    .. note::
-
-        *StationXML* :code:`BaseNodeType` elements by definition
-        (http://www.fdsn.org/xml/station/fdsn-station-1.0.xsd) are ordered
-        using :code:`<xs:sequence></sequence>`. This fact is used when merging
-        StationXML :code`BaseNodeType` elements.
-
     """
-    # TODO(damb): The combiner has to write metadata to the log database.
-    # Also in case of errors.
-    # Besides of processors this combiner has to log since it is the instance
-    # collecting and analyzing DownloadTask results.
 
     LOGGER = 'flask.app.federator.task_combiner_stationxml'
 
@@ -349,19 +335,20 @@ class StationXMLNetworkCombinerTask(CombinerTask):
     CHANNEL_TAG = settings.STATIONXML_ELEMENT_CHANNEL
 
     def __init__(self, routes, query_params, **kwargs):
+        """
+        :param list routes: Routes to combine. Must belong to exclusively a
+            single network code.
+        """
 
         nets = set([se.network for route in routes for se in route.streams])
 
-        # TODO(damb): Use assert instead
-        if len(nets) != 1:
-            raise ValueError(
-                'Routes must belong exclusively to a single '
-                'network code.')
+        assert len(nets) == 1, ('Routes must belong exclusively to a single '
+                                'network code.')
 
         super().__init__(routes, query_params, logger=self.LOGGER, **kwargs)
         self._level = self.query_params.get('level', 'station')
 
-        self._network_elements = []
+        self._network_elements = collections.OrderedDict()
         self.path_tempfile = None
 
     def _clean(self, result):
@@ -414,63 +401,10 @@ class StationXMLNetworkCombinerTask(CombinerTask):
                 if result.ready():
                     _result = result.get()
                     if _result.status_code == 200:
-                        if self._level in ('channel', 'response'):
-                            # merge <Channel></Channel> elements into
-                            # <Station></Station> from the correct
-                            # <Network></Network> epoch element
-                            for _net_element in self._extract_net_elements(
-                                    _result.data):
-
-                                # find the correct <Network></Network> epoch
-                                # element
-                                net_element, known = self._emerge_net_element(
-                                    _net_element,
-                                    exclude_tags=[
-                                        '{}{}'.format(ns, self.STATION_TAG)
-                                        for ns in
-                                        settings.STATIONXML_NAMESPACES])
-
-                                if not known:
-                                    continue
-
-                                # append/merge station elements
-                                for sta_element in \
-                                        self._emerge_sta_elements(
-                                            _net_element):
-                                    self._merge_sta_element(
-                                        net_element,
-                                        sta_element)
-
-                        elif self._level == 'station':
-                            # append <Station></Station> elements to the
-                            # corresponding <Network></Network> epoch
-                            for _net_element in self._extract_net_elements(
-                                    _result.data):
-
-                                net_element, known = self._emerge_net_element(
-                                    _net_element,
-                                    exclude_tags=[
-                                        '{}{}'.format(ns, self.STATION_TAG)
-                                        for ns in
-                                        settings.STATIONXML_NAMESPACES])
-
-                                if not known:
-                                    continue
-
-                                # append station elements
-                                # NOTE(damb): <Station></Station> elements
-                                # defined by multiple EIDA nodes are simply
-                                # appended; no merging is performed
-                                for sta_element in \
-                                        self._emerge_sta_elements(
-                                            _net_element):
-                                    net_element.append(sta_element)
-
-                        elif self._level == 'network':
-                            for net_element in self._extract_net_elements(
-                                    _result.data):
-                                _, _ = self._emerge_net_element(net_element)
-
+                        for net_element in self._extract_net_elements(
+                                _result.data):
+                            self._merge_net_element(net_element,
+                                                    level=self._level)
                         self._clean(_result)
                         self._sizes.append(_result.length)
 
@@ -502,9 +436,10 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         # dump xml tree for <Network></Network> epochs to temporary file
         self.path_tempfile = get_temp_filepath()
         self.logger.debug('{}: tempfile={!r}'.format(self, self.path_tempfile))
+
         with open(self.path_tempfile, 'wb') as ofd:
-            for net_element in self._network_elements:
-                s = etree.tostring(net_element)
+            for net_element, sta_elements in self._network_elements.values():
+                s = self._serialize_net_element(net_element, sta_elements)
                 _length += len(s)
                 ofd.write(s)
 
@@ -519,61 +454,69 @@ class StationXMLNetworkCombinerTask(CombinerTask):
         return Result.ok(data=self.path_tempfile, length=_length,
                          extras={'type_task': self._TYPE})
 
-    def _emerge_net_element(self, net_element, exclude_tags=[]):
+    def _merge_net_element(self, net_element, level,
+                           namespaces=settings.STATIONXML_NAMESPACES):
+        """
+        Merge a `StationXML
+        <https://www.fdsn.org/xml/station/fdsn-station-1.0.xsd>`_
+        ``<Network></Network>`` element into the internal element tree.
+        """
+        if level in ('channel', 'response'):
+            # merge <Channel></Channel> elements into
+            # <Station></Station> from the correct
+            # <Network></Network> epoch element
+            loaded_net_element, loaded_sta_elements = \
+                self._deserialize_net_element(
+                    net_element, namespaces=namespaces)
+
+            loaded_net_element, sta_elements = \
+                self._emerge_net_element(loaded_net_element)
+
+            # append / merge <Station></Station> elements
+            for key, loaded_sta_element in loaded_sta_elements.items():
+                try:
+                    sta_element = sta_elements[key]
+                except KeyError:
+                    sta_elements[key] = loaded_sta_element
+                else:
+                    # XXX(damb): Channels are ALWAYS appended; no merging
+                    # is performed
+                    sta_element[1].extend(loaded_sta_element[1])
+
+        elif level == 'station':
+            # append <Station></Station> elements to the
+            # corresponding <Network></Network> epoch
+            loaded_net_element, loaded_sta_elements = \
+                self._deserialize_net_element(
+                    net_element, namespaces=namespaces)
+
+            loaded_net_element, sta_elements = \
+                self._emerge_net_element(loaded_net_element)
+
+            # append <Station></Station> elements if
+            # unknown
+            for key, loaded_sta_element in loaded_sta_elements.items():
+                sta_elements.setdefault(key, loaded_sta_element)
+
+        elif level == 'network':
+            _ = self._emerge_net_element(net_element)
+
+        else:
+            raise ValueError('Invalid level: {!r}'.format(level))
+
+    def _emerge_net_element(self, net_element):
         """
         Emerge a :code:`<Network></Network>` epoch element. If the
         :code:`<Network></Network>` element is unknown it is automatically
         appended to the list of already existing network elements.
 
-        :param net_element: Emerge a network epoch element
+        :param net_element: Network element to be emerged
         :type net_element: :py:class:`lxml.etree.Element`
-        :param list exclude_tags: List of child element tags to be excluded
-            while comparing
-        :returns: Tuple of :code:`net_element` or a reference to an already
-            existing network epoch element and a boolean value if the network
-            element already is known (:code:`True`) else :code:`False`
-        :rtype: tuple
+        :returns: Emerged ``<Network></Network>`` element
         """
-        for existing_net_element in self._network_elements:
-            if elements_equal(
-                net_element,
-                existing_net_element,
-                exclude_tags,
-                    recursive=True):
-                return existing_net_element, True
-
-        self._network_elements.append(net_element)
-        return net_element, False
-
-    def _emerge_sta_elements(self, net_element,
-                             namespaces=settings.STATIONXML_NAMESPACES):
-        """
-        Generator function emerging :code:`<Station><Station>` elements from
-        :code:`<Network></Network>` tree.
-
-        :param net_element: Network epoch `StationXML
-        <http://www.fdsn.org/xml/station/>`_ element
-        :type net_element: :py:class:`lxml.etree.Element`
-        :param list namespaces: List of XML namespaces to be taken into
-            consideration.
-        """
-        station_tags = ['{}{}'.format(ns, self.STATION_TAG)
-                        for ns in namespaces]
-        for tag in station_tags:
-            for sta_element in net_element.findall(tag):
-                yield sta_element
-
-    def _emerge_cha_elements(self, sta_element,
-                             namespaces=settings.STATIONXML_NAMESPACES):
-        """
-        Generator function emerging :code:`<Channel><Channel>` elements from
-        :code:`<Station></Station>` tree.
-        """
-        channel_tags = ['{}{}'.format(ns, self.CHANNEL_TAG)
-                        for ns in namespaces]
-        for tag in channel_tags:
-            for cha_element in sta_element.findall(tag):
-                yield cha_element
+        return self._network_elements.setdefault(
+            self._make_key(net_element),
+            (net_element, collections.OrderedDict()))
 
     def _extract_net_elements(self, path_xml,
                               namespaces=settings.STATIONXML_NAMESPACES):
@@ -589,34 +532,60 @@ class StationXMLNetworkCombinerTask(CombinerTask):
 
         with open(path_xml, 'rb') as ifd:
             station_xml = etree.parse(ifd).getroot()
-            return [net_element
-                    for net_element in station_xml.iter(*network_tags)]
+            yield from station_xml.iter(*network_tags)
 
-    def _merge_sta_element(self, net_element, sta_element,
-                           namespaces=settings.STATIONXML_NAMESPACES):
+    def _deserialize_net_element(self, net_element, hash_method=hashlib.md5,
+                                 namespaces=settings.STATIONXML_NAMESPACES):
         """
-        Merges a *StationXML* :code:`<Station></Station>` epoch element into a
-        :code:`<Network></Network>` epoch element. Merging is performed
-        recursively down to :code:`<Channel><Channel>` epochs.
+        Deserialize and demultiplex ``net_element``.
         """
-        # XXX(damb): Check if <Station></Station> epoch element is already
-        # available - if not simply append.
-        for _sta_element in net_element.iterfind(sta_element.tag):
-            if elements_equal(sta_element,
-                              _sta_element,
-                              exclude_tags=[
-                                  '{}{}'.format(ns, self.CHANNEL_TAG)
-                                  for ns in namespaces],
-                              recursive=False):
-                # XXX(damb): Channels are ALWAYS appended; no merging is
-                # performed
-                for _cha_element in self._emerge_cha_elements(sta_element,
-                                                              namespaces):
-                    _sta_element.append(_cha_element)
-                break
 
-        else:
+        def emerge_sta_elements(net_element, namespaces=namespaces):
+            station_tags = ['{}{}'.format(ns, self.STATION_TAG)
+                            for ns in namespaces]
+
+            for tag in station_tags:
+                for sta_element in net_element.findall(tag):
+                    yield sta_element
+
+        def emerge_cha_elements(sta_element, namespaces=namespaces):
+            channel_tags = ['{}{}'.format(ns, self.CHANNEL_TAG)
+                            for ns in namespaces]
+
+            for tag in channel_tags:
+                for cha_element in sta_element.findall(tag):
+                    yield cha_element
+
+        sta_elements = collections.OrderedDict()
+        for sta_element in emerge_sta_elements(net_element):
+
+            cha_elements = []
+            for cha_element in emerge_cha_elements(sta_element):
+
+                cha_elements.append(cha_element)
+                cha_element.getparent().remove(cha_element)
+
+            sta_elements[self._make_key(sta_element)] = (
+                sta_element, cha_elements)
+            sta_element.getparent().remove(sta_element)
+
+        return net_element, sta_elements
+
+    def _serialize_net_element(self, net_element, sta_elements={}):
+        for sta_element, cha_elements in sta_elements.values():
+            # XXX(damb): No deepcopy is performed
+            sta_element.extend(cha_elements)
             net_element.append(sta_element)
+
+        return etree.tostring(net_element)
+
+    @staticmethod
+    def _make_key(element, hash_method=hashlib.md5):
+        """
+        Compute hash for ``element`` based on the elements' attributes.
+        """
+        key_args = sorted(element.attrib.items())
+        return hash_method(str(key_args).encode('utf-8')).digest()
 
 
 # -----------------------------------------------------------------------------
