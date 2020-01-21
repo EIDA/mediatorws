@@ -168,15 +168,21 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
 
     for row in query.all():
         # print('Query response: {0!r}'.format(row))
-        # NOTE(damb): Adjust epoch in case the ChannelEpoch is smaller than the
-        # RoutingEpoch (regarding time constraints).
-        starttime = max(row[2], row[6])
-        endtime = row[3] if ((row[7] is None and row[3] is not None) or
-                             (row[7] is not None and row[3] is not None and
-                              row[7] > row[3])) else row[7]
+        # NOTE(damb): Adjust epoch in case the ChannelEpoch is smaller/larger
+        # than the RoutingEpoch (regarding time constraints); at least one
+        # starttime is mandatory to be configured
+        starttime = max(
+            t for t in (row[2], row[6], sql_stream_epoch.starttime)
+            if t is not None)
+
+        try:
+            endtime = min(
+                t for t in (row[3], row[7], sql_stream_epoch.endtime)
+                if t is not None)
+        except ValueError:
+            endtime = None
 
         if endtime is not None and endtime <= starttime:
-            # epoch is not routed
             continue
 
         sta = row[5]
