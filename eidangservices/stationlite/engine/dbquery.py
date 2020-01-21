@@ -179,19 +179,19 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
             # epoch is not routed
             continue
 
+        sta = row[5]
+        loc = row[1]
+        cha = row[0]
+
+        # NOTE(damb): level reduction
+        if level == 'network':
+            sta = loc = cha = '*'
+        elif level == 'station':
+            loc = cha = '*'
+
         # NOTE(damb): Set endtime to 'max' if undefined (i.e. device currently
         # acquiring data).
         with none_as_max(endtime) as end:
-            sta = row[5]
-            loc = row[1]
-            cha = row[0]
-
-            # NOTE(damb): level reduction
-            if level == 'network':
-                sta = loc = cha = '*'
-            elif level == 'station':
-                loc = cha = '*'
-
             stream_epochs = StreamEpochs(
                 network=row[4],
                 station=sta,
