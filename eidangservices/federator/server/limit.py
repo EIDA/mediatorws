@@ -191,6 +191,7 @@ class RequestSlotPool:
 
     def __enter__(self):
         self.acquire()
+        return self
 
     def __exit__(self, *args):
         self.release()
