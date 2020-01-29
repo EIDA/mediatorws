@@ -105,7 +105,7 @@ class RequestSlotPool:
 
             def client_side_incr(pipe):
                 current_value = pipe.get(self.key)
-                if maxsize < current_value:
+                if maxsize == -1 or maxsize < current_value:
                     next_value = current_value + 1
                     pipe.multi()
                     pipe.set(self.key, next_value)
