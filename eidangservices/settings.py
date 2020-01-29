@@ -551,8 +551,9 @@ EIDA_FEDERATOR_SERVICE_ID = 'federator'
 # default port configuration for flask test wsgi federator instance
 EIDA_FEDERATOR_DEFAULT_SERVER_PORT = 5000
 # default StationLite service URL
+EIDA_FEDERATOR_DEFAULT_ROUTING_BASE_URL = 'http://localhost'
 EIDA_FEDERATOR_DEFAULT_ROUTING_URL = \
-    'http://localhost/eidaws/routing/1/'
+    EIDA_FEDERATOR_DEFAULT_ROUTING_BASE_URL + EIDA_ROUTING_PATH
 # default storage (Redis) URL
 EIDA_FEDERATOR_DEFAULT_STORAGE_URL = \
     'redis://localhost:6379/0'
@@ -641,6 +642,8 @@ EIDA_STATIONLITE_CONFIG_SECTION = 'CONFIG_STATIONLITE'
 EIDA_STATIONLITE_SERVICE_ID = 'stationlite'
 
 EIDA_STATIONLITE_ALIMIT_PATH = '/eidaws/alimit/1/'
+EIDA_STATIONLITE_DEFAULT_ALIMIT_URL = \
+    EIDA_FEDERATOR_DEFAULT_ROUTING_BASE_URL + EIDA_STATIONLITE_ALIMIT_PATH
 
 # default port configuration for flask test wsgi stationlite instance
 EIDA_STATIONLITE_DEFAULT_SERVER_PORT = 5002
