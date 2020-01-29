@@ -238,6 +238,10 @@ class RequestSlotPool:
                 if _line and _line[0] == self.url:
                     try:
                         alimit = int(_line[1])
+
+                        if alimit < -1:
+                            raise ValueError(alimit)
+
                     except (IndexError, ValueError) as err:
                         self.logger.warning(
                             'Invalid access limit configuration '
