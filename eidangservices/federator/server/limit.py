@@ -138,7 +138,7 @@ class RequestSlotPool:
 
             redis.decr(self.key)
 
-    def __init__(self, redis, url, url_alimit, key_prefix='request-slot:'):
+    def __init__(self, redis, url, url_alimit, key_prefix='request-pool:'):
         """
         :param str url: URL the pool is mapped to
         :param str url_alimit: URL to the configuration service providing
