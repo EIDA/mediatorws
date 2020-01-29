@@ -152,8 +152,7 @@ class RequestSlotPool:
         service = _extract_service_from_fdsnws_url(self.url)
         self._maxsize = self._get_alimit({'service': service})
 
-        if self._maxsize > -1:
-            self._init_redis(self.key)
+        self._init_redis(self.key)
 
         self._pool = []
 
@@ -163,8 +162,7 @@ class RequestSlotPool:
 
         slot = self.RequestSlot(self.url, **kwargs)
 
-        if (self._maxsize == -1 or
-                slot.acquire(self.redis, self._maxsize, timeout=timeout)):
+        if slot.acquire(self.redis, self._maxsize, timeout=timeout):
             self._pool.append(slot)
         else:
             self.logger.warning(
