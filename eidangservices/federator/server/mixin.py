@@ -3,7 +3,8 @@
 import base64
 import hashlib
 
-from eidangservices.federator.server import cache, response_code_stats
+from eidangservices.federator.server import (
+    cache, response_code_stats, semaphore_pool)
 from eidangservices.federator.server.cache import null_control
 
 
@@ -137,3 +138,10 @@ class CachingMixin:
             return None, found
         else:
             return retval, found
+
+
+class EndpointAccessLimitMixin:
+
+    @property
+    def semaphore_pool(self):
+        return semaphore_pool

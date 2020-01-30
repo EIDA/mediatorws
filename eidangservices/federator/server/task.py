@@ -20,7 +20,8 @@ from lxml import etree
 from eidangservices import settings
 from eidangservices.federator.server.misc import (
     Context, ContextLoggerAdapter, KeepTempfiles, get_temp_filepath)
-from eidangservices.federator.server.mixin import ClientRetryBudgetMixin
+from eidangservices.federator.server.mixin import (
+    ClientRetryBudgetMixin, EndpointAccessLimitMixin)
 from eidangservices.federator.server.request import GranularFdsnRequestHandler
 from eidangservices.utils.request import (binary_request, raw_request,
                                           stream_request, RequestsError)
@@ -898,11 +899,12 @@ class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
                    self._http_method,
                    self.path_tempfile))
 
+        code = None
         try:
             self._run(req)
         except RequestsError as err:
             # set response code only if a connection could be established
-            code = None if err.response is None else err.response.status_code
+            code = err.response.status_code
             return self._handle_error(err)
         else:
             code = 200
@@ -973,7 +975,7 @@ class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
                 ofd.write(chunk)
 
 
-class StationTextDownloadTask(RawDownloadTask):
+class StationTextDownloadTask(RawDownloadTask, EndpointAccessLimitMixin):
     """
     Download data from an endpoint. In addition this task removes header
     information from the response.
@@ -984,15 +986,18 @@ class StationTextDownloadTask(RawDownloadTask):
         Removes ``fdsnws-station`` ``format=text`` headers while downloading.
         """
 
-        with open(self.path_tempfile, 'wb') as ofd:
-            # NOTE(damb): For granular fdnsws-station-text request it seems
-            # ok buffering the entire response in memory.
-            with binary_request(req, logger=self.logger) as ifd:
-                for line in ifd:
-                    self._size += len(line)
-                    if line.startswith(b'#'):
-                        continue
-                    ofd.write(line.strip() + b'\n')
+        semaphore = self.semaphore_pool[self.url]
+
+        with semaphore:
+            with open(self.path_tempfile, 'wb') as ofd:
+                # NOTE(damb): For granular fdnsws-station-text request it seems
+                # ok buffering the entire response in memory.
+                with binary_request(req, logger=self.logger) as ifd:
+                    for line in ifd:
+                        self._size += len(line)
+                        if line.startswith(b'#'):
+                            continue
+                        ofd.write(line.strip() + b'\n')
 
 
 class StationXMLDownloadTask(RawDownloadTask):
@@ -1006,6 +1011,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         Network epoch extraction is performed stream based using a `SAX parser
         <https://lxml.de/api/lxml.etree.iterparse-class.html>`_.
     """
+
     NETWORK_TAG = settings.STATIONXML_ELEMENT_NETWORK
 
     def __init__(self, request_handler, **kwargs):
@@ -1020,6 +1026,7 @@ class StationXMLDownloadTask(RawDownloadTask):
         """
         Extracts ``Network`` elements from StationXML.
         """
+
         with open(self.path_tempfile, 'wb') as ofd:
             # XXX(damb): Load the entire result into memory.
             with binary_request(req, logger=self.logger) as ifd:

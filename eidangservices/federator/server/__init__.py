@@ -11,6 +11,7 @@ from flask_redis import FlaskRedis
 
 from eidangservices import settings
 from eidangservices.federator import __version__
+from eidangservices.federator.server.limit import PoolManager
 from eidangservices.federator.server.stats import ResponseCodeStats
 from eidangservices.federator.server.cache import Cache
 from eidangservices.utils import httperrors
@@ -22,7 +23,10 @@ from eidangservices.utils.fdsnws import (register_parser_errorhandler,
 redis_client = FlaskRedis()
 
 response_code_stats = ResponseCodeStats(redis=redis_client)
-
+semaphore_pool = PoolManager(
+    redis=redis_client,
+    url_alimit=('http://localhost:5002' + settings.EIDA_STATIONLITE_ALIMIT_PATH
+                + settings.FDSN_QUERY_METHOD_TOKEN))
 cache = Cache()
 
 

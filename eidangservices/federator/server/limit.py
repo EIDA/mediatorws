@@ -65,8 +65,9 @@ class PoolManager:
         return self._pool_map[url]
 
     def _set_default_pool(self, url):
-        self._pool_map.setdefault(
-            url, RequestSlotPool(self.redis, url, self._url_alimit))
+        if url not in self._pool_map:
+            self._pool_map[url] = RequestSlotPool(
+                self.redis, url, self._url_alimit)
 
 
 class RequestSlotPool:
@@ -77,7 +78,7 @@ class RequestSlotPool:
 
     LOGGER = 'flask.app.limit.pool'
 
-    class RequestSlot:
+    class _RequestSlot:
         """
         Implementation of a request slot object.
 
@@ -101,69 +102,80 @@ class RequestSlotPool:
             :param float timeout: Timeout in seconds. Disabled if set to -1.
             """
 
-            try_until = time.time() + timeout
-
             def client_side_incr(pipe):
-                current_value = pipe.get(self.key)
-                if maxsize == -1 or maxsize < current_value:
+                current_value = int(pipe.get(self.key))
+                if maxsize is None or maxsize > current_value:
                     next_value = current_value + 1
                     pipe.multi()
                     pipe.set(self.key, next_value)
 
-            def check_if_timed_out(timeout):
-                if timeout == -1:
-                    return True
-                else:
-                    return time.time() < try_until
 
-            timeout_passed = False
-            while True:
+            if maxsize != 0:
 
-                resp = redis.transaction(client_side_incr, self.key)
-                if len(resp) == 2 and all(resp):
-                    break
+                deadline = time.time() + timeout
+                def check_if_timed_out(timeout):
+                    if timeout == -1:
+                        return False
+                    else:
+                        return time.time() > deadline
 
-                if check_if_timed_out(timeout):
-                    timeout_passed = True
-                    break
+                timeout_passed = False
 
-                time.sleep(self._poll_interval)
+                while True:
 
-            return not timeout_passed
+                    resp = redis.transaction(client_side_incr, self.key)
+                    if resp and resp[-1]:
+                        break
 
-        def release(self, redis):
+                    if check_if_timed_out(timeout):
+                        timeout_passed = True
+                        break
+
+                    time.sleep(self._poll_interval)
+
+                return not timeout_passed
+
+            else:
+                return False
+
+        def release(self, redis, maxsize):
             """
             Release the slot.
             """
 
-            redis.decr(self.key)
+            if maxsize != 0:
+                redis.decr(self.key)
 
-    def __init__(self, redis, url, url_alimit, key_prefix='request-pool:'):
+    def __init__(self, redis, url, url_alimit,
+                 key_prefix='request-semaphore:'):
         """
         :param str url: URL the pool is mapped to
         :param str url_alimit: URL to the configuration service providing
             access limit information.
         """
+        self.logger = logging.getLogger(self.LOGGER)
+
         self.redis = redis
         self.url = url
         self.url_alimit = url_alimit
         self.key = key_prefix + url
 
         service = _extract_service_from_fdsnws_url(self.url)
-        self._maxsize = self._get_alimit({'service': service})
+        maxsize = self._get_maxsize({'service': service})
+        # self._maxsize = None if maxsize == -1 else maxsize
+        self._maxsize = 5
 
         self._init_redis(self.key)
 
-        self._pool = []
-
-        self.logger = logging.getLogger(self.LOGGER)
+        self._slots = []
 
     def acquire(self, timeout=-1, **kwargs):
 
-        slot = self.RequestSlot(self.url, **kwargs)
+        slot = self._RequestSlot(self.key, **kwargs)
 
-        if slot.acquire(self.redis, self._maxsize, timeout=timeout):
-            self._pool.append(slot)
+        acquired = slot.acquire(self.redis, self._maxsize, timeout=timeout)
+        if acquired:
+            self._slots.append(slot)
         else:
             self.logger.warning(
                 'No slots available, discarding connection: '
@@ -178,14 +190,15 @@ class RequestSlotPool:
 
     def release(self):
         """
-        Release a slot from a pool.
+        Release a slot.
         """
 
-        if not self._pool:
-            raise RuntimeError('Missing slot, releasing not possible.')
-
-        slot = self._pool.pop()
-        slot.release(self.redis)
+        try:
+            slot = self._slots.pop()
+        except IndexError:
+            pass
+        else:
+            slot.release(self.redis, self._maxsize)
 
     def __enter__(self):
         self.acquire()
@@ -197,20 +210,20 @@ class RequestSlotPool:
     def _init_redis(self, key):
         self.redis.set(key, 0)
 
-    def _get_alimit(self, query_params, default_alimit=-1):
+    def _get_maxsize(self, query_params, default_maxsize=None):
         """
         Fetch the access limit configuration for ``url``
 
         :param dict query_params: Query parameters send to the access limiting
             service.
-        :param int default_alimit: Default access limit returned in case of
-            errors. Unlimited access is granted if ``default_alimit=-1``.
+        :param int default_maxsize: Default access limit returned in case of
+            errors. Unlimited access is granted if ``default_maxsize=-1``.
         """
 
-        if self._alimit:
-            return self._alimit
+        if hasattr(self, '_maxsize'):
+            return self._maxsize
 
-        alimit = default_alimit
+        maxsize = default_maxsize
 
         try:
             resp = requests.get(self.url_alimit, params=query_params)
@@ -218,14 +231,14 @@ class RequestSlotPool:
         except requests.exceptions.RequestException as err:
             self.logger.warning(
                 'Access limit service unreachable: {!r}'.format(err))
-            return alimit
+            return maxsize
 
-        if resp.status != 200:
+        if resp.status_code != 200:
             self.logger.warning(
                 "Invalid response: url={!r}, resp={!r}".format(resp.url, resp))
-            return alimit
+            return maxsize
 
-        alimit = default_alimit
+        maxsize = default_maxsize
         for line in resp.text.split('\n'):
 
             line = line.rstrip()
@@ -235,10 +248,10 @@ class RequestSlotPool:
 
                 if _line and _line[0] == self.url:
                     try:
-                        alimit = int(_line[1])
+                        maxsize = int(_line[1])
 
-                        if alimit < -1:
-                            raise ValueError(alimit)
+                        if maxsize < -1:
+                            raise ValueError(maxsize)
 
                     except (IndexError, ValueError) as err:
                         self.logger.warning(
@@ -252,4 +265,13 @@ class RequestSlotPool:
                 'Missing access limit configuration for URL: {!r}'.format(
                     self.url))
 
-        return alimit
+        return maxsize
+
+    def __str__(self):
+        return ', '.join(['url={!r}'.format(self.url),
+                          'maxsize={!r}'.format(
+                              self._maxsize if hasattr(self, '_maxsize') else
+                              None)])
+
+    def __repr__(self):
+        return '<{}: {}>'.format(type(self).__name__, self)
