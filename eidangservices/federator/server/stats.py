@@ -169,19 +169,17 @@ class ResponseCodeTimeSeries(RedisCollection):
 
     def _append_helper(self, value, pipe, **kwargs):
 
-        score = time.time()
-        member = self._serialize(value, score)
-
-        pipe.zadd(self.key, {member: score})
-
         num_items = pipe.zcount(self.key, '-inf', '+inf')
 
-        # check window size restriction
-        if (self.window_size is None) or (num_items <= self.window_size):
-            return
-
         pipe.multi()
-        pipe.zremrangebyrank(self.key, 0, 0)
+        # check window size restriction
+        if (self.window_size is not None) and (num_items >= self.window_size):
+            idx = num_items - self.window_size
+            pipe.zremrangebyrank(self.key, 0, idx)
+
+        score = time.time()
+        member = self._serialize(value, score)
+        pipe.zadd(self.key, {member: score})
 
     def _data(self, pipe=None, **kwargs):
         """
