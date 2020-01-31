@@ -1,4 +1,4 @@
 """
 Base package for EIDA NG StationLite.
 """
-__version__ = '0.9.7'
+__version__ = '0.9.8'
