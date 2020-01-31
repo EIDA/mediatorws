@@ -32,7 +32,7 @@ class StationLiteResource(Resource):
     LOGGER = 'flask.app.stationlite.stationlite_resource'
 
     def __init__(self):
-        super(StationLiteResource, self).__init__()
+        super().__init__()
         self.logger = logging.getLogger(self.LOGGER)
 
     @use_args(schema.StationLiteSchema(), locations=('query',))
@@ -123,11 +123,6 @@ class StationLiteResource(Resource):
                 minlon=args['minlongitude'],
                 maxlon=args['maxlongitude'])
 
-            # adjust stream_epoch regarding time_constraints
-            for url, streams in _routes:
-                streams.modify_with_temporal_constraints(
-                    start=stream_epoch.starttime,
-                    end=stream_epoch.endtime)
             routes.extend(_routes)
 
         # flatten response list

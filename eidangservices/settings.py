@@ -560,8 +560,10 @@ EIDA_FEDERATOR_DEFAULT_STORAGE_URL = \
 EIDA_FEDERATOR_DEFAULT_RESOURCES = (
     'fdsnws-dataselect', 'fdsnws-station', 'eidaws-wfcatalog')
 # timeout the federator is waiting before the first endpoint request must be
-# answered.
-EIDA_FEDERATOR_STREAMING_TIMEOUT = 600
+# answered. Note, when deploying with Apache2 and mod_wsgi: The timeout should
+# be less than the socket-timeout configured of the mod_wsgi WSGIDeamonProcess
+# in order to avoid Gateway errors.
+EIDA_FEDERATOR_STREAMING_TIMEOUT = 895
 # timeout (federator) for endpoint requests. Should be <
 # EIDA_FEDERATOR_STREAMING_TIMEOUT
 EIDA_FEDERATOR_ENDPOINT_TIMEOUT = 540

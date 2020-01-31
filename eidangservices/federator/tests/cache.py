@@ -4,7 +4,9 @@ Cache related test facilities.
 """
 
 import os
+import random
 import shutil
+import string
 import tempfile
 import time
 import unittest
@@ -15,7 +17,9 @@ from eidangservices.federator.server.cache import FileSystemCache
 class FileSystemCacheTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.cache_dir = os.path.join(tempfile.gettempdir(), '__fed_fs_cache')
+        prefix = ''.join(random.choice(string.ascii_letters) for i in range(8))
+        self.cache_dir = os.path.join(tempfile.gettempdir(),
+                                      prefix + '__fed_fs_cache')
 
     def tearDown(self):
         try:
