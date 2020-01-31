@@ -30,7 +30,7 @@ class RedisCollection(metaclass=abc.ABCMeta):
 
         self.key = key or self._create_key()
 
-    def _transaction(self, fn, *extra_keys):
+    def _transaction(self, fn, *extra_keys, **kwargs):
         """
         Helper simplifying code within a watched transaction.
 
@@ -49,7 +49,7 @@ class RedisCollection(metaclass=abc.ABCMeta):
         def trans(pipe):
             results.append(fn(pipe))
 
-        self.redis.transaction(trans, self.key, *extra_keys)
+        self.redis.transaction(trans, self.key, *extra_keys, **kwargs)
         return results[0]
 
     @abc.abstractmethod
@@ -164,7 +164,7 @@ class ResponseCodeTimeSeries(RedisCollection):
         def append_trans(pipe):
             self._append_helper(value, pipe)
 
-        self._transaction(append_trans)
+        self._transaction(append_trans, watch_delay=0.1)
 
     def _append_helper(self, value, pipe, **kwargs):
 
