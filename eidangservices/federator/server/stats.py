@@ -58,6 +58,7 @@ class RedisCollection(metaclass=abc.ABCMeta):
         Helper for getting the time series data within a transaction.
 
         :param pipe: Redis pipe in case creation is performed as a part
+        pipe.multi()
                      of transaction.
         :type pipe: :py:class:`redis.client.StrictPipeline` or
                     :py:class:`redis.client.StrictRedis`
@@ -179,6 +180,7 @@ class ResponseCodeTimeSeries(RedisCollection):
         if (self.window_size is None) or (num_items <= self.window_size):
             return
 
+        pipe.multi()
         pipe.zremrangebyrank(self.key, 0, 0)
 
     def _data(self, pipe=None, **kwargs):
