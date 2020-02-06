@@ -44,28 +44,41 @@
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "fdsnws-station-xml":
 #   {"num_threads": 5,
 #    "request_strategy": "adaptive-bulk",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "fdsnws-station-text": 
 #   {"num_threads": 10,
 #    "request_strategy": "bulk",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "eidaws-wfcatalog":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
 #    "request_method": "POST",
-#    "proxy_netloc": null}}'
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null}}'
 # 
 # When configuring "proxy_netloc", then the routing service is forced to
 # prepend a constant network location to routed URLs.  This option may be used
 # if requests are redirected e.g. when using a proxy. Set to *null* if
 # redirecting should be disabled.
 # See also: https://tools.ietf.org/html/rfc1738#section-3.1
+#
+# "max_stream_epoch_duration" refers to the maximum allowed routed stream epoch
+# duration in days before HTTP status code 413 is raised.
+# "max_total_stream_epoch_duration" refers to the maxium allowed total routed
+# stream epoch duration before HTTP status code 413 is raised.
 #
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.
