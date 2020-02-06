@@ -214,7 +214,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
             raise FDSNHTTPError.create(self._nodata)
 
         if (self._max_total_stream_epoch_duration is not None and
-            self._strategy.total_stream_duration >=
+            self._strategy.total_stream_duration >
                 self._max_total_stream_epoch_duration):
             raise FDSNHTTPError.create(413, service_version=__version__)
 

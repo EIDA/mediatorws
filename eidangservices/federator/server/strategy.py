@@ -190,7 +190,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
 
                         duration = se.duration
                         if (max_stream_epoch_duration is not None and
-                                duration >= max_stream_epoch_duration):
+                                duration > max_stream_epoch_duration):
                             raise FDSNHTTPError.create(
                                 413, service_version=__version__)
 
