@@ -192,7 +192,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                         if (max_stream_epoch_duration is not None and
                                 duration >= max_stream_epoch_duration):
                             raise FDSNHTTPError.create(
-                                413, service=__version__)
+                                413, service_version=__version__)
 
                         try:
                             total_stream_duration += duration
