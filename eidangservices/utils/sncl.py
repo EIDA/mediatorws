@@ -350,6 +350,11 @@ class StreamEpoch(namedtuple('StreamEpoch',
     def channel(self):
         return self.stream.channel
 
+    @property
+    def duration(self):
+        with none_as_max(self.endtime) as end:
+            return abs(end - self.starttime)
+
     def __eq__(self, other):
         """
         Allows comparing :py:class:`StreamEpoch` objects.
@@ -552,6 +557,11 @@ class StreamEpochs:
         Expose stream to provide an interface equal to StreamEpoch.
         """
         return self._stream
+
+    @property
+    def duration(self):
+        with none_as_max(self.endtime) as end:
+            return abs(end - self.starttime)
 
     def __iter__(self):
         """
