@@ -75,6 +75,8 @@
 # redirecting should be disabled.
 # See also: https://tools.ietf.org/html/rfc1738#section-3.1
 #
+# Also, make sure that the proxy configured is reachable by eida-federator.
+#
 # "max_stream_epoch_duration" refers to the maximum allowed routed stream epoch
 # duration in days before HTTP status code 413 is raised.
 # "max_total_stream_epoch_duration" refers to the maxium allowed total routed
