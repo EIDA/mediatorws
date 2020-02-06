@@ -98,6 +98,12 @@ class RequestProcessor(ClientRetryBudgetMixin):
         :param proxy_netloc: Proxy netloc delegated to the routing service
             in use
         :type proxy_netloc: str or None
+        :param int max_stream_epoch_duration: Maximum epoch duration for a
+            single stream epochs in days before returning a *request too large*
+            error.
+        :param int max_total_stream_epoch_duration: Maximum allowed stream
+            epoch duration before returning in days before raising a *request
+            too large* error.
         """
 
         self.mimetype = mimetype
@@ -147,6 +153,17 @@ class RequestProcessor(ClientRetryBudgetMixin):
             'request_method', settings.EIDA_FEDERATOR_DEFAULT_HTTP_METHOD)
         self._num_threads = kwargs.get('num_threads', self.POOL_SIZE)
         self._proxy_netloc = kwargs.get('proxy_netloc')
+        try:
+            self._max_stream_epoch_duration = datetime.timedelta(
+                days=kwargs.get('max_stream_epoch_duration'))
+        except TypeError:
+            self._max_stream_epoch_duration = None
+
+        try:
+            self._max_total_stream_epoch_duration = datetime.timedelta(
+                days=kwargs.get('max_total_stream_epoch_duration'))
+        except TypeError:
+            self._max_total_stream_epoch_duration = None
 
         self._post = True
 
@@ -196,6 +213,11 @@ class RequestProcessor(ClientRetryBudgetMixin):
         if not self._num_routes:
             raise FDSNHTTPError.create(self._nodata)
 
+        if (self._max_total_stream_epoch_duration is not None and
+            self._strategy.total_stream_duration >=
+                self._max_total_stream_epoch_duration):
+            raise FDSNHTTPError.create(413, service_version=__version__)
+
         self._request()
 
         # XXX(damb): Only return a streamed response as soon as valid data
@@ -227,7 +249,8 @@ class RequestProcessor(ClientRetryBudgetMixin):
 
         self._num_routes = self._strategy.route(
             routing_req, post=self.post, nodata=self._nodata,
-            retry_budget_client=self._retry_budget_client)
+            retry_budget_client=self._retry_budget_client,
+            max_stream_epoch_duration=self._max_stream_epoch_duration)
 
     def _handle_error(self, err):
         self.logger.warning(str(err))

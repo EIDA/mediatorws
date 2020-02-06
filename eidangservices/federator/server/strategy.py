@@ -133,7 +133,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         """
         return self._total_stream_duration
 
-    def _route(self, req, post=True, **kwargs):
+    def _route(self, req, post=True, max_stream_epoch_duration=None, **kwargs):
         """
         Route a request and create a routing table. Routing is performed by
         means of the routing service provided.
@@ -142,6 +142,10 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         :type req: :py:class:`RoutingRequestHandler`
         :param bool post: Execute a the request to the routing service via HTTP
             POST
+        :param max_stream_epoch_duration: Maximum allowed stream epoch duration
+            in days of a single stream epoch before raising a *request too
+            large* error.
+        :type max_stream_epoch_duration: :py:class:`datetime.timedelta`
 
         :raises NoContent: If no routes are available
         :raises RequestsError: General exception if request to routing service
@@ -183,8 +187,15 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                         se = StreamEpoch.from_snclline(
                             line, default_endtime=(
                                 self._default_endtime if post else None))
+
+                        duration = se.duration
+                        if (max_stream_epoch_duration is not None and
+                                duration >= max_stream_epoch_duration):
+                            raise FDSNHTTPError.create(
+                                413, service=__version__)
+
                         try:
-                            total_stream_duration += se.duration
+                            total_stream_duration += duration
                         except OverflowError:
                             total_stream_duration = datetime.timedelta.max
 
@@ -217,8 +228,11 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         :type req: :py:class:`RoutingRequestHandler`
         :param float retry_budget_client: Per client retry-budget the
             ``routing_table`` is filtered with
-
         :param bool post: Request data by means of HTTP POST.
+        :param max_stream_epoch_duration: Maximum allowed stream epoch duration
+            in days of a single stream epoch before raising a *request too
+            large* error.
+        :type max_stream_epoch_duration: :py:class:`datetime.timedelta`
 
         :returns: Number of routes
         :rtype: int
