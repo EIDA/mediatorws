@@ -217,9 +217,6 @@ class RequestProcessor(ClientRetryBudgetMixin):
     def _route(self):
         """
         Route a federating request.
-
-        :retval: Number of routes received
-        :rtype: int
         """
         # XXX(damb): Configure access=closed if routing restricted data is
         # required.
