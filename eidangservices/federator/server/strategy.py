@@ -183,8 +183,11 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                         se = StreamEpoch.from_snclline(
                             line, default_endtime=(
                                 self._default_endtime if post else None))
+                        try:
+                            total_stream_duration += se.duration
+                        except OverflowError:
+                            total_stream_duration = datetime.timedelta.max
 
-                        total_stream_duration += se.duration
                         stream_epochs.append(se)
 
         except NoContent as err:
@@ -297,7 +300,9 @@ class GranularRequestStrategy(RequestStrategyBase):
         routing_table, total_stream_duration = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(
             routing_table, retry_budget_client,
-            total_stream_duration=total_stream_duration)
+            total_stream_duration=(total_stream_duration if
+                                   datetime.timedelta.max !=
+                                   total_stream_duration else None))
         self._routing_table_raw = routing_table
         self._total_stream_duration = total_stream_duration
 
@@ -350,7 +355,9 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
         routing_table, total_stream_duration = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(
             routing_table, retry_budget_client,
-            total_stream_duration=total_stream_duration)
+            total_stream_duration=(total_stream_duration if
+                                   datetime.timedelta.max !=
+                                   total_stream_duration else None))
         self._routing_table_raw = routing_table
         self._total_stream_duration = total_stream_duration
 
@@ -414,7 +421,9 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
         routing_table, total_stream_duration = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(
             routing_table, retry_budget_client,
-            total_stream_duration=total_stream_duration)
+            total_stream_duration=(total_stream_duration if
+                                   datetime.timedelta.max !=
+                                   total_stream_duration else None))
         self._routing_table_raw = routing_table
         self._total_stream_duration = total_stream_duration
 
@@ -492,7 +501,9 @@ class NetworkCombiningRequestStrategy(RequestStrategyBase):
         routing_table, total_stream_duration = super()._route(req, **kwargs)
         self._filter_by_client_retry_budget(
             routing_table, retry_budget_client,
-            total_stream_duration=total_stream_duration)
+            total_stream_duration=(total_stream_duration if
+                                   datetime.timedelta.max !=
+                                   total_stream_duration else None))
         self._routing_table_raw = routing_table
         self._total_stream_duration = total_stream_duration
 
