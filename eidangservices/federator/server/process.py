@@ -165,6 +165,15 @@ class RequestProcessor(ClientRetryBudgetMixin):
         except TypeError:
             self._max_total_stream_epoch_duration = None
 
+        if (None not in (self._max_total_stream_epoch_duration,
+                         self._max_stream_epoch_duration) and
+            self._max_total_stream_epoch_duration <=
+                self._max_stream_epoch_duration):
+            self.logger.warning(
+                'Invalid max_(total)_stream_epoch_duration configuration. '
+                'Limits are defined by the "max_total_stream_epoch_duration" '
+                'parameter.')
+
         self._post = True
 
     @staticmethod
