@@ -167,7 +167,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
 
         if (None not in (self._max_total_stream_epoch_duration,
                          self._max_stream_epoch_duration) and
-            self._max_total_stream_epoch_duration <=
+            self._max_total_stream_epoch_duration <
                 self._max_stream_epoch_duration):
             self.logger.warning(
                 'Invalid max_(total)_stream_epoch_duration configuration. '
