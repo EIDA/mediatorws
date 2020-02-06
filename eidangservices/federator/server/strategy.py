@@ -113,6 +113,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                                            datetime.datetime.utcnow())
 
         self._routing_table_raw = {}
+        self._total_stream_duration = datetime.timedelta()
 
     @property
     def routing_table(self):
@@ -122,6 +123,15 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         :rtype: dict
         """
         return self._routing_table_raw
+
+    @property
+    def total_stream_duration(self):
+        """
+        Return the overall stream duration of routed stream epochs.
+
+        :rtype: :py:class:`datetime.timedelta`
+        """
+        return self._total_stream_duration
 
     def _route(self, req, post=True, **kwargs):
         """
@@ -141,6 +151,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         _req = (req.post() if post else req.get())
 
         routing_table = {}
+        total_stream_duration = datetime.timedelta()
         self.logger.info("Fetching routes from %s" % req.url)
         try:
             with binary_request(_req) as fd:
@@ -169,9 +180,12 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                         # performing HTTP GET requests in order to guarantee
                         # more cache hits (if eida-federator is coupled with
                         # HTTP caching proxy).
-                        stream_epochs.append(
-                            StreamEpoch.from_snclline(line, default_endtime=(
-                                self._default_endtime if post else None)))
+                        se = StreamEpoch.from_snclline(
+                            line, default_endtime=(
+                                self._default_endtime if post else None))
+
+                        total_stream_duration += se.duration
+                        stream_epochs.append(se)
 
         except NoContent as err:
             self.logger.warning(err)
@@ -186,7 +200,7 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
             self.logger.debug(
                 'Number of routes received: {}'.format(len(routing_table)))
 
-        return routing_table
+        return routing_table, total_stream_duration
 
     def route(self, req, retry_budget_client=100, **kwargs):
         """
@@ -235,7 +249,8 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
             return t
 
     def _filter_by_client_retry_budget(
-            self, routing_table, retry_budget_client):
+        self, routing_table, retry_budget_client,
+            total_stream_duration=None):
         """
         Filter ``routing_table`` based on a per-client retry budget.
 
@@ -244,6 +259,8 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
         :param float retry_budget_client: Per client retry-budget the
             ``routing_table`` is filtered with. If the budget is equal to 100
             percent, then no filtering is performed at all.
+        :param total_stream_duration: Overall routed stream duration
+        :type total_stream_duration: :py:class:`datetime.timedelta` or None
         """
 
         if retry_budget_client == 100:
@@ -259,6 +276,11 @@ class RequestStrategyBase(ClientRetryBudgetMixin):
                     'Removing route (URL={}) due to past client retry budget: '
                     '({} > {})'.format(url, error_ratios[url],
                                        retry_budget_client))
+
+                if total_stream_duration is not None:
+                    for se in routing_table[url]:
+                        total_stream_duration -= se.duration
+
                 del routing_table[url]
 
 
@@ -272,9 +294,12 @@ class GranularRequestStrategy(RequestStrategyBase):
         Implements fully demultiplexed routing.
         """
 
-        routing_table = super()._route(req, **kwargs)
-        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        routing_table, total_stream_duration = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(
+            routing_table, retry_budget_client,
+            total_stream_duration=total_stream_duration)
         self._routing_table_raw = routing_table
+        self._total_stream_duration = total_stream_duration
 
         self._routes = demux_routes(routing_table)
 
@@ -322,9 +347,12 @@ class NetworkBulkRequestStrategy(RequestStrategyBase):
 
         # NOTE(damb): We firstly group routes by network code. Afterwards,
         # grouped routes are multiplexed by network code, again.
-        routing_table = super()._route(req, **kwargs)
-        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        routing_table, total_stream_duration = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(
+            routing_table, retry_budget_client,
+            total_stream_duration=total_stream_duration)
         self._routing_table_raw = routing_table
+        self._total_stream_duration = total_stream_duration
 
         self._routes = _mux_routes(routing_table)
 
@@ -383,9 +411,12 @@ class AdaptiveNetworkBulkRequestStrategy(NetworkBulkRequestStrategy):
         """
         Demultiplex routes for distributed physical networks.
         """
-        routing_table = super()._route(req, **kwargs)
-        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        routing_table, total_stream_duration = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(
+            routing_table, retry_budget_client,
+            total_stream_duration=total_stream_duration)
         self._routing_table_raw = routing_table
+        self._total_stream_duration = total_stream_duration
 
         self._routes = {}
         for net, _routes in _mux_routes(routing_table).items():
@@ -458,9 +489,12 @@ class NetworkCombiningRequestStrategy(RequestStrategyBase):
     """
 
     def route(self, req, retry_budget_client=100, **kwargs):
-        routing_table = super()._route(req, **kwargs)
-        self._filter_by_client_retry_budget(routing_table, retry_budget_client)
+        routing_table, total_stream_duration = super()._route(req, **kwargs)
+        self._filter_by_client_retry_budget(
+            routing_table, retry_budget_client,
+            total_stream_duration=total_stream_duration)
         self._routing_table_raw = routing_table
+        self._total_stream_duration = total_stream_duration
 
         self._routes = group_routes_by(routing_table, key='network')
 
