@@ -296,7 +296,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
                     'No valid results to be federated. ({})'.format(
                         ('No valid results.' if not self._results else
                          'Timeout ({}).'.format(timeout))))
-                raise FDSNHTTPError.create(self._nodata)
+                raise FDSNHTTPError.create(413, service_version=__version__)
 
     def _terminate(self):
         """
