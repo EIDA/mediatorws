@@ -583,6 +583,11 @@ EIDA_FEDERATOR_THREADS_WFCATALOG = 10
 EIDA_FEDERATOR_DEFAULT_HTTP_METHOD = 'POST'
 # default netloc prefixed to all URLs (used for routing service)
 EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY = None
+# default maximum stream epoch days per single stream epoch before raising HTTP
+# code 413
+EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS = None
+# default maximum total stream epoch days before raising HTTP code 413
+EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS_TOTAL = None
 
 EIDA_FEDERATOR_RESOURCE_CONFIG = {
     "fdsnws-dataselect": {
@@ -590,24 +595,40 @@ EIDA_FEDERATOR_RESOURCE_CONFIG = {
         'request_strategy': 'granular',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
         'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
+        'max_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS,
+        'max_total_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS_TOTAL,
     },
     "fdsnws-station-xml": {
         'num_threads': EIDA_FEDERATOR_THREADS_STATION_XML,
         'request_strategy': 'adaptive-bulk',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
         'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
+        'max_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS,
+        'max_total_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS_TOTAL,
     },
     "fdsnws-station-text": {
         'num_threads': EIDA_FEDERATOR_THREADS_STATION_TEXT,
         'request_strategy': 'bulk',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
         'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
+        'max_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS,
+        'max_total_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS_TOTAL,
     },
     "eidaws-wfcatalog": {
         'num_threads': EIDA_FEDERATOR_THREADS_WFCATALOG,
         'request_strategy': 'granular',
         'request_method': EIDA_FEDERATOR_DEFAULT_HTTP_METHOD,
         'proxy_netloc': EIDA_FEDERATOR_DEFAULT_NETLOC_PROXY,
+        'max_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS,
+        'max_total_stream_epoch_duration':
+        EIDA_FEDERATOR_DEFAULT_MAX_STREAM_EPOCH_DAYS_TOTAL,
     }
 }
 

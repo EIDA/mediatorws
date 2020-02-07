@@ -7,6 +7,7 @@ Launch EIDA NG Federator.
 import argparse
 import collections
 import copy
+import datetime
 import inspect
 import json
 import os
@@ -90,6 +91,21 @@ def resource_config(config_dict):
                     raise argparse.ArgumentTypeError(str(err))
                 else:
                     v = '//' + r.netloc
+
+            if (strict and k in ('max_stream_epoch_duration',
+                                 'max_total_stream_epoch_duration')):
+                if v is None:
+                    continue
+
+                try:
+                    delta = datetime.timedelta(days=v)
+
+                    if (delta <= datetime.timedelta()):
+                        raise ValueError(
+                            'Invalid max (total) stream epoch duration value: '
+                            '{}'.format(delta))
+                except Exception as err:
+                    raise argparse.ArgumentTypeError(str(err))
 
     try:
         config_dict = json.loads(config_dict)
