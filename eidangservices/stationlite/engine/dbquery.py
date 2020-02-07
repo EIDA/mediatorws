@@ -21,8 +21,8 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     """
     Resolve a stream epoch regarding virtual networks.
 
-    :returns: List of :py:class:`~eidangservices.utils.sncl.StreamEpochs` object
-        instances.
+    :returns: List of :py:class:`~eidangservices.utils.sncl.StreamEpochs`
+        object instances.
     :rtype: list
     """
     if (stream_epoch.network == settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR or
