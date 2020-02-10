@@ -3556,6 +3556,65 @@
 						"method": "GET",
 						"header": [],
 						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?net=CH&start=2018-01-01&end=2018-01-02&sta=HASLI,DAVOX",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "net",
+									"value": "CH"
+								},
+								{
+									"key": "start",
+									"value": "2018-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2018-01-02"
+								},
+								{
+									"key": "sta",
+									"value": "HASLI,DAVOX"
+								}
+							]
+						},
+						"description": "Single node, single network, multi stations"
+					},
+					"response": []
+				},
+				{
+					"name": "query?net=CH",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"application/json\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
 							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?net=CH&start=2018-01-01&end=2018-01-02",
 							"host": [
 								"{{url_base}}"
@@ -3582,7 +3641,7 @@
 								}
 							]
 						},
-						"description": "Single node, single network, multi stations"
+						"description": "Single network, multi stations"
 					},
 					"response": []
 				}
