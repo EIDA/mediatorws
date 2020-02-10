@@ -44,24 +44,35 @@ storage=redis://federator-redis:6379/0
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "fdsnws-station-xml":
 #   {"num_threads": 5,
 #    "request_strategy": "adaptive-bulk",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "fdsnws-station-text": 
 #   {"num_threads": 10,
 #    "request_strategy": "bulk",
 #    "request_method": "POST",
-#    "proxy_netloc": null},
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null},
 #  "eidaws-wfcatalog":
 #   {"num_threads": 10,
 #    "request_strategy": "granular",
 #    "request_method": "POST",
-#    "proxy_netloc": null}}'
+#    "proxy_netloc": null,
+#    "max_stream_epoch_duration": null,
+#    "max_total_stream_epoch_duration": null}}'
 # 
 resource_config = {
+ "fdsnws-dataselect":
+  {"max_stream_epoch_duration": 35,
+   "max_total_stream_epoch_duration": 1000},
  "fdsnws-station-xml":
   {"request_strategy": "combining",
    "request_method": "GET",
@@ -78,6 +89,11 @@ resource_config = {
 # See also: https://tools.ietf.org/html/rfc1738#section-3.1
 #
 # Also, make sure that the proxy configured is reachable by eida-federator.
+#
+# "max_stream_epoch_duration" refers to the maximum allowed routed stream epoch
+# duration in days before HTTP status code 413 is raised.
+# "max_total_stream_epoch_duration" refers to the maxium allowed total routed
+# stream epoch duration before HTTP status code 413 is raised.
 #
 # NOTE: For "fdsnws-station-xml" the number of download threads ("num_threads")
 # scales squared.

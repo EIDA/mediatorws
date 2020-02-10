@@ -65,6 +65,56 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
         test_dict = fdsnws.FDSNWSParserMixin.\
             _parse_streamepochs_from_argdict(arg_dict)
 
+        self.assertEqual(len(test_dict['stream_epochs']), 2)
+        self.assertIn(test_dict['stream_epochs'][0], reference_result)
+        self.assertIn(test_dict['stream_epochs'][1], reference_result)
+
+    def test_parse_dict_multiple_redundant(self):
+        arg_dict = MultiDict({'f': 'value',
+                              'net': 'CH',
+                              'sta': 'DAVOX,BALST,BALST,BALST',
+                              'start': '2017-01-01',
+                              'end': '2017-01-07'})
+
+        reference_result = [{
+            'net': 'CH',
+            'sta': 'DAVOX',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}, {
+            'net': 'CH',
+            'sta': 'BALST',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}]
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_streamepochs_from_argdict(arg_dict)
+
+        self.assertEqual(len(test_dict['stream_epochs']), 2)
+        self.assertIn(test_dict['stream_epochs'][0], reference_result)
+        self.assertIn(test_dict['stream_epochs'][1], reference_result)
+
+    def test_parse_dict_multiple_star(self):
+        arg_dict = MultiDict({'f': 'value',
+                              'net': 'CH',
+                              'sta': 'DAVOX,BALST,*',
+                              'start': '2017-01-01',
+                              'end': '2017-01-07'})
+
+        reference_result = [{
+            'net': 'CH',
+            'sta': '*',
+            'loc': '*',
+            'cha': '*',
+            'start': '2017-01-01',
+            'end': '2017-01-07'}, ]
+
+        test_dict = fdsnws.FDSNWSParserMixin.\
+            _parse_streamepochs_from_argdict(arg_dict)
+
         self.assertEqual(test_dict['stream_epochs'], reference_result)
 
     def test_postfile_single(self):
@@ -109,7 +159,12 @@ class FDSNWSParserMixinTestCase(unittest.TestCase):
         test_dict = fdsnws.FDSNWSParserMixin.\
             _parse_postfile(postfile)
 
-        self.assertEqual(test_dict, reference_result)
+        self.assertIn('f', test_dict)
+        self.assertEqual(test_dict['f'], reference_result['f'])
+        self.assertIn(test_dict['stream_epochs'][1],
+                      reference_result['stream_epochs'])
+        self.assertIn(test_dict['stream_epochs'][0],
+                      reference_result['stream_epochs'])
 
     def test_postfile_invalid(self):
         postfile = "f=value\nNL HGN * 2013-10-10 2013-10-11"
@@ -232,7 +287,7 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
             context={'request': mock_request}),
             mock_request,
             locations=('query',))['stream_epochs']
-        self.assertEqual(sncls, reference_sncls)
+        self.assertEqual(sorted(sncls), sorted(reference_sncls))
 
     @mock.patch('flask.Request')
     def test_get_missing(self, mock_request):
@@ -316,11 +371,13 @@ class FDSNWSFlaskParserTestCase(unittest.TestCase):
         test_args = fdsnws.fdsnws_parser.parse(self.TestSchema(), mock_request,
                                                locations=('form',))
         self.assertEqual(dict(test_args), {'f': 'value'})
+
         sncls = fdsnws.fdsnws_parser.parse(schema.ManyStreamEpochSchema(
             context={'request': mock_request}),
             mock_request,
             locations=('form',))['stream_epochs']
-        self.assertEqual(sncls, reference_sncls)
+        self.assertIn(sncls[0], reference_sncls)
+        self.assertIn(sncls[1], reference_sncls)
 
     @mock.patch('flask.Request')
     def test_post_empty(self, mock_request):
