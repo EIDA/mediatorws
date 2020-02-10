@@ -7,8 +7,8 @@ import collections
 import logging
 
 from eidangservices import utils, settings
-from eidangservices.utils.sncl import (StreamEpochs, StreamEpochsHandler,
-                                       none_as_max)
+from eidangservices.utils.sncl import (
+    StreamEpoch, StreamEpochs, StreamEpochsHandler, none_as_max)
 
 from eidangservices.stationlite.engine import orm
 
@@ -21,8 +21,8 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
     """
     Resolve a stream epoch regarding virtual networks.
 
-    :returns: List of :py:class:`eidangservices.utils.sncl.StreamEpoch` object
-        instances.
+    :returns: List of :py:class:`~eidangservices.utils.sncl.StreamEpochs`
+        object instances.
     :rtype: list
     """
     if (stream_epoch.network == settings.FDSNWS_QUERY_WILDCARD_MULT_CHAR or
@@ -60,7 +60,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
         query = query.\
             filter(orm.StreamEpoch.starttime < sql_stream_epoch.endtime)
 
-    # slice the stream epoch
+    # slice stream epochs
     sliced_ses = []
     for s in query.all():
         # print('Query response: {0!r}'.format(StreamEpoch.from_orm(s)))
@@ -77,8 +77,7 @@ def resolve_vnetwork(session, stream_epoch, like_escape='/'):
             sliced_ses.append(se)
 
     logger.debug(
-        'Found {0!r} matching {0!r}'.format(sorted(sliced_ses),
-                                            stream_epoch))
+        'Found %r matching %r' % (sorted(sliced_ses), stream_epoch, ))
 
     return [se for ses in sliced_ses for se in ses]
 
@@ -91,9 +90,9 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     Return routes for a given stream epoch.
 
     :param session: SQLAlchemy session
-    :type session: :py:class:`sqlalchemy.orm.sessionSession`
+    :type session: :py:class:`sqlalchemy.orm.session.Session`
     :param stream_epoch: StreamEpoch the database query is performed with
-    :type stream_epoch: :py:class:`eidangservices.utils.sncl.StreamEpoch`
+    :type stream_epoch: :py:class:`~eidangservices.utils.sncl.StreamEpoch`
     :param str service: String specifying the webservice
     :param str level: Optional `fdsnws-station` *level* parameter
     :param str access: Optional access parameter; The parameter is only taken
@@ -106,7 +105,7 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
     :param float maxlon: Longitude smaller than or equal to the specified
         maximum
     :param str like_escape: Character used for the `SQL ESCAPE` statement
-    :return: List of :py:class:`eidangservices.utils.Route` objects
+    :return: List of :py:class:`~eidangservices.utils.Route` objects
     :rtype: list
     """
     VALID_ACCESS = ('open', 'closed', 'any')
@@ -198,14 +197,15 @@ def find_streamepochs_and_routes(session, stream_epoch, service,
         # NOTE(damb): Set endtime to 'max' if undefined (i.e. device currently
         # acquiring data).
         with none_as_max(endtime) as end:
-            stream_epochs = StreamEpochs(
+            stream_epoch = StreamEpoch.from_sncl(
                 network=row[4],
                 station=sta,
                 location=loc,
                 channel=cha,
-                epochs=[(starttime, end)])
+                starttime=starttime,
+                endtime=end)
 
-            routes[row[8]].merge([stream_epochs])
+            routes[row[8]].add(stream_epoch)
 
     return [utils.Route(url=url, streams=streams)
             for url, streams in routes.items()]

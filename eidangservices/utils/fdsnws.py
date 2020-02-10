@@ -8,6 +8,8 @@ import itertools
 import sys
 import traceback
 
+from collections import namedtuple
+
 import webargs
 
 from webargs.flaskparser import FlaskParser
@@ -60,9 +62,21 @@ class FDSNWSParserMixin:
 
         # preprocess the req.args multidict regarding SNCL parameters
         networks = _get_values(('net', 'network')) or ['*']
+        networks = set(networks)
+        if '*' in networks:
+            networks = ['*']
         stations = _get_values(('sta', 'station')) or ['*']
+        stations = set(stations)
+        if '*' in stations:
+            stations = ['*']
         locations = _get_values(('loc', 'location')) or ['*']
+        locations = set(locations)
+        if '*' in locations:
+            locations = ['*']
         channels = _get_values(('cha', 'channel')) or ['*']
+        channels = set(channels)
+        if '*' in channels:
+            channels= ['*']
 
         stream_epochs = []
         for prod in itertools.product(networks, stations, locations, channels):
@@ -92,8 +106,11 @@ class FDSNWSParserMixin:
         :returns: Dictionary with parsed parameters.
         :rtype: dict
         """
-        retval = {'stream_epochs': []}
+        _StreamEpoch = namedtuple(
+            '_StreamEpoch', ['net', 'sta', 'loc', 'cha', 'start', 'end'])
 
+        retval = {}
+        stream_epochs = []
         for line in postfile.split('\n'):
             check_param = line.split(
                 settings.FDSNWS_QUERY_VALUE_SEPARATOR_CHAR)
@@ -107,17 +124,21 @@ class FDSNWSParserMixin:
                 # parse StreamEpoch
                 stream_epoch = line.split()
                 if len(stream_epoch) == 6:
-                    stream_epoch = {
-                        'net': stream_epoch[0],
-                        'sta': stream_epoch[1],
-                        'loc': stream_epoch[2],
-                        'cha': stream_epoch[3],
-                        'start': stream_epoch[4],
-                        'end': stream_epoch[5]}
-                    retval['stream_epochs'].append(stream_epoch)
+                    stream_epoch = _StreamEpoch(
+                        net=stream_epoch[0],
+                        sta=stream_epoch[1],
+                        loc=stream_epoch[2],
+                        cha=stream_epoch[3],
+                        start=stream_epoch[4],
+                        end=stream_epoch[5])
+                    stream_epochs.append(stream_epoch)
             else:
                 # self.logger.warn("Ignoring illegal POST line: %s" % line)
                 continue
+
+        # remove duplicates
+        stream_epochs = list(set(stream_epochs))
+        retval['stream_epochs'] = [se._asdict() for se in stream_epochs]
 
         return retval
 

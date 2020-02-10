@@ -97,7 +97,7 @@ class StationLiteResource(Resource):
 
     def _process_request(
             self, args, stream_epochs, netloc_proxy=None):
-        # resolve virtual network streamepochs
+        # resolve virtual network stream epochs
         vnet_stream_epochs = []
         for stream_epoch in stream_epochs:
             self.logger.debug(
@@ -123,11 +123,15 @@ class StationLiteResource(Resource):
                 minlon=args['minlongitude'],
                 maxlon=args['maxlongitude'])
 
+            # adjust stream epochs regarding time constraints
+            for url, streams in _routes:
+                streams.modify_with_temporal_constraints(
+                    start=stream_epoch.starttime,
+                    end=stream_epoch.endtime)
+
             routes.extend(_routes)
 
-        # flatten response list
         self.logger.debug('StationLite routes: %s' % routes)
-
         # merge stream epochs for each route
         merged_routes = collections.defaultdict(StreamEpochsHandler)
         for url, stream_epochs in routes:
