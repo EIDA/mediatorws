@@ -902,7 +902,7 @@ class RawDownloadTask(TaskBase, ClientRetryBudgetMixin):
         try:
             self._run(req)
         except RequestsError as err:
-            if hasattr(err, response) and err.response is not None:
+            if hasattr(err, 'response') and err.response is not None:
                 # set response code only if a connection could be established
                 code = err.response.status_code
             return self._handle_error(err)
