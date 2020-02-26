@@ -318,13 +318,18 @@ class RequestProcessor(ClientRetryBudgetMixin):
             if result_with_data:
                 break
 
-            if (not self._results or datetime.datetime.utcnow() >
-                self.DEFAULT_ENDTIME +
-                    datetime.timedelta(seconds=timeout)):
+            if not self._results:
                 self.logger.warning(
-                    'No valid results to be federated. ({})'.format(
-                        ('No valid results.' if not self._results else
-                         'Timeout ({}).'.format(timeout))))
+                    'No valid results to be federated (No valid '
+                    'results).')
+                raise FDSNHTTPError.create(self._nodata)
+
+            if (datetime.datetime.utcnow() >
+                    (self.DEFAULT_ENDTIME +
+                     datetime.timedelta(seconds=timeout))):
+                self.logger.warning(
+                    'No valid results to be federated '
+                    '(Timeout ({} s)).'.format(timeout))
                 raise FDSNHTTPError.create(413, service_version=__version__)
 
     def _terminate(self):
@@ -338,6 +343,7 @@ class RequestProcessor(ClientRetryBudgetMixin):
             self._ctx.release()
         except (AttributeError, ErrorWithTraceback):
             pass
+
         self._pool.terminate()
         self._pool.join()
 
