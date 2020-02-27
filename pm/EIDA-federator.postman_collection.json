@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "5b26c816-7092-458f-996e-6ab39f135a13",
+		"_postman_id": "22b22685-22ea-4cc8-b5a2-33fa1d8ff964",
 		"name": "EIDA/federator",
 		"description": "API and integration tests for the EIDA federator webservice (fdsnws-station endpoint).",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -3642,6 +3642,61 @@
 							]
 						},
 						"description": "Single network, multi stations"
+					},
+					"response": []
+				},
+				{
+					"name": "query?sta=EPOS - no response",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e770af07-24cd-4be2-8192-715d61948336",
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.test(\"Header is correct\", function () {",
+									"    pm.response.to.have.header(\"Content-Type\");",
+									"    pm.response.to.be.header(\"Content-Type\", \"text/plain; charset=utf-8\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url_base}}:{{port_fed}}/eidaws/wfcatalog/1/query?sta=EPOS&start=2018-01-01&end=2018-01-02",
+							"host": [
+								"{{url_base}}"
+							],
+							"port": "{{port_fed}}",
+							"path": [
+								"eidaws",
+								"wfcatalog",
+								"1",
+								"query"
+							],
+							"query": [
+								{
+									"key": "sta",
+									"value": "EPOS"
+								},
+								{
+									"key": "start",
+									"value": "2018-01-01"
+								},
+								{
+									"key": "end",
+									"value": "2018-01-02"
+								}
+							]
+						},
+						"description": "Single node, single station, no response"
 					},
 					"response": []
 				}

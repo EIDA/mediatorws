@@ -318,18 +318,29 @@ class RequestProcessor(ClientRetryBudgetMixin):
             if result_with_data:
                 break
 
-            if (not self._results or datetime.datetime.utcnow() >
-                self.DEFAULT_ENDTIME +
-                    datetime.timedelta(seconds=timeout)):
+            if not self._results:
                 self.logger.warning(
-                    'No valid results to be federated. ({})'.format(
-                        ('No valid results.' if not self._results else
-                         'Timeout ({}).'.format(timeout))))
+                    'No valid results to be federated (No valid '
+                    'results).')
+                raise FDSNHTTPError.create(self._nodata)
+
+            if (datetime.datetime.utcnow() >
+                    (self.DEFAULT_ENDTIME +
+                     datetime.timedelta(seconds=timeout))):
+                self.logger.warning(
+                    'No valid results to be federated '
+                    '(Timeout ({} s)).'.format(timeout))
+                self._terminate(exec_join=False)
                 raise FDSNHTTPError.create(413, service_version=__version__)
 
-    def _terminate(self):
+    def _terminate(self, exec_join=True):
         """
         Terminate the processor.
+
+        :param bool exec_join: If ``True`` then execute a
+            :py:meth:`multiprocessing.Pool.join` while terminating else skip
+            joining the pool. In the latter case tasks are required to perform
+            the *teardown* by themselves.
 
         Implies both shutting down the processor's pool and removing temporary
         files of already successfully returned tasks.
@@ -338,8 +349,10 @@ class RequestProcessor(ClientRetryBudgetMixin):
             self._ctx.release()
         except (AttributeError, ErrorWithTraceback):
             pass
+
         self._pool.terminate()
-        self._pool.join()
+        if exec_join:
+            self._pool.join()
 
         if (self._keep_tempfiles not in (KeepTempfiles.ALL,
                                          KeepTempfiles.ON_ERRORS)):
