@@ -25,7 +25,7 @@
 # odc, resif, uib}.
 #
 # nodes_exclude = bgr eth gfz
-nodes_exclude = resif
+nodes_exclude = resif gfz
 #
 # ----
 # Do not harvest <route></route> information while harvesting.
