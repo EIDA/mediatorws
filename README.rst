@@ -6,6 +6,13 @@
 EIDA NG Mediator/Federator webservices
 **************************************
 
+.. note::
+
+  **Disclaimer: This is an archived repository. Here, no further development
+  takes place. Instead, development continues at https://github.com/EIDA/eidaws
+  and https://github.com/EIDA/eidaws-federator-deployment.**
+
+
 |BuildStatus|_ (py35, py36)
 
 This repository is intended to contain the source code for three of the web
